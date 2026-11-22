@@ -7,7 +7,7 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const AIM = ["first", "last", "tough", "near"];
 
-  function computeLayout(cssW, cssH) {
+  function computeLayout(cssW, cssH, inspecting) {
     const portrait = cssH >= cssW * 0.9;
     const vw = portrait ? 400 : 400 * (cssW / cssH);
     const vh = portrait ? 400 * (cssH / cssW) : 400;
@@ -15,13 +15,16 @@
     let footerH = 0;
     let sideW = 0;
     if (portrait) {
-      // Tall enough for three two-line upgrade buttons on a short phone.
-      footerH = Math.round(Math.min(348, Math.max(286, vh * 0.4)));
-      const minMap = 210;
-      if (headerH + footerH > vh - minMap) footerH = Math.max(200, vh - headerH - minMap);
+      // Shop bar is about a third slimmer than the old 40% footer.
+      // Selecting a tower grows it just enough for three 40px path buttons.
+      const shop = Math.round(Math.min(224, Math.max(188, vh * 0.255)));
+      const upgrade = 232;
+      footerH = inspecting ? Math.max(shop, upgrade) : shop;
+      const minMap = 230;
+      if (headerH + footerH > vh - minMap) footerH = Math.max(176, vh - headerH - minMap);
     } else {
-      sideW = Math.max(270, Math.min(332, Math.round(vw * 0.36)));
-      if (sideW > vw - 220) sideW = Math.max(200, vw - 220);
+      sideW = Math.round(Math.min(210, Math.max(186, vw * 0.24)));
+      if (sideW > vw - 240) sideW = Math.max(160, vw - 240);
     }
     const mapBox = {
       x: 0,
@@ -41,7 +44,7 @@
       ? { x: 0, y: vh - footerH, w: vw, h: footerH }
       : { x: vw - sideW, y: headerH, w: sideW, h: vh - headerH };
     return {
-      portrait, vw, vh, headerH, footerH, sideW,
+      portrait, vw, vh, headerH, footerH, sideW, inspecting: !!inspecting,
       mapBox, scale, ox, oy, worldTop, worldW, worldH, panel,
     };
   }
@@ -1053,7 +1056,8 @@
       canvas.width = w;
       canvas.height = h;
     }
-    state.layout = computeLayout(cssW, cssH);
+    const inspecting = state.screen === "play" && !!state.selectedId && !state.placing;
+    state.layout = computeLayout(cssW, cssH, inspecting);
     state.cssScaleX = w / state.layout.vw;
     state.cssScaleY = h / state.layout.vh;
     state.viewScale = state.cssScaleX;
@@ -1326,7 +1330,8 @@
   let last = performance.now();
   function frame(now) {
     const rect = canvas.getBoundingClientRect();
-    if (!state.layout || Math.abs(rect.width - state._cssW) > 0.5 || Math.abs(rect.height - state._cssH) > 0.5) resize();
+    const inspecting = state.screen === "play" && !!state.selectedId && !state.placing;
+    if (!state.layout || Math.abs(rect.width - state._cssW) > 0.5 || Math.abs(rect.height - state._cssH) > 0.5 || !!state.layout.inspecting !== inspecting) resize();
     const real = Math.min(0.05, (now - last) / 1000) || 0;
     last = now;
     try {

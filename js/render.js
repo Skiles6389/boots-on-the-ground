@@ -125,10 +125,11 @@
     const pressed = state.pressedId === spec.id && !spec.disabled;
     const py = y + (pressed ? Math.min(4, h * 0.08) : 0);
     const hot = pointerHot(state, x, y, w, h);
-    const radius = spec.radius || Math.min(18, h / 2);
+    const radius = spec.radius || Math.min(14, h / 2);
     const lip = spec.lip || "#8a5a18";
+    const lipDrop = h < 56 ? 2 : 3;
     ctx.save();
-    fillRound(ctx, x, y + 5, w, h, radius, spec.disabled ? "#b7b1a6" : lip);
+    fillRound(ctx, x, y + lipDrop, w, h, radius, spec.disabled ? "#b7b1a6" : lip);
     const top = spec.disabled ? "#e4dfd6" : (hot ? spec.hotTop || spec.fillTop : spec.fillTop) || "#ffe56a";
     const bot = spec.disabled ? "#d4cfc4" : (hot ? spec.hotBot || spec.fillBot : spec.fillBot) || top;
     const g = ctx.createLinearGradient(x, py, x, py + h);
@@ -156,24 +157,49 @@
       strokeRound(ctx, x - 3, py - 3, w + 6, h + 6, radius + 3);
     }
     if (spec.icon) spec.icon(ctx, x, py, w, h);
-    else if (spec.portraitKey) {
-      const ph = Math.max(24, h - 36);
-      drawPortrait(ctx, spec.portraitKey, x + 6, py + 5, w - 12, ph);
-      ctx.textAlign = "center";
+    else if (spec.shopRow) {
+      const ih = Math.min(40, h - 8);
+      drawPortrait(ctx, spec.portraitKey, x + 4, py + (h - ih) / 2, ih, ih);
+      ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       const name = spec.label || "";
-      font(ctx, 13);
-      const ns = fitSize(ctx, name, w - 12, 15);
-      label(ctx, name, x + w / 2, py + h - 22, ns, INK, null, 0);
+      const ns = fitSize(ctx, name, w - ih - 62, 14);
+      label(ctx, name, x + ih + 12, py + h / 2 - 1, ns, INK, null, 0);
       const cost = "$" + spec.cost;
       const affordable = spec.affordable !== false;
       font(ctx, 12);
-      const cw = Math.max(36, ctx.measureText(cost).width + 14);
-      fillRound(ctx, x + w / 2 - cw / 2, py + h - 16, cw, 14, 7, affordable ? "#ffe14a" : "#ff8d86");
-      ctx.lineWidth = 1.6;
+      const cw = Math.max(36, ctx.measureText(cost).width + 12);
+      const chipH = 16;
+      const cx = x + w - cw - 8;
+      fillRound(ctx, cx, py + (h - chipH) / 2, cw, chipH, 8, affordable ? "#ffe14a" : "#ff8d86");
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = INK;
-      strokeRound(ctx, x + w / 2 - cw / 2, py + h - 16, cw, 14, 7);
-      label(ctx, cost, x + w / 2, py + h - 9, 12, INK, null, 0);
+      strokeRound(ctx, cx, py + (h - chipH) / 2, cw, chipH, 8);
+      ctx.textAlign = "center";
+      label(ctx, cost, cx + cw / 2, py + h / 2, 12, INK, null, 0);
+    } else if (spec.portraitKey) {
+      const priceSize = h < 130 ? 11 : 12;
+      const nameSize = h < 130 ? 12 : 14;
+      const priceH = h < 130 ? 14 : 15;
+      const chipY = py + h - priceH - 3;
+      const nameY = chipY - nameSize * 0.7 - 4;
+      const top = py + 3;
+      const ph = Math.max(16, nameY - top - nameSize * 0.65);
+      drawPortrait(ctx, spec.portraitKey, x + 4, top, w - 8, ph);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const name = spec.label || "";
+      const ns = fitSize(ctx, name, w - 10, nameSize);
+      label(ctx, name, x + w / 2, nameY, ns, INK, null, 0);
+      const cost = "$" + spec.cost;
+      const affordable = spec.affordable !== false;
+      font(ctx, priceSize);
+      const cw = Math.max(32, ctx.measureText(cost).width + 10);
+      fillRound(ctx, x + w / 2 - cw / 2, chipY, cw, priceH, 6, affordable ? "#ffe14a" : "#ff8d86");
+      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, x + w / 2 - cw / 2, chipY, cw, priceH, 6);
+      label(ctx, cost, x + w / 2, chipY + priceH / 2, priceSize, INK, null, 0);
     } else if (spec.label) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1241,46 +1267,50 @@
   }
 
   function metrics(L, inspecting) {
+    const pad = 8;
     const p = L.panel;
-    const inner = { x: p.x + 12, y: p.y + 12, w: p.w - 24, h: p.h - 20 };
-    const gap = 6;
-    const speedW = inspecting && L.portrait ? 64 : 72;
+    const inner = { x: p.x + pad, y: p.y + 6, w: p.w - pad * 2, h: p.h - 12 };
+    const gap = 4;
+    const speedW = L.portrait ? 48 : 56;
     let infoH;
     let startH;
     let compactStart = false;
+    let pathsOnly = false;
     if (L.portrait && inspecting) {
-      // Paths sit under the tower. Start Round shrinks to one line at the bottom.
-      infoH = 46;
-      startH = 36;
+      infoH = 40;
+      startH = 40;
       compactStart = true;
+      pathsOnly = true;
     } else if (L.portrait) {
-      infoH = Math.max(78, Math.min(88, inner.h * 0.3));
-      startH = Math.max(48, Math.min(56, inner.h * 0.18));
+      infoH = Math.min(48, Math.max(40, inner.h * 0.24));
+      startH = 42;
     } else if (inspecting) {
-      infoH = Math.max(68, Math.min(80, inner.h * 0.24));
-      startH = 46;
+      infoH = 64;
+      startH = 44;
     } else {
-      infoH = Math.max(72, Math.min(90, inner.h * 0.26));
-      startH = Math.max(48, Math.min(56, inner.h * 0.17));
+      infoH = Math.min(72, Math.max(52, inner.h * 0.2));
+      startH = 44;
     }
     if (L.portrait && !inspecting) {
       const cardsY = inner.y + infoH + gap + startH + gap;
       return {
         info: { x: inner.x, y: inner.y, w: inner.w, h: infoH },
-        start: { x: inner.x, y: inner.y + infoH + gap, w: inner.w - speedW - 8, h: startH },
+        start: { x: inner.x, y: inner.y + infoH + gap, w: inner.w - speedW - gap, h: startH },
         speed: { x: inner.x + inner.w - speedW, y: inner.y + infoH + gap, w: speedW, h: startH },
-        cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, inner.y + inner.h - cardsY) },
+        cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(44, inner.y + inner.h - cardsY) },
         compactStart: false,
+        pathsOnly: false,
       };
     }
     const startY = inner.y + inner.h - startH;
     const cardsY = inner.y + infoH + gap;
     return {
       info: { x: inner.x, y: inner.y, w: inner.w, h: infoH },
-      cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, startY - gap - cardsY) },
-      start: { x: inner.x, y: startY, w: inner.w - speedW - 8, h: startH },
+      cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(44, startY - gap - cardsY) },
+      start: { x: inner.x, y: startY, w: inner.w - speedW - gap, h: startH },
       speed: { x: inner.x + inner.w - speedW, y: startY, w: speedW, h: startH },
       compactStart: compactStart,
+      pathsOnly: pathsOnly,
     };
   }
 
@@ -1369,27 +1399,32 @@
     ctx.textBaseline = "middle";
     if (tower) {
       const stats = B.statsFor(tower.type, tower.ranks);
-      drawPortrait(ctx, tower.type, rect.x, rect.y, 46, rect.h - 2);
+      const portraitW = rect.h < 52 ? 34 : 46;
+      drawPortrait(ctx, tower.type, rect.x, rect.y, portraitW, Math.max(28, rect.h - 2));
       const used = B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : 0;
       const kit = (stats.badge || B.towers[tower.type].name) + "  " + used + "/6";
-      const nameY = rect.h < 56 ? rect.y + 13 : rect.y + 16;
-      const statY = rect.h < 56 ? rect.y + 31 : rect.y + 36;
-      label(ctx, kit, rect.x + 54, nameY, rect.h < 56 ? 14 : 15, INK, null, 0);
-      font(ctx, 12);
-      ctx.fillStyle = "#5c4630";
+      const nameY = rect.h < 52 ? rect.y + 12 : rect.y + 16;
+      const statY = rect.h < 52 ? rect.y + 28 : rect.y + 36;
+      label(ctx, kit, rect.x + portraitW + 6, nameY, rect.h < 52 ? 13 : 15, INK, null, 0);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       const line = "Dmg " + stats.damage + "  ·  Reach " + stats.range + "  ·  " + stats.rate.toFixed(1) + "/s";
-      const stat = line + "  ·  " + armorWord(stats.armorBite);
-      font(ctx, 12);
-      const statSize = fitSize(ctx, stat, Math.max(80, rect.w - 100), 12);
-      label(ctx, stat, rect.x + 54, statY, statSize, "#5c4630", null, 0);
+      const statMax = Math.max(70, rect.w - portraitW - 52);
+      let stat = line + "  ·  " + armorWord(stats.armorBite);
+      let statSize = fitSize(ctx, stat, statMax, rect.h < 52 ? 11 : 12);
+      font(ctx, statSize);
+      if (ctx.measureText(stat).width > statMax) {
+        stat = "Dmg " + stats.damage + "  ·  Reach " + stats.range;
+        statSize = fitSize(ctx, stat, statMax, 11);
+      }
+      label(ctx, stat, rect.x + portraitW + 6, statY, statSize, "#5c4630", null, 0);
+      const close = Math.min(40, rect.h);
       uiButton(ctx, state, {
         id: "close",
-        x: rect.x + rect.w - 34,
+        x: rect.x + rect.w - close - 2,
         y: rect.y,
-        w: 32,
-        h: 28,
+        w: close,
+        h: Math.min(close, rect.h),
         label: "X",
         labelSize: 14,
         fillTop: "#fff4d4",
@@ -1415,9 +1450,9 @@
               ? "Now: " + wave.name
               : "Next: " + wave.name;
       }
-      label(ctx, heading, rect.x, rect.y + 12, 15, INK, null, 0);
-      const hintLines = rect.h >= 96 ? 2 : 1;
-      const hintY = rect.y + rect.h - (hintLines === 2 ? 30 : 15);
+      label(ctx, heading, rect.x, rect.y + (rect.h < 56 ? 11 : 14), rect.h < 56 ? 13 : 15, INK, null, 0);
+      const hintLines = rect.h >= 64 ? 2 : 1;
+      const hintY = rect.y + rect.h - (hintLines === 2 ? 28 : 16);
       if (wave && hintY >= rect.y + 54) {
         let cx = rect.x;
         composition(wave).forEach((c) => {
@@ -1506,58 +1541,86 @@
     });
   }
 
+  function shopName(ctx, def, maxW) {
+    const full = def.short || def.name;
+    font(ctx, 12);
+    if (ctx.measureText(full).width <= maxW) return full;
+    return full.split(" ")[0];
+  }
+
   function drawCards(ctx, state, area) {
     const order = B.towerOrder || ["trooper", "longshot", "gatling"];
     const pages = Math.max(1, Math.ceil(order.length / 3));
     const page = ((state.shopPage || 0) % pages + pages) % pages;
     const keys = order.slice(page * 3, page * 3 + 3);
-    const gap = 8;
-    const arrow = pages > 1 ? 28 : 0;
-    const w = (area.w - gap * Math.max(0, keys.length - 1) - arrow * 2) / Math.max(1, keys.length);
+    const gap = 5;
+    const arrowW = pages > 1 ? 40 : 0;
+    const across = (area.w - gap * Math.max(0, keys.length - 1) - arrowW * 2) / Math.max(1, keys.length);
+    const stack = across < 44;
+    function arrow(id, x, y, w, h, label, dir) {
+      uiButton(ctx, state, {
+        id: id,
+        x: x,
+        y: y,
+        w: w,
+        h: h,
+        label: label,
+        labelSize: 18,
+        fillTop: "#fff8e4",
+        fillBot: "#f0ddb0",
+        lip: "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.shopTurn(dir),
+      });
+    }
+    if (stack) {
+      const pagerH = 40;
+      const rowGap = 4;
+      const rowH = Math.max(40, (area.h - pagerH - rowGap) / keys.length - rowGap);
+      keys.forEach((key, i) => {
+        const def = B.towers[key];
+        uiButton(ctx, state, {
+          id: "buy-" + key,
+          x: area.x,
+          y: area.y + i * (rowH + rowGap),
+          w: area.w,
+          h: rowH,
+          label: shopName(ctx, def, area.w - 120),
+          cost: def.cost,
+          affordable: state.cash >= def.cost,
+          portraitKey: key,
+          shopRow: true,
+          fillTop: state.placing === key ? "#fff3a0" : "#fff8e4",
+          fillBot: state.placing === key ? "#ffe08a" : "#f3e2bc",
+          lip: "#a07840",
+          active: state.placing === key,
+          action: () => root.BOTG.pick(key),
+        });
+      });
+      if (pages > 1) {
+        const y = area.y + area.h - pagerH;
+        const w = (area.w - gap) / 2;
+        arrow("shop-prev", area.x, y, w, pagerH, "<", -1);
+        arrow("shop-next", area.x + w + gap, y, w, pagerH, ">", 1);
+      }
+      return;
+    }
     if (pages > 1) {
-      uiButton(ctx, state, {
-        id: "shop-prev",
-        x: area.x,
-        y: area.y + area.h * 0.28,
-        w: 24,
-        h: Math.min(36, area.h * 0.44),
-        label: "<",
-        labelSize: 16,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.shopTurn(-1),
-      });
-      uiButton(ctx, state, {
-        id: "shop-next",
-        x: area.x + area.w - 24,
-        y: area.y + area.h * 0.28,
-        w: 24,
-        h: Math.min(36, area.h * 0.44),
-        label: ">",
-        labelSize: 16,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.shopTurn(1),
-      });
+      const ah = Math.min(44, Math.max(40, area.h * 0.5));
+      const ay = area.y + (area.h - ah) / 2;
+      arrow("shop-prev", area.x, ay, arrowW, ah, "<", -1);
+      arrow("shop-next", area.x + area.w - arrowW, ay, arrowW, ah, ">", 1);
     }
     keys.forEach((key, i) => {
       const def = B.towers[key];
-      let name = def.short || def.name;
-      font(ctx, 13);
-      if (ctx.measureText(name).width > w - 16) name = name.split(" ")[0];
       uiButton(ctx, state, {
         id: "buy-" + key,
-        x: area.x + arrow + i * (w + gap),
+        x: area.x + arrowW + i * (across + gap),
         y: area.y,
-        w: w,
+        w: across,
         h: area.h,
-        label: name,
+        label: shopName(ctx, def, across - 16),
         cost: def.cost,
         affordable: state.cash >= def.cost,
         portraitKey: key,
@@ -1570,40 +1633,53 @@
     });
   }
 
-  function drawUpgrade(ctx, state, tower, area) {
+  function drawPathButton(ctx, state, tower, p, x, y, w, h) {
+    const cur = (tower.ranks && tower.ranks[p.id]) || 0;
+    const next = cur < p.tiers.length ? p.tiers[cur] : null;
+    const chev = !next ? "" : cur >= 3 ? " · 2 chev" : " · 1 chev";
+    const tight = h < 48;
+    uiButton(ctx, state, {
+      id: "path-" + p.id,
+      x: x,
+      y: y,
+      w: w,
+      h: h,
+      label: next ? p.name + " " + (cur + 1) : p.name + " max",
+      sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
+      labelSize: tight ? 13 : 15,
+      subSize: tight ? 11 : 12,
+      fillTop: next ? "#c8f8b0" : "#efe6d2",
+      fillBot: next ? "#5ad86a" : "#e4d8c0",
+      lip: "#0e6a22",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.upgrade(p.id),
+    });
+  }
+
+  function drawUpgrade(ctx, state, tower, area, pathsOnly) {
     const def = B.towers[tower.type];
     const paths = def.paths || [];
     const aimNames = { first: "First", last: "Last", tough: "Toughest", near: "Nearest" };
-    let gap = 6;
-    let sellH = 36;
     const n = Math.max(1, paths.length);
+    if (pathsOnly) {
+      const gap = 3;
+      const pathH = (area.h - gap * (n - 1)) / n;
+      paths.forEach(function (p, i) {
+        drawPathButton(ctx, state, tower, p, area.x, area.y + i * (pathH + gap), area.w, pathH);
+      });
+      return;
+    }
+    let gap = 5;
+    let sellH = 40;
     let pathH = (area.h - sellH - gap) / n - gap;
-    if (pathH < 44) {
-      sellH = 32;
-      gap = 5;
+    if (pathH < 40) {
+      sellH = 40;
+      gap = 3;
       pathH = (area.h - sellH - gap) / n - gap;
     }
     paths.forEach(function (p, i) {
-      const cur = (tower.ranks && tower.ranks[p.id]) || 0;
-      const next = cur < p.tiers.length ? p.tiers[cur] : null;
-      const chev = !next ? "" : cur >= 3 ? " · 2 chev" : " · 1 chev";
-      uiButton(ctx, state, {
-        id: "path-" + p.id,
-        x: area.x,
-        y: area.y + i * (pathH + gap),
-        w: area.w,
-        h: pathH,
-        label: next ? p.name + " " + (cur + 1) : p.name + " max",
-        sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
-        labelSize: 15,
-        subSize: 12,
-        fillTop: next ? "#c8f8b0" : "#efe6d2",
-        fillBot: next ? "#5ad86a" : "#e4d8c0",
-        lip: "#0e6a22",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.upgrade(p.id),
-      });
+      drawPathButton(ctx, state, tower, p, area.x, area.y + i * (pathH + gap), area.w, pathH);
     });
     const y = area.y + paths.length * (pathH + gap);
     const half = (area.w - gap) / 2;
@@ -1639,31 +1715,133 @@
     });
   }
 
+  function drawUpgradeBar(ctx, state, tower, m) {
+    const gap = 4;
+    const y = m.start.y;
+    const h = m.start.h;
+    const x = m.start.x;
+    const total = m.speed.x + m.speed.w - x;
+    const speedW = m.speed.w;
+    const aimW = Math.min(92, Math.max(70, Math.round(total * 0.22)));
+    let sellW = Math.max(80, Math.round((total - aimW - speedW - gap * 3) * 0.42));
+    let startW = total - aimW - sellW - speedW - gap * 3;
+    if (startW < 40) {
+      sellW = Math.max(72, sellW - (40 - startW));
+      startW = total - aimW - sellW - speedW - gap * 3;
+    }
+    const aimNames = { first: "First", last: "Last", tough: "Tough", near: "Near" };
+    const canSend = state.started < B.waves.length;
+    const early = state.waveActive && canSend;
+    let startLabel = "HOLD";
+    let disabled = true;
+    let top = "#d9d3c8";
+    let bot = "#c9c2b6";
+    let lip = "#8d867c";
+    if (!state.waveActive && canSend) {
+      startLabel = "START";
+      disabled = false;
+      top = "#b6f56a";
+      bot = "#2fbe3c";
+      lip = "#0e6a22";
+    } else if (early) {
+      startLabel = "SEND";
+      disabled = false;
+      top = "#ffe08a";
+      bot = "#ff9a1f";
+      lip = "#a85a08";
+    }
+    let cursor = x;
+    uiButton(ctx, state, {
+      id: "aim",
+      x: cursor,
+      y: y,
+      w: aimW,
+      h: h,
+      label: "Aim: " + (aimNames[tower.priority] || "First"),
+      labelSize: 12,
+      fillTop: "#fff8e4",
+      fillBot: "#f0ddb0",
+      lip: "#8a6840",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.cycleAim(),
+    });
+    cursor += aimW + gap;
+    uiButton(ctx, state, {
+      id: "sell",
+      x: cursor,
+      y: y,
+      w: sellW,
+      h: h,
+      label: "Sell +$" + root.BOTG.refund(tower),
+      labelSize: 12,
+      fillTop: "#ffd0c8",
+      fillBot: "#f09890",
+      lip: "#a04030",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.sell(),
+    });
+    cursor += sellW + gap;
+    uiButton(ctx, state, {
+      id: "start",
+      x: cursor,
+      y: y,
+      w: startW,
+      h: h,
+      label: startLabel,
+      labelSize: 14,
+      fillTop: top,
+      fillBot: bot,
+      lip: lip,
+      disabled: disabled,
+      action: () => root.BOTG.launch(),
+    });
+    const spd = B.meta.speeds[state.speedIndex];
+    const fast = spd !== 1;
+    uiButton(ctx, state, {
+      id: "speed",
+      x: m.speed.x,
+      y: y,
+      w: speedW,
+      h: h,
+      label: spd + "×",
+      labelSize: 14,
+      fillTop: fast ? "#c8f8a4" : "#fff3b0",
+      fillBot: fast ? "#46c85a" : "#ffc83a",
+      lip: fast ? "#0e6a22" : "#a86a08",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.toggleSpeed(),
+    });
+  }
+
   function drawPanel(ctx, state, L) {
     const p = L.panel;
     const rad = L.portrait
-      ? { tl: 22, tr: 22, br: 0, bl: 0 }
-      : { tl: 22, tr: 0, br: 0, bl: 22 };
+      ? { tl: 16, tr: 16, br: 0, bl: 0 }
+      : { tl: 16, tr: 0, br: 0, bl: 16 };
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = 12;
     ctx.shadowOffsetY = -2;
     fillRound(ctx, p.x, p.y, p.w, p.h, rad, "#0c4a22");
     ctx.restore();
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, p.x, p.y, p.w, p.h, rad);
-    const inset = 6;
+    const inset = 4;
     const ir = L.portrait
-      ? { tl: 16, tr: 16, br: 0, bl: 0 }
-      : { tl: 16, tr: 0, br: 0, bl: 16 };
+      ? { tl: 12, tr: 12, br: 0, bl: 0 }
+      : { tl: 12, tr: 0, br: 0, bl: 12 };
     fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, "#fff6df");
     const selected = state.towers.find((t) => t.id === state.selectedId) || null;
     const show = selected && !state.placing;
     const m = metrics(L, show);
     drawInfo(ctx, state, m.info, show ? selected : null);
-    drawStartButtons(ctx, state, m);
-    if (show) drawUpgrade(ctx, state, selected, m.cards);
+    if (show && m.pathsOnly) drawUpgradeBar(ctx, state, selected, m);
+    else drawStartButtons(ctx, state, m);
+    if (show) drawUpgrade(ctx, state, selected, m.cards, m.pathsOnly);
     else drawCards(ctx, state, m.cards);
   }
 
