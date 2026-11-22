@@ -178,6 +178,7 @@
   }
 
   function invested(tower) {
+    if (tower.spent != null) return tower.spent;
     const def = B.towers[tower.type];
     let n = def.cost;
     if (def.paths && tower.ranks) {
@@ -185,14 +186,30 @@
         const r = tower.ranks[p.id] || 0;
         for (let i = 0; i < r; i++) n += p.tiers[i].cost;
       });
-      return n;
+      return B.pay(n);
     }
     for (let i = 0; i < tower.rank; i++) n += def.upgrades[i].cost;
-    return n;
+    return B.pay(n);
   }
 
   function refund(tower) {
     return Math.round(invested(tower) * B.meta.sellRefund);
+  }
+
+  function unlockAll() {
+    return new URLSearchParams(root.location.search).has("unlockall");
+  }
+
+  function mapOpen(id) {
+    if (id !== "cactus") return true;
+    if (unlockAll()) return true;
+    return !!(root.BOTGSave && root.BOTGSave.wonAny("maple"));
+  }
+
+  function remember(won) {
+    if (!root.BOTGSave) return;
+    const round = won ? B.waves.length : Math.max(0, state.started);
+    root.BOTGSave.record(state.mapId || "maple", state.difficulty || "medium", round, !!won);
   }
 
   function inMap(p) {
@@ -222,7 +239,7 @@
         return { ok: false, reason: "Too close to a soldier." };
       }
     }
-    const cost = B.towers[type].cost;
+    const cost = B.pay(B.towers[type].cost);
     if (state.cash < cost) return { ok: false, reason: `Need $${cost}.` };
     return { ok: true, reason: "" };
   }
@@ -279,7 +296,8 @@
 
   function place(x, y, type) {
     const def = B.towers[type];
-    state.cash -= def.cost;
+    const paid = B.pay(def.cost);
+    state.cash -= paid;
     const aim = B.nearestAngle(x, y);
     state.towers.push({
       id: state.nextId++,
@@ -296,13 +314,14 @@
       flash: 0,
       targetId: null,
       priority: def.aim,
+      spent: paid,
     });
     state.placedCount += 1;
     state.ghost = null;
     state.suppressGhost = true;
     spawnPoof(x, y + 2, 0.55, false);
     audio.play("place");
-    floater(x, y - 26, `-$${def.cost}`, "#fff6d0", 0.7);
+    floater(x, y - 26, `-$${paid}`, "#fff6d0", 0.7);
   }
 
   function pick(key) {
@@ -342,12 +361,14 @@
       return;
     }
     const up = path.tiers[cur];
-    if (state.cash < up.cost) {
-      toast("Need $" + up.cost + ".");
+    const price = B.pay(up.cost);
+    if (state.cash < price) {
+      toast("Need $" + price + ".");
       audio.play("deny");
       return;
     }
-    state.cash -= up.cost;
+    state.cash -= price;
+    tower.spent = (tower.spent || 0) + price;
     tower.ranks[path.id] = cur + 1;
     tower.rank = B.chevronsUsed(tower.type, tower.ranks);
     audio.play("upgrade");
@@ -952,6 +973,7 @@
       state.speedOverride = 0;
       state.shots = [];
     state.summary = `LOSE wave ${state.started} lives ${state.lives} cash ${state.cash}`;
+    remember(false);
     audio.play("lose");
     announce(`The Scowl Corps reached the gate on wave ${state.started}.`);
   }
@@ -963,6 +985,7 @@
       state.speedOverride = 0;
       state.shots = [];
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
+    remember(true);
     audio.play("win");
     announce((B.map.name || "The lane") + " holds. The Scowl Corps poofed into smoke.");
   }
@@ -998,7 +1021,7 @@
         if (cur >= 2) continue;
         const need = 1;
         if (B.chevronsUsed(tower.type, tower.ranks) + need > B.chevronCap) continue;
-        const cost = p.tiers[cur].cost;
+        const cost = B.pay(p.tiers[cur].cost);
         if (state.cash >= cost && state.towers.length >= 2) {
           state.selectedId = tower.id;
           upgrade(p.id);
@@ -1154,6 +1177,7 @@
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
   root.addEventListener("keydown", (e) => {
+    audio.ensure();
     if (e.repeat) return;
     if (e.key === "m" || e.key === "M") {
       audio.toggle();
@@ -1201,20 +1225,41 @@
     else if (e.key === "x" || e.key === "X") sell();
   });
 
+  function setDifficulty(id) {
+    if (!B.difficulties[id]) return;
+    state.difficulty = id;
+    if (root.BOTGSave) {
+      root.BOTGSave.data.difficulty = id;
+      root.BOTGSave.save();
+    }
+    audio.play("ui");
+  }
+
   function startGame(mapId) {
     const id = mapId || state.mapId || "maple";
+    if (!mapOpen(id)) {
+      state.toast = { text: "Beat Maple Grove to unlock Cactus Junction.", t: 0, life: 1.8 };
+      audio.play("deny");
+      return;
+    }
+    const diffId = (root.BOTGSave && root.BOTGSave.data.difficulty) || state.difficulty || "medium";
+    const diff = B.difficulties[diffId] || B.difficulties.medium;
     const map = B.setMap(id);
     const debug = state.debug;
     const motion = state.reducedMotion;
     state = fresh();
     state.mapId = map.id;
+    state.difficulty = diff.id;
+    B.costMul = diff.cost;
+    state.cash = diff.cash;
+    state.lives = diff.lives;
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
     audio.ensure();
     audio.play("wave");
     const ground = map.theme === "desert" ? "sand" : "grass";
-    announce(map.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
+    announce(map.name + ", " + diff.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
     resize();
   }
 
@@ -1224,8 +1269,9 @@
     state = fresh();
     state.debug = debug;
     state.reducedMotion = motion;
+    state.difficulty = (root.BOTGSave && root.BOTGSave.data.difficulty) || "medium";
     state.screen = "maps";
-    announce("Pick a map. Maple Grove or Cactus Junction.");
+    announce("Pick a map and a difficulty.");
     resize();
   }
 
@@ -1274,6 +1320,8 @@
     openMaps,
     title,
     cycleAim,
+    setDifficulty,
+    unlockAll,
   };
 
   const params = new URLSearchParams(root.location.search);

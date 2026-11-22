@@ -41,19 +41,19 @@
       ]),
     ],
     longshot: [
-      path("deadeye", "Deadeye", 165, [
+      path("deadeye", "Deadeye", 230, [
         ["Crosshair", "Heavier rounds.", { damage: 22 }],
         ["Hollow Point", "Soft targets feel it.", { damage: 28, range: 200 }],
         ["Rapid Bolt", "The bolt cycles quicker.", { damage: 28, rate: 0.62 }],
         ["One-Shot Legend", "A single enormous shot.", { damage: 48, rate: 0.7, ace: 2 }],
       ]),
-      path("spotter", "Spotter", 165, [
+      path("spotter", "Spotter", 230, [
         ["Binoculars", "Sees through stealth.", { detect: 1, range: 200 }],
         ["Mark Target", "Marked foes take extra damage.", { detect: 1, mark: 0.2, range: 210 }],
         ["Field Intel", "Neighbors can see sneaks too.", { detect: 1, detectAura: 1, mark: 0.2 }],
         ["Overwatch", "Marks several targets at once.", { detect: 1, detectAura: 1, mark: 0.35, extra: 2 }],
       ]),
-      path("antimateriel", "Anti-Materiel", 165, [
+      path("antimateriel", "Anti-Materiel", 230, [
         ["Heavy Barrel", "Armor crumples.", { armorBite: 1, damage: 26 }],
         ["Engine Shot", "Vehicles crawl after a hit.", { armorBite: 1, damage: 30, slowOnHit: 0.6 }],
         ["Disabler", "A hit nearly stops a vehicle.", { armorBite: 1, damage: 34, slowOnHit: 0.35 }],
