@@ -138,6 +138,107 @@
           },
         ],
       },
+      mortar: {
+        name: "Mortar Crew",
+        short: "Mortar",
+        cost: 175,
+        blurb: "Lobs a shell that splashes the lane. Armor hates the arc.",
+        aim: "tough",
+        base: {
+          damage: 9,
+          range: 168,
+          rate: 0.55,
+          armorBite: 0.55,
+          projectileSpeed: 0,
+          splash: 36,
+          role: "mortar",
+        },
+        upgrades: [
+          { name: "Big Shell", cost: 110, blurb: "A wider blast.", set: { damage: 12, splash: 46 } },
+          { name: "Quick Load", cost: 150, blurb: "The crew drops shells faster.", set: { damage: 12, splash: 46, rate: 0.8 } },
+        ],
+      },
+      tread: {
+        name: "Tread Tank",
+        short: "Tank",
+        cost: 240,
+        blurb: "A slow cannon that punches armor and splashes.",
+        aim: "tough",
+        base: {
+          damage: 22,
+          range: 124,
+          rate: 0.42,
+          armorBite: 1,
+          projectileSpeed: 0,
+          splash: 22,
+          role: "tread",
+        },
+        upgrades: [
+          { name: "Bigger Gun", cost: 160, blurb: "The barrel hits harder.", set: { damage: 32, splash: 26 } },
+          { name: "Coax Gun", cost: 180, blurb: "A machine gun joins the cannon.", set: { damage: 32, splash: 26, rate: 0.62 } },
+        ],
+      },
+      engineer: {
+        name: "Engineer",
+        short: "Engineer",
+        cost: 140,
+        blurb: "Sandbags slow the lane nearby and pay a little each wave.",
+        aim: "near",
+        base: {
+          damage: 0,
+          range: 96,
+          rate: 0,
+          armorBite: 0,
+          projectileSpeed: 0,
+          slow: 0.64,
+          wavePay: 18,
+          role: "engineer",
+        },
+        upgrades: [
+          { name: "Deeper Bags", cost: 90, blurb: "The lane nearby crawls.", set: { slow: 0.5, range: 110 } },
+          { name: "Supply Crate", cost: 120, blurb: "A fatter purse at the end of each wave.", set: { slow: 0.5, range: 110, wavePay: 32 } },
+        ],
+      },
+      sky: {
+        name: "Sky Guard",
+        short: "Sky Guard",
+        cost: 190,
+        blurb: "Flak bursts. Deadly to anything overhead, splashy on the ground.",
+        aim: "first",
+        base: {
+          damage: 6,
+          range: 140,
+          rate: 0.85,
+          armorBite: 0.2,
+          projectileSpeed: 280,
+          splash: 26,
+          airBonus: 2.2,
+          role: "sky",
+        },
+        upgrades: [
+          { name: "Wide Burst", cost: 120, blurb: "The flak blooms wider.", set: { splash: 36, damage: 7 } },
+          { name: "Quad Flak", cost: 170, blurb: "Four barrels, a quicker cycle.", set: { splash: 36, damage: 8, rate: 1.15 } },
+        ],
+      },
+      chopper: {
+        name: "Chopper Pad",
+        short: "Chopper",
+        cost: 260,
+        blurb: "A helicopter orbits the pad and stitches the lane with fire.",
+        aim: "first",
+        base: {
+          damage: 3,
+          range: 118,
+          rate: 2.4,
+          armorBite: 0.15,
+          projectileSpeed: 340,
+          role: "chopper",
+        },
+        upgrades: [
+          { name: "Rocket Pods", cost: 150, blurb: "Every few shots a rocket splashes.", set: { damage: 4, splash: 20 } },
+          { name: "Heavy Gunship", cost: 200, blurb: "The chain gun bites armor.", set: { damage: 5, splash: 20, armorBite: 0.7, rate: 2.8 } },
+        ],
+      },
     },
 
     enemies: {
@@ -296,6 +397,8 @@
   };
 
   const B = root.BOTG_BALANCE;
+
+  B.towerOrder = ["trooper", "longshot", "gatling", "mortar", "tread", "engineer", "sky", "chopper"];
 
   B.statsFor = function statsFor(type, rank) {
     const def = B.towers[type];

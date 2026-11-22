@@ -74,6 +74,7 @@
       toast: null,
       selectedId: null,
       placing: null,
+      shopPage: 0,
       ghost: null,
       pointer: { x: 200, y: 160, sx: 200, sy: 320, inside: false, insideMap: false },
       pressedId: null,
@@ -290,6 +291,13 @@
     spawnPoof(x, y + 2, 0.55, false);
     audio.play("place");
     floater(x, y - 26, `-$${def.cost}`, "#fff6d0", 0.7);
+  }
+
+  function shopTurn(dir) {
+    const order = B.towerOrder || Object.keys(B.towers);
+    const pages = Math.max(1, Math.ceil(order.length / 3));
+    state.shopPage = ((state.shopPage || 0) + dir + pages) % pages;
+    audio.play("ui");
   }
 
   function pick(key) {
@@ -513,14 +521,84 @@
     return best;
   }
 
+  function splashDamage(x, y, radius, damage, armorBite, ignoreId) {
+    for (const enemy of liveEnemies()) {
+      if (ignoreId && enemy.id === ignoreId) continue;
+      if (Math.hypot(enemy.x - x, enemy.y - y) <= radius + (enemy.radius || 0) * 0.35) {
+        deal(enemy, damage, armorBite);
+      }
+    }
+    spawnPoof(x, y, 0.8, true);
+  }
+
+  function chopperGun(tower) {
+    const a = tower.spin || 0;
+    return { x: tower.x + Math.cos(a) * 16, y: tower.y - 18 + Math.sin(a) * 7 };
+  }
+
   function shoot(tower, target, stats) {
-    const origin = aimOrigin(tower.x, tower.y, stats.role);
+    if (stats.role === "engineer" || stats.rate <= 0) return;
+    const origin = stats.role === "chopper" ? chopperGun(tower) : aimOrigin(tower.x, tower.y, stats.role);
     const aim = Math.atan2(target.y - origin.y, target.x - origin.x);
     tower.aim = aim;
     tower.flash = 0.14;
-    const tip = muzzleTip(tower.x, tower.y, stats.role, aim);
+    const tip = stats.role === "chopper" ? origin : muzzleTip(tower.x, tower.y, stats.role, aim);
     const mx = tip.x;
     const my = tip.y;
+    if (stats.role === "mortar") {
+      const travel = 0.55;
+      const dest = B.pointAt(Math.min(B.route.total - 1, target.dist + target.speed * travel));
+      state.shots.push({
+        kind: "mortar",
+        x: tower.x,
+        y: tower.y - 18,
+        x0: tower.x,
+        y0: tower.y - 18,
+        tx: dest.x,
+        ty: dest.y,
+        t: 0,
+        flight: 0.62,
+        damage: stats.damage,
+        armorBite: stats.armorBite,
+        splash: stats.splash || 34,
+        life: 1,
+      });
+      audio.play("mortar");
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
+    if (stats.role === "sky") {
+      state.shots.push({
+        kind: "flak",
+        x: mx,
+        y: my,
+        x0: mx,
+        y0: my,
+        px: mx,
+        py: my,
+        tx: target.x,
+        ty: target.y,
+        vx: 0,
+        vy: 0,
+        t: 0,
+        flight: 0.28,
+        damage: stats.damage * (target.air ? stats.airBonus || 1 : 1),
+        armorBite: stats.armorBite,
+        splash: stats.splash || 24,
+        life: 1,
+      });
+      audio.play("flak");
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
+    if (stats.role === "tread") {
+      deal(target, stats.damage, stats.armorBite);
+      splashDamage(target.x, target.y, stats.splash || 22, Math.max(1, stats.damage * 0.35), stats.armorBite, target.id);
+      state.effects.push({ kind: "tracer", x1: mx, y1: my, x2: target.x, y2: target.y, t: 0, life: 0.18 });
+      audio.play("cannon");
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
     if (stats.projectileSpeed <= 0) {
       deal(target, stats.damage, stats.armorBite);
       state.effects.push({
@@ -552,7 +630,30 @@
         kind: stats.role,
         life: 1.15,
       });
-      audio.play(stats.role === "gatling" ? "gatling" : "rifle");
+      const sound = stats.role === "gatling" ? "gatling" : stats.role === "tread" ? "cannon" : stats.role === "chopper" ? "chopper" : "rifle";
+      if (stats.role === "chopper" && tower.rocketCd == null) tower.rocketCd = 0;
+      if (stats.role === "chopper" && stats.splash && tower.rocketCd <= 0) {
+        state.shots.push({
+          kind: "rocket",
+          x: mx,
+          y: my,
+          x0: mx,
+          y0: my,
+          px: mx,
+          py: my,
+          tx: target.x,
+          ty: target.y,
+          t: 0,
+          flight: 0.35,
+          damage: stats.damage * 3,
+          armorBite: stats.armorBite,
+          splash: stats.splash,
+          life: 1,
+        });
+        tower.rocketCd = 1.6;
+        audio.play("mortar");
+      }
+      audio.play(sound);
     }
     tower.cooldown = 1 / stats.rate;
   }
@@ -575,7 +676,12 @@
       tower.spin += dt * (8 + tower.rank * 4);
       tower.flash = Math.max(0, tower.flash - dt);
       tower.cooldown -= dt;
+      if (tower.rocketCd) tower.rocketCd = Math.max(0, tower.rocketCd - dt);
       const stats = B.statsFor(tower.type, tower.rank);
+      if (stats.role === "engineer") {
+        tower.aim = tower.idleAim;
+        continue;
+      }
       let target = enemies.find((e) => e.id === tower.targetId) || null;
       if (target && Math.hypot(target.x - tower.x, target.y - tower.y) > stats.range) target = null;
       if (!target) target = acquire(tower, stats, enemies);
@@ -588,7 +694,32 @@
       if (target && tower.cooldown <= 0) shoot(tower, target, stats);
     }
 
+    for (const enemy of enemies) enemy.slow = 1;
+    for (const tower of state.towers) {
+      if (tower.type !== "engineer") continue;
+      const stats = B.statsFor(tower.type, tower.rank);
+      for (const enemy of enemies) {
+        if (Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= stats.range) {
+          enemy.slow = Math.min(enemy.slow, stats.slow || 0.7);
+        }
+      }
+    }
+
     for (const shot of state.shots) {
+      if (shot.kind === "mortar" || shot.kind === "flak" || shot.kind === "rocket") {
+        shot.t += dt;
+        const u = Math.min(1, shot.t / shot.flight);
+        const arc = shot.kind === "mortar" ? 36 : shot.kind === "rocket" ? 14 : 8;
+        shot.px = shot.x;
+        shot.py = shot.y;
+        shot.x = shot.x0 + (shot.tx - shot.x0) * u;
+        shot.y = shot.y0 + (shot.ty - shot.y0) * u - Math.sin(u * Math.PI) * arc;
+        if (u >= 1) {
+          splashDamage(shot.tx, shot.ty, shot.splash || 24, shot.damage, shot.armorBite);
+          shot.life = 0;
+        }
+        continue;
+      }
       shot.life -= dt;
       shot.px = shot.x;
       shot.py = shot.y;
@@ -608,7 +739,7 @@
 
     for (const enemy of state.enemies) {
       if (enemy.dead) continue;
-      enemy.dist += enemy.speed * dt;
+      enemy.dist += enemy.speed * (enemy.slow || 1) * dt;
       enemy.phase += dt * enemy.speed * 0.16;
       enemy.flash = Math.max(0, enemy.flash - dt);
       enemy.tinkCd = Math.max(0, enemy.tinkCd - dt);
@@ -635,9 +766,14 @@
       }
       state.waveActive = false;
       if (purse) {
-        state.cash += purse;
-        floater(200, 240, `Wave purse +$${purse}`, "#ffe56a", 1.2);
+        let supply = 0;
+        for (const tower of state.towers) {
+          if (tower.type === "engineer") supply += B.statsFor(tower.type, tower.rank).wavePay || 0;
+        }
+        state.cash += purse + supply;
+        floater(200, 240, supply ? `Wave purse +$${purse + supply}` : `Wave purse +$${purse}`, "#ffe56a", 1.2);
         audio.play("clear");
+        if (supply) audio.play("wrench");
       }
       if (state.rewarded >= B.waves.length) win();
     }
@@ -888,6 +1024,13 @@
     if (e.key === "1") pick("trooper");
     else if (e.key === "2") pick("longshot");
     else if (e.key === "3") pick("gatling");
+    else if (e.key === "4") pick("mortar");
+    else if (e.key === "5") pick("tread");
+    else if (e.key === "6") pick("engineer");
+    else if (e.key === "7") pick("sky");
+    else if (e.key === "8") pick("chopper");
+    else if (e.key === "[") shopTurn(-1);
+    else if (e.key === "]") shopTurn(1);
     else if (e.key === "f" || e.key === "F") toggleSpeed();
     else if (e.key === "Escape") {
       state.placing = null;
@@ -950,6 +1093,7 @@
     refund,
     sell,
     pick,
+    shopTurn,
     startGame,
     title,
     cycleAim,

@@ -888,6 +888,21 @@
   }
 
   function drawShot(ctx, s) {
+    if (s.kind === "mortar" || s.kind === "flak" || s.kind === "rocket") {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      const rad = s.kind === "mortar" ? 5 : s.kind === "rocket" ? 4 : 3.5;
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.arc(0, 0, rad + 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.kind === "flak" ? "#ffe14a" : s.kind === "rocket" ? "#ff8a3d" : "#c8ccd0";
+      ctx.beginPath();
+      ctx.arc(0, 0, rad, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     const ang = Math.atan2(s.y - s.py, s.x - s.px);
     const gat = s.kind === "gatling";
     ctx.save();
@@ -1283,15 +1298,51 @@
   }
 
   function drawCards(ctx, state, area) {
-    const keys = ["trooper", "longshot", "gatling"];
+    const order = B.towerOrder || ["trooper", "longshot", "gatling"];
+    const pages = Math.max(1, Math.ceil(order.length / 3));
+    const page = ((state.shopPage || 0) % pages + pages) % pages;
+    const keys = order.slice(page * 3, page * 3 + 3);
     const gap = 8;
-    const w = (area.w - gap * 2) / 3;
+    const arrow = pages > 1 ? 28 : 0;
+    const w = (area.w - gap * Math.max(0, keys.length - 1) - arrow * 2) / Math.max(1, keys.length);
+    if (pages > 1) {
+      uiButton(ctx, state, {
+        id: "shop-prev",
+        x: area.x,
+        y: area.y + area.h * 0.28,
+        w: 24,
+        h: Math.min(36, area.h * 0.44),
+        label: "<",
+        labelSize: 16,
+        fillTop: "#fff8e4",
+        fillBot: "#f0ddb0",
+        lip: "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.shopTurn(-1),
+      });
+      uiButton(ctx, state, {
+        id: "shop-next",
+        x: area.x + area.w - 24,
+        y: area.y + area.h * 0.28,
+        w: 24,
+        h: Math.min(36, area.h * 0.44),
+        label: ">",
+        labelSize: 16,
+        fillTop: "#fff8e4",
+        fillBot: "#f0ddb0",
+        lip: "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.shopTurn(1),
+      });
+    }
     keys.forEach((key, i) => {
       const def = B.towers[key];
-      const name = key === "gatling" ? "Gatling" : def.name;
+      const name = def.short || def.name;
       uiButton(ctx, state, {
         id: "buy-" + key,
-        x: area.x + i * (w + gap),
+        x: area.x + arrow + i * (w + gap),
         y: area.y,
         w: w,
         h: area.h,

@@ -117,6 +117,27 @@
         case "gatling":
           this.noise(0.03, 0.03, 1800);
           break;
+        case "mortar":
+          this.noise(0.12, 0.07, 220);
+          this.tone(90, 0.2, "sine", 0.06, 0, 50);
+          break;
+        case "cannon":
+          this.noise(0.14, 0.08, 180);
+          this.tone(70, 0.22, "sawtooth", 0.05, 0, 40);
+          break;
+        case "flak":
+          this.noise(0.08, 0.05, 900);
+          this.tone(520, 0.06, "square", 0.03, 0, 200);
+          break;
+        case "chopper":
+          if (this.throttled("chopper", 90)) return;
+          this.noise(0.05, 0.03, 700);
+          this.tone(90, 0.08, "sawtooth", 0.02);
+          break;
+        case "wrench":
+          this.tone(880, 0.05, "square", 0.03);
+          this.tone(440, 0.08, "triangle", 0.03, 0.05);
+          break;
         case "poof":
           this.noise(0.18, 0.05, 600);
           this.tone(660, 0.12, "sine", 0.03, 0, 220);

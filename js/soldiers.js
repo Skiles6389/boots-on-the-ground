@@ -120,7 +120,7 @@
     ctx.stroke();
   }
 
-  function face(ctx, x, y, r, pal, enemy) {
+  function paintFace(ctx, x, y, r, pal, enemy) {
     disk(ctx, x, y, r, pal.skin, pal.skinSh);
     ctx.fillStyle = pal.skinHi;
     ctx.beginPath();
@@ -274,7 +274,7 @@
     piece(ctx, -2, -22, 3.2, 7, 1, pal.strap, null);
     limb(ctx, -4, -22, -8, -16, pal.jacket, 3.4);
     limb(ctx, 3, -22, 6, -17, pal.jacketSh, 3.6);
-    face(ctx, 1.5, -32, 6.1, pal, enemy);
+    paintFace(ctx, 1.5, -32, 6.1, pal, enemy);
     helmet(ctx, 1.5, -33, 6.4, pal, enemy ? (bulk > 1.05 ? 4 : 3) : 0);
   }
 
@@ -293,7 +293,7 @@
     piece(ctx, -5.5 * b, -15.5, 11 * b, 3, 1.2, pal.belt, null);
     limb(ctx, -3, -22, -7, -15, pal.jacket, 3.3);
     limb(ctx, 3, -22, 6, -16, pal.jacketSh, 3.4);
-    face(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
+    paintFace(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
     helmet(ctx, 0.5, -34, enemy && bulk < 0.95 ? 5.6 : 6.3, pal, enemy ? 3 : 0);
   }
 
@@ -307,7 +307,7 @@
     ctx.fillRect(-8, -4, 7, 2.2);
     piece(ctx, -4, 1.6, 8, 2.2, 1, pal.belt, null);
     limb(ctx, 6, -0.4, 11, -0.8, pal.jacket, 3.2);
-    face(ctx, 10, -0.6, 4.6, pal, false);
+    paintFace(ctx, 10, -0.6, 4.6, pal, false);
     helmet(ctx, 9.4, -1.8, 4.8, pal, 0);
     ctx.save();
     ctx.translate(12, -0.8);
@@ -343,7 +343,57 @@
     ctx.save();
     ctx.translate(x, y - bob);
     ctx.scale(face * sc, sc);
-    if (role === "gatling") {
+    if (role === "mortar") {
+      kneel(ctx, pal, false, 1);
+      ctx.save();
+      ctx.translate(5, -20);
+      ctx.rotate(-0.85);
+      piece(ctx, -2, -2.2, 16, 4.4, 1.4, pal.gun, "#00000066");
+      disk(ctx, 14, 0, 2.2, pal.gunHi, null);
+      ctx.restore();
+    } else if (role === "tread") {
+      groundShadow(ctx, 14, 5);
+      piece(ctx, -14, -6, 26, 8, 2, "#2f8a3c", "#1c5c28");
+      piece(ctx, -16, -8, 8, 12, 2, "#245c30", null);
+      piece(ctx, 6, -8, 8, 12, 2, "#245c30", null);
+      disk(ctx, -2, -8, 5, "#3caf4c", "#1f7a34");
+      ctx.save();
+      ctx.translate(-2, -8);
+      ctx.rotate(gunAngle);
+      piece(ctx, 2, -1.6, 14, 3.2, 1, pal.gun, null);
+      ctx.restore();
+      paintFace(ctx, -2, -16, 4.2, pal, false);
+      helmet(ctx, -2, -17, 4.4, pal, 0);
+    } else if (role === "engineer") {
+      stand(ctx, pal, false, opt.phase || 0, 1);
+      piece(ctx, -12, -3, 8, 4, 1.2, "#d7b56a", "#a8843e");
+      piece(ctx, 6, -3, 8, 4, 1.2, "#e6c98a", "#b8924a");
+      ctx.save();
+      ctx.translate(8, -18);
+      ctx.rotate(-0.4);
+      piece(ctx, 0, -1.2, 8, 2.4, 0.8, "#c0c6cc", null);
+      ctx.restore();
+    } else if (role === "sky") {
+      stand(ctx, pal, false, 0, 1);
+      ctx.save();
+      ctx.translate(4, -24);
+      ctx.rotate(-1.05);
+      piece(ctx, 0, -2.4, 14, 4.8, 1.2, pal.gun, "#00000066");
+      piece(ctx, 10, -4.2, 4, 8.4, 1, pal.gunHi, null);
+      ctx.restore();
+    } else if (role === "chopper") {
+      groundShadow(ctx, 10, 4);
+      piece(ctx, -10, -3, 20, 5, 2, "#6a5430", "#3e3018");
+      const ang = (opt.spin || 0) * 0.15;
+      ctx.save();
+      ctx.translate(Math.cos(ang) * 12, -16 + Math.sin(ang) * 5);
+      piece(ctx, -7, -3, 14, 6, 2, pal.jacket, pal.jacketSh);
+      piece(ctx, 6, -1.2, 7, 2.4, 1, pal.jacketSh, null);
+      limb(ctx, -8, -3, 8, -3, "#1a120c", 1.4);
+      paintFace(ctx, -1, -6, 3.4, pal, false);
+      helmet(ctx, -1, -6.6, 3.5, pal, 0);
+      ctx.restore();
+    } else if (role === "gatling") {
       kneel(ctx, pal, false, 1.08);
       ctx.save();
       ctx.translate(6, -16);
