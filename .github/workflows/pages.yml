@@ -1,0 +1,52 @@
+# Publishes the static game to GitHub Pages on every push to main.
+# Pages itself must be switched on once in the repo settings
+# (Settings → Pages → Build and deployment → Source → GitHub Actions).
+# enablement is set below, but the default GITHUB_TOKEN is not allowed to
+# create the Pages site. After the setting is saved, this workflow deploys.
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stamp build id and stage site
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y-%m-%d).$(git rev-parse --short HEAD)"
+          mkdir -p _site
+          tar --exclude _site --exclude .git --exclude .github -cf - . | tar -C _site -xf -
+          sed -i "s/2026-11-22/${STAMP}/g" _site/index.html _site/js/build.js
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

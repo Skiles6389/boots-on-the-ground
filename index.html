@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="Boots on the Ground — a cartoon tower defense. Hold Maple Grove against the Scowl Corps." />
+  <meta name="theme-color" content="#146b32" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Boots" />
+  <title>Boots on the Ground — Maple Grove</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/game.css?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/trooper.png?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/gatling.png?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/longshot.png?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/grunt.png?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/scout.png?v=2026-11-22" />
+  <link rel="preload" as="image" href="assets/sprites/heavy.png?v=2026-11-22" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" aria-label="Boots on the Ground. Maple Grove defense.">Boots on the Ground needs a canvas-capable browser.</canvas>
+  </div>
+  <p id="live" class="sr-only" aria-live="polite"></p>
+  <noscript>Boots on the Ground needs JavaScript. It is a small cartoon tower defense and does not load anything else.</noscript>
+  <script src="js/build.js?v=2026-11-22"></script>
+  <script src="js/balance.js?v=2026-11-22"></script>
+  <script src="js/audio.js?v=2026-11-22"></script>
+  <script src="js/render.js?v=2026-11-22"></script>
+  <script src="js/game.js?v=2026-11-22"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #146b32;
+  color: #fff8e6;
+  font-family: "Nunito", "Trebuchet MS", Verdana, sans-serif;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  color-scheme: only light;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+canvas#game {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  background: #4fb534;
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+noscript {
+  position: absolute;
+  inset: 16px;
+  max-width: 28rem;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
