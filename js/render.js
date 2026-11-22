@@ -754,6 +754,33 @@
     if (opt.rank) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
   }
 
+  function drawGnat(ctx, e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.fillStyle = "rgba(20, 16, 24, 0.28)";
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 8, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.translate(0, -12);
+    fillRound(ctx, -6, -3, 12, 6, 2, "#3a1848");
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    strokeRound(ctx, -6, -3, 12, 6, 2);
+    ctx.strokeStyle = "#1a120c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-8, -4);
+    ctx.lineTo(8, -4);
+    ctx.moveTo(6, -1);
+    ctx.lineTo(12, -1);
+    ctx.stroke();
+    ctx.fillStyle = "#ff3030";
+    ctx.beginPath();
+    ctx.arc(-2, -1, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawJeep(ctx, e) {
     ctx.save();
     ctx.translate(e.x, e.y);
@@ -883,7 +910,7 @@
     if (def.boss) {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      label(ctx, "GRIMSTACHE", e.x, y - 2, 12, "#ffe56a", INK, 3);
+      label(ctx, def.name.toUpperCase(), e.x, y - 2, 12, "#ffe56a", INK, 3);
     }
   }
 
@@ -1055,7 +1082,8 @@
   function composition(wave) {
     const counts = {};
     wave.groups.forEach((g) => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    return ["grunt", "scout", "heavy", "jeep", "tank"].filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
+    const order = ["grunt", "scout", "moto", "heavy", "brute", "riot", "medic", "sneak", "jeep", "halftrack", "gnat", "tank", "ironjaw"];
+    return order.filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
   }
 
   function metrics(L) {
@@ -1808,16 +1836,19 @@
         y: e.y,
         draw: () => {
           if (e.type === "scout" || e.type === "jeep") drawDust(ctx, e, state.time);
-          if (e.type === "jeep") drawJeep(ctx, e);
-          else if (e.type === "tank") drawTank(ctx, e, state.time);
+          if (e.type === "jeep" || e.type === "halftrack") drawJeep(ctx, e);
+          else if (e.type === "tank" || e.type === "ironjaw") drawTank(ctx, e, state.time);
+          else if (e.type === "gnat") drawGnat(ctx, e);
           else {
+            const role = e.type === "brute" ? "heavy" : e.type === "moto" ? "scout" : e.type;
             drawSoldier(ctx, e.x, e.y, {
               team: "enemy",
-              role: e.type,
+              role: role,
               aim: e.angle,
               phase: e.phase,
               scale: B.enemies[e.type].scale,
               flash: e.flash,
+              revealed: e.revealed,
             });
           }
         },

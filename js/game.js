@@ -443,7 +443,12 @@
       dead: false,
     };
     state.enemies.push(enemy);
-    if (def.boss) {
+    if (def.ironjaw) {
+      showBanner("Scowl Corps", "Ironjaw", "The mega-tank. Cannons and mortars. His blast stuns nearby guns.", "boss");
+      audio.play("boss");
+      state.shake = Math.max(state.shake, 7);
+      announce("Ironjaw is on the lane.");
+    } else if (def.boss) {
       showBanner("Scowl Corps", "General Grimstache", "His tank is on the lane. Stop it before the gate.", "boss");
       audio.play("boss");
       state.shake = Math.max(state.shake, 5);
@@ -485,8 +490,24 @@
     }
   }
 
-  function deal(enemy, damage, armorBite) {
+  function fromFront(enemy, from) {
+    if (!from) return false;
+    const dx = from.x - enemy.x;
+    const dy = from.y - enemy.y;
+    return Math.cos(enemy.angle) * dx + Math.sin(enemy.angle) * dy > 6;
+  }
+
+  function deal(enemy, damage, armorBite, from) {
     if (!enemy || enemy.dead) return;
+    const def = B.enemies[enemy.type];
+    if (def && def.shield && armorBite < 0.5 && fromFront(enemy, from)) {
+      enemy.flash = 0.1;
+      if (enemy.tinkCd <= 0) {
+        floater(enemy.x, enemy.y - 16, "clang", "#d7e7ff", 0.35);
+        enemy.tinkCd = 0.45;
+      }
+      return;
+    }
     const resist = enemy.armor * (1 - armorBite);
     const dealt = damage * (1 - resist);
     enemy.hp -= dealt;
@@ -527,10 +548,31 @@
     return enemy.dist;
   }
 
+  function enemySeen(enemy) {
+    const def = B.enemies[enemy.type];
+    if (!def || !def.stealth) return true;
+    for (const tower of state.towers) {
+      const stats = B.statsFor(tower.type, tower.ranks);
+      if (!(stats.detect || stats.detectAura || tower.type === "longshot")) continue;
+      const reach = stats.detect || stats.detectAura || tower.type === "longshot" ? stats.range || 160 : 0;
+      if (Math.hypot(tower.x - enemy.x, tower.y - enemy.y) <= reach) return true;
+    }
+    return false;
+  }
+
+  function canTarget(tower, stats, enemy) {
+    const def = B.enemies[enemy.type];
+    if (!def) return true;
+    if (def.air && !(stats.air || stats.role === "sky" || stats.role === "chopper")) return false;
+    if (def.stealth && !enemySeen(enemy)) return false;
+    return true;
+  }
+
   function acquire(tower, stats, enemies) {
     let best = null;
     let bestScore = null;
     for (const enemy of enemies) {
+      if (!canTarget(tower, stats, enemy)) continue;
       const d = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
       if (d > stats.range) continue;
       const score = targetScore(tower, enemy);
@@ -777,7 +819,7 @@
       for (const enemy of enemies) {
         if (enemy.dead) continue;
         if (distPointSeg(enemy.x, enemy.y, shot.px, shot.py, shot.x, shot.y) <= enemy.radius + shot.radius) {
-          deal(enemy, shot.damage, shot.armorBite);
+          deal(enemy, shot.damage, shot.armorBite, { x: shot.x, y: shot.y });
           if (shot.pierce > 0) shot.pierce -= 1;
           else shot.life = 0;
           break;
@@ -796,6 +838,35 @@
       enemy.phase += dt * enemy.speed * 0.16;
       enemy.flash = Math.max(0, enemy.flash - dt);
       enemy.tinkCd = Math.max(0, enemy.tinkCd - dt);
+      enemy.revealed = enemySeen(enemy);
+      const edef = B.enemies[enemy.type];
+      if (edef.medic) {
+        let jammed = false;
+        for (const tower of state.towers) {
+          const st = B.statsFor(tower.type, tower.ranks);
+          if (st.healBlock && Math.hypot(tower.x - enemy.x, tower.y - enemy.y) <= st.range) jammed = true;
+        }
+        if (!jammed) {
+          for (const other of state.enemies) {
+            if (other.dead || other === enemy) continue;
+            if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 46) {
+              other.hp = Math.min(other.maxHp, other.hp + 7 * dt);
+            }
+          }
+        }
+      }
+      if (edef.ironjaw) {
+        enemy.stunCd = (enemy.stunCd == null ? 3.2 : enemy.stunCd) - dt;
+        if (enemy.stunCd <= 0) {
+          enemy.stunCd = 4.2;
+          state.shake = Math.max(state.shake, 6);
+          for (const tower of state.towers) {
+            if (Math.hypot(tower.x - enemy.x, tower.y - enemy.y) < 120) tower.cooldown += 1.3;
+          }
+          floater(enemy.x, enemy.y - 28, "BOOM", "#ffb4a0", 0.7);
+          audio.play("cannon");
+        }
+      }
       if (enemy.dist >= B.route.total) {
         leak(enemy);
         continue;

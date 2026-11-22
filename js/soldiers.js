@@ -414,6 +414,18 @@
       ctx.rotate(gunAngle);
       rifle(ctx, 12, pal);
       ctx.restore();
+    } else if (role === "sneak" && !opt.revealed) {
+      ctx.globalAlpha = 0.38;
+      stand(ctx, pal, true, opt.phase || 0, 0.95);
+      ctx.globalAlpha = 1;
+    } else if (role === "medic") {
+      stand(ctx, pal, true, opt.phase || 0, 1);
+      ctx.fillStyle = "#7dff6a";
+      ctx.fillRect(-1.2, -24, 2.4, 7);
+      ctx.fillRect(-3.4, -21.6, 7, 2.4);
+    } else if (role === "riot") {
+      stand(ctx, pal, true, opt.phase || 0, 1.05);
+      piece(ctx, 6, -26, 5, 16, 2, "#6a6e78", "#3a3e48");
     } else if (role === "scout") {
       stand(ctx, pal, true, (opt.phase || 0) * 1.4, 0.9);
       ctx.save();
