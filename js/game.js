@@ -15,9 +15,10 @@
     let footerH = 0;
     let sideW = 0;
     if (portrait) {
-      footerH = Math.round(Math.min(304, Math.max(236, vh * 0.34)));
-      const minMap = 200;
-      if (headerH + footerH > vh - minMap) footerH = Math.max(180, vh - headerH - minMap);
+      // Tall enough for three two-line upgrade buttons on a short phone.
+      footerH = Math.round(Math.min(348, Math.max(286, vh * 0.4)));
+      const minMap = 210;
+      if (headerH + footerH > vh - minMap) footerH = Math.max(200, vh - headerH - minMap);
     } else {
       sideW = Math.max(270, Math.min(332, Math.round(vw * 0.36)));
       if (sideW > vw - 220) sideW = Math.max(200, vw - 220);
@@ -60,6 +61,7 @@
   function fresh() {
     return {
       screen: "title",
+      mapId: "maple",
       time: 0,
       cash: B.meta.startingCash,
       lives: B.meta.startingLives,
@@ -74,6 +76,7 @@
       toast: null,
       selectedId: null,
       placing: null,
+      shopPage: 0,
       ghost: null,
       pointer: { x: 200, y: 160, sx: 200, sy: 320, inside: false, insideMap: false },
       pressedId: null,
@@ -175,6 +178,13 @@
   function invested(tower) {
     const def = B.towers[tower.type];
     let n = def.cost;
+    if (def.paths && tower.ranks) {
+      def.paths.forEach(function (p) {
+        const r = tower.ranks[p.id] || 0;
+        for (let i = 0; i < r; i++) n += p.tiers[i].cost;
+      });
+      return n;
+    }
     for (let i = 0; i < tower.rank; i++) n += def.upgrades[i].cost;
     return n;
   }
@@ -197,8 +207,8 @@
       return { ok: false, reason: "The lane is for marching." };
     }
     const pond = map.pond;
-    if (Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) {
-      return { ok: false, reason: "That's the pond." };
+    if (pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) {
+      return { ok: false, reason: pond.kind === "well" ? "That's the well." : "That's the pond." };
     }
     for (const tree of map.trees) {
       if (Math.hypot(x - tree.x, y - tree.y) < map.trunkBlock) {
@@ -273,6 +283,7 @@
       id: state.nextId++,
       type,
       rank: 0,
+      ranks: {},
       x,
       y,
       aim,
@@ -292,6 +303,13 @@
     floater(x, y - 26, `-$${def.cost}`, "#fff6d0", 0.7);
   }
 
+  function shopTurn(dir) {
+    const order = B.towerOrder || Object.keys(B.towers);
+    const pages = Math.max(1, Math.ceil(order.length / 3));
+    state.shopPage = ((state.shopPage || 0) + dir + pages) % pages;
+    audio.play("ui");
+  }
+
   function pick(key) {
     if (state.screen !== "play") return;
     if (state.placing === key) {
@@ -308,22 +326,35 @@
     return state.towers.find((t) => t.id === state.selectedId) || null;
   }
 
-  function upgrade() {
+  function upgrade(pathId) {
     const tower = selectedTower();
     if (!tower) return;
     const def = B.towers[tower.type];
-    if (tower.rank >= def.upgrades.length) {
-      toast("Fully kitted.");
+    if (!def.paths) return;
+    const path = def.paths.find(function (p) { return p.id === pathId; });
+    if (!path) return;
+    if (!tower.ranks) tower.ranks = {};
+    const cur = tower.ranks[path.id] || 0;
+    if (cur >= path.tiers.length) {
+      toast("That path is finished.");
       return;
     }
-    const up = def.upgrades[tower.rank];
+    const need = cur >= 3 ? 2 : 1;
+    const used = B.chevronsUsed(tower.type, tower.ranks);
+    if (used + need > (B.chevronCap || 6)) {
+      toast("Chevron cap is 6.");
+      audio.play("deny");
+      return;
+    }
+    const up = path.tiers[cur];
     if (state.cash < up.cost) {
-      toast(`Need $${up.cost}.`);
+      toast("Need $" + up.cost + ".");
       audio.play("deny");
       return;
     }
     state.cash -= up.cost;
-    tower.rank += 1;
+    tower.ranks[path.id] = cur + 1;
+    tower.rank = B.chevronsUsed(tower.type, tower.ranks);
     audio.play("upgrade");
     floater(tower.x, tower.y - 30, up.name, "#d8ffc4", 1);
   }
@@ -414,7 +445,12 @@
       dead: false,
     };
     state.enemies.push(enemy);
-    if (def.boss) {
+    if (def.ironjaw) {
+      showBanner("Scowl Corps", "Ironjaw", "The mega-tank. Cannons and mortars. His blast stuns nearby guns.", "boss");
+      audio.play("boss");
+      state.shake = Math.max(state.shake, 7);
+      announce("Ironjaw is on the lane.");
+    } else if (def.boss) {
       showBanner("Scowl Corps", "General Grimstache", "His tank is on the lane. Stop it before the gate.", "boss");
       audio.play("boss");
       state.shake = Math.max(state.shake, 5);
@@ -425,6 +461,7 @@
   function defeat(enemy) {
     if (enemy.dead) return;
     enemy.dead = true;
+    enemy.dying = 0.42;
     enemy.hp = 0;
     state.cash += enemy.cash;
     const boss = !!B.enemies[enemy.type].boss;
@@ -456,8 +493,24 @@
     }
   }
 
-  function deal(enemy, damage, armorBite) {
+  function fromFront(enemy, from) {
+    if (!from) return false;
+    const dx = from.x - enemy.x;
+    const dy = from.y - enemy.y;
+    return Math.cos(enemy.angle) * dx + Math.sin(enemy.angle) * dy > 6;
+  }
+
+  function deal(enemy, damage, armorBite, from) {
     if (!enemy || enemy.dead) return;
+    const def = B.enemies[enemy.type];
+    if (def && def.shield && armorBite < 0.5 && fromFront(enemy, from)) {
+      enemy.flash = 0.1;
+      if (enemy.tinkCd <= 0) {
+        floater(enemy.x, enemy.y - 16, "clang", "#d7e7ff", 0.35);
+        enemy.tinkCd = 0.45;
+      }
+      return;
+    }
     const resist = enemy.armor * (1 - armorBite);
     const dealt = damage * (1 - resist);
     enemy.hp -= dealt;
@@ -498,10 +551,31 @@
     return enemy.dist;
   }
 
+  function enemySeen(enemy) {
+    const def = B.enemies[enemy.type];
+    if (!def || !def.stealth) return true;
+    for (const tower of state.towers) {
+      const stats = B.statsFor(tower.type, tower.ranks);
+      if (!(stats.detect || stats.detectAura || tower.type === "longshot")) continue;
+      const reach = stats.detect || stats.detectAura || tower.type === "longshot" ? stats.range || 160 : 0;
+      if (Math.hypot(tower.x - enemy.x, tower.y - enemy.y) <= reach) return true;
+    }
+    return false;
+  }
+
+  function canTarget(tower, stats, enemy) {
+    const def = B.enemies[enemy.type];
+    if (!def) return true;
+    if (def.air && !(stats.air || stats.role === "sky" || stats.role === "chopper")) return false;
+    if (def.stealth && !enemySeen(enemy)) return false;
+    return true;
+  }
+
   function acquire(tower, stats, enemies) {
     let best = null;
     let bestScore = null;
     for (const enemy of enemies) {
+      if (!canTarget(tower, stats, enemy)) continue;
       const d = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
       if (d > stats.range) continue;
       const score = targetScore(tower, enemy);
@@ -513,14 +587,94 @@
     return best;
   }
 
+  function splashDamage(x, y, radius, damage, armorBite, ignoreId) {
+    for (const enemy of liveEnemies()) {
+      if (ignoreId && enemy.id === ignoreId) continue;
+      if (Math.hypot(enemy.x - x, enemy.y - y) <= radius + (enemy.radius || 0) * 0.35) {
+        deal(enemy, damage, armorBite);
+      }
+    }
+    spawnPoof(x, y, 1.15, true);
+    state.effects.push({ kind: "boom", x, y, t: 0, life: 0.38, r: radius });
+    if (!state.reducedMotion) state.shake = Math.max(state.shake, radius > 30 ? 3.4 : 2.2);
+  }
+
+  function chopperGun(tower) {
+    const a = tower.spin || 0;
+    return { x: tower.x + Math.cos(a) * 16, y: tower.y - 18 + Math.sin(a) * 7 };
+  }
+
   function shoot(tower, target, stats) {
-    const origin = aimOrigin(tower.x, tower.y, stats.role);
+    if (stats.role === "engineer" || stats.rate <= 0) return;
+    const origin = stats.role === "chopper" ? chopperGun(tower) : aimOrigin(tower.x, tower.y, stats.role);
     const aim = Math.atan2(target.y - origin.y, target.x - origin.x);
     tower.aim = aim;
     tower.flash = 0.14;
-    const tip = muzzleTip(tower.x, tower.y, stats.role, aim);
+    tower.shotsFired = (tower.shotsFired || 0) + 1;
+    if (stats.ace && tower.shotsFired % 5 === 0) stats = Object.assign({}, stats, { damage: stats.damage * stats.ace });
+    if (stats.grenadeEvery && tower.shotsFired % stats.grenadeEvery === 0) {
+      splashDamage(target.x, target.y, stats.splash || 28, stats.damage, stats.armorBite || 0);
+    }
+    if (stats.slowOnHit) target.hobble = Math.max(target.hobble || 0, 0.8);
+    if (stats.knock) target.dist = Math.max(0, target.dist - stats.knock);
+    const tip = stats.role === "chopper" ? origin : muzzleTip(tower.x, tower.y, stats.role, aim);
     const mx = tip.x;
     const my = tip.y;
+    if (stats.role === "mortar") {
+      const travel = 0.55;
+      const dest = B.pointAt(Math.min(B.route.total - 1, target.dist + target.speed * travel));
+      state.shots.push({
+        kind: "mortar",
+        x: tower.x,
+        y: tower.y - 18,
+        x0: tower.x,
+        y0: tower.y - 18,
+        tx: dest.x,
+        ty: dest.y,
+        t: 0,
+        flight: 0.62,
+        damage: stats.damage,
+        armorBite: stats.armorBite,
+        splash: stats.splash || 34,
+        life: 1,
+      });
+      audio.play("mortar");
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
+    if (stats.role === "sky") {
+      state.shots.push({
+        kind: "flak",
+        x: mx,
+        y: my,
+        x0: mx,
+        y0: my,
+        px: mx,
+        py: my,
+        tx: target.x,
+        ty: target.y,
+        vx: 0,
+        vy: 0,
+        t: 0,
+        flight: 0.28,
+        damage: stats.damage * (target.air ? stats.airBonus || 1 : 1),
+        armorBite: stats.armorBite,
+        splash: stats.splash || 24,
+        life: 1,
+      });
+      audio.play("flak");
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
+    if (stats.role === "tread") {
+      deal(target, stats.damage, stats.armorBite);
+      splashDamage(target.x, target.y, stats.splash || 22, Math.max(1, stats.damage * 0.35), stats.armorBite, target.id);
+      state.effects.push({ kind: "tracer", x1: mx, y1: my, x2: target.x, y2: target.y, t: 0, life: 0.18 });
+      audio.play("cannon");
+      if (!state.reducedMotion) state.shake = Math.max(state.shake, 2.6);
+      tower.cooldown = 1 / stats.rate;
+      return;
+    }
     if (stats.projectileSpeed <= 0) {
       deal(target, stats.damage, stats.armorBite);
       state.effects.push({
@@ -550,9 +704,52 @@
         armorBite: stats.armorBite,
         radius: stats.role === "gatling" ? 5 : 7,
         kind: stats.role,
+        pierce: stats.pierce || 0,
         life: 1.15,
       });
-      audio.play(stats.role === "gatling" ? "gatling" : "rifle");
+      const extra = stats.extra || 0;
+      for (let n = 0; n < extra; n++) {
+        const spread = (n + 1) * 0.12 * (n % 2 === 0 ? 1 : -1);
+        const ang = Math.atan2(dy, dx) + spread;
+        state.shots.push({
+          x: mx,
+          y: my,
+          px: mx,
+          py: my,
+          vx: Math.cos(ang) * stats.projectileSpeed,
+          vy: Math.sin(ang) * stats.projectileSpeed,
+          damage: stats.damage,
+          armorBite: stats.armorBite,
+          radius: 5,
+          kind: stats.role,
+          pierce: stats.pierce || 0,
+          life: 1.15,
+        });
+      }
+      const sound = stats.role === "gatling" ? "gatling" : stats.role === "tread" ? "cannon" : stats.role === "chopper" ? "chopper" : "rifle";
+      if (stats.role === "chopper" && tower.rocketCd == null) tower.rocketCd = 0;
+      if (stats.role === "chopper" && stats.splash && tower.rocketCd <= 0) {
+        state.shots.push({
+          kind: "rocket",
+          x: mx,
+          y: my,
+          x0: mx,
+          y0: my,
+          px: mx,
+          py: my,
+          tx: target.x,
+          ty: target.y,
+          t: 0,
+          flight: 0.35,
+          damage: stats.damage * 3,
+          armorBite: stats.armorBite,
+          splash: stats.splash,
+          life: 1,
+        });
+        tower.rocketCd = 1.6;
+        audio.play("mortar");
+      }
+      audio.play(sound);
     }
     tower.cooldown = 1 / stats.rate;
   }
@@ -575,7 +772,12 @@
       tower.spin += dt * (8 + tower.rank * 4);
       tower.flash = Math.max(0, tower.flash - dt);
       tower.cooldown -= dt;
-      const stats = B.statsFor(tower.type, tower.rank);
+      if (tower.rocketCd) tower.rocketCd = Math.max(0, tower.rocketCd - dt);
+      const stats = B.statsFor(tower.type, tower.ranks);
+      if (stats.role === "engineer" && !(stats.rate > 0)) {
+        tower.aim = tower.idleAim;
+        continue;
+      }
       let target = enemies.find((e) => e.id === tower.targetId) || null;
       if (target && Math.hypot(target.x - tower.x, target.y - tower.y) > stats.range) target = null;
       if (!target) target = acquire(tower, stats, enemies);
@@ -588,7 +790,32 @@
       if (target && tower.cooldown <= 0) shoot(tower, target, stats);
     }
 
+    for (const enemy of enemies) enemy.slow = 1;
+    for (const tower of state.towers) {
+      if (tower.type !== "engineer") continue;
+      const stats = B.statsFor(tower.type, tower.ranks);
+      for (const enemy of enemies) {
+        if (Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= stats.range) {
+          enemy.slow = Math.min(enemy.slow, stats.slow || 0.7);
+        }
+      }
+    }
+
     for (const shot of state.shots) {
+      if (shot.kind === "mortar" || shot.kind === "flak" || shot.kind === "rocket") {
+        shot.t += dt;
+        const u = Math.min(1, shot.t / shot.flight);
+        const arc = shot.kind === "mortar" ? 36 : shot.kind === "rocket" ? 14 : 8;
+        shot.px = shot.x;
+        shot.py = shot.y;
+        shot.x = shot.x0 + (shot.tx - shot.x0) * u;
+        shot.y = shot.y0 + (shot.ty - shot.y0) * u - Math.sin(u * Math.PI) * arc;
+        if (u >= 1) {
+          splashDamage(shot.tx, shot.ty, shot.splash || 24, shot.damage, shot.armorBite);
+          shot.life = 0;
+        }
+        continue;
+      }
       shot.life -= dt;
       shot.px = shot.x;
       shot.py = shot.y;
@@ -598,8 +825,9 @@
       for (const enemy of enemies) {
         if (enemy.dead) continue;
         if (distPointSeg(enemy.x, enemy.y, shot.px, shot.py, shot.x, shot.y) <= enemy.radius + shot.radius) {
-          deal(enemy, shot.damage, shot.armorBite);
-          shot.life = 0;
+          deal(enemy, shot.damage, shot.armorBite, { x: shot.x, y: shot.y });
+          if (shot.pierce > 0) shot.pierce -= 1;
+          else shot.life = 0;
           break;
         }
       }
@@ -607,11 +835,47 @@
     state.shots = state.shots.filter((s) => s.life > 0);
 
     for (const enemy of state.enemies) {
-      if (enemy.dead) continue;
-      enemy.dist += enemy.speed * dt;
+      if (enemy.dead) {
+        enemy.dying = (enemy.dying || 0) - dt;
+        continue;
+      }
+      if (enemy.hobble > 0) {
+        enemy.hobble -= dt;
+        enemy.slow = Math.min(enemy.slow || 1, 0.62);
+      }
+      enemy.dist += enemy.speed * (enemy.slow || 1) * dt;
       enemy.phase += dt * enemy.speed * 0.16;
       enemy.flash = Math.max(0, enemy.flash - dt);
       enemy.tinkCd = Math.max(0, enemy.tinkCd - dt);
+      enemy.revealed = enemySeen(enemy);
+      const edef = B.enemies[enemy.type];
+      if (edef.medic) {
+        let jammed = false;
+        for (const tower of state.towers) {
+          const st = B.statsFor(tower.type, tower.ranks);
+          if (st.healBlock && Math.hypot(tower.x - enemy.x, tower.y - enemy.y) <= st.range) jammed = true;
+        }
+        if (!jammed) {
+          for (const other of state.enemies) {
+            if (other.dead || other === enemy) continue;
+            if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 46) {
+              other.hp = Math.min(other.maxHp, other.hp + 7 * dt);
+            }
+          }
+        }
+      }
+      if (edef.ironjaw) {
+        enemy.stunCd = (enemy.stunCd == null ? 3.2 : enemy.stunCd) - dt;
+        if (enemy.stunCd <= 0) {
+          enemy.stunCd = 4.2;
+          state.shake = Math.max(state.shake, 6);
+          for (const tower of state.towers) {
+            if (Math.hypot(tower.x - enemy.x, tower.y - enemy.y) < 120) tower.cooldown += 1.3;
+          }
+          floater(enemy.x, enemy.y - 28, "BOOM", "#ffb4a0", 0.7);
+          audio.play("cannon");
+        }
+      }
       if (enemy.dist >= B.route.total) {
         leak(enemy);
         continue;
@@ -625,9 +889,10 @@
       state.enemies = state.enemies.filter((e) => !e.dead);
       return;
     }
-    state.enemies = state.enemies.filter((e) => !e.dead);
+    state.enemies = state.enemies.filter((e) => !e.dead || e.dying > 0);
+    const laneClear = state.enemies.every((e) => e.dead);
 
-    if (state.waveActive && state.spawnQueue.length === 0 && state.enemies.length === 0) {
+    if (state.waveActive && state.spawnQueue.length === 0 && laneClear) {
       let purse = 0;
       while (state.rewarded < state.started) {
         purse += B.waves[state.rewarded].reward;
@@ -635,9 +900,27 @@
       }
       state.waveActive = false;
       if (purse) {
-        state.cash += purse;
-        floater(200, 240, `Wave purse +$${purse}`, "#ffe56a", 1.2);
+        let supply = 0;
+        for (const tower of state.towers) {
+          if (tower.type === "engineer") supply += B.statsFor(tower.type, tower.ranks).wavePay || 0;
+        }
+        state.cash += purse + supply;
+        floater(200, 240, supply ? `Wave purse +$${purse + supply}` : `Wave purse +$${purse}`, "#ffe56a", 1.2);
         audio.play("clear");
+        let livesBack = 0;
+        for (const tower of state.towers) {
+          livesBack += B.statsFor(tower.type, tower.ranks).lifeOnClear || 0;
+        }
+        if (livesBack) state.lives += livesBack;
+        if (supply) audio.play("wrench");
+        if (state.rewarded < B.waves.length) {
+          showBanner(
+            "Lane clear",
+            "Round " + state.rewarded + " holds",
+            "Purse +$" + (purse + supply) + ". Plant or upgrade, then send the next one.",
+            "clear"
+          );
+        }
       }
       if (state.rewarded >= B.waves.length) win();
     }
@@ -686,7 +969,7 @@
       state.shots = [];
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
     audio.play("win");
-    announce("Maple Grove holds. General Grimstache's tank poofed into smoke.");
+    announce((B.map.name || "The lane") + " holds. The Scowl Corps poofed into smoke.");
   }
 
   const PLAN = [
@@ -714,12 +997,18 @@
     const towers = state.towers.slice().sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
     for (const tower of towers) {
       const def = B.towers[tower.type];
-      if (tower.rank >= def.upgrades.length) continue;
-      const cost = def.upgrades[tower.rank].cost;
-      if (state.cash >= cost && state.towers.length >= 3) {
-        state.selectedId = tower.id;
-        upgrade();
-        return;
+      if (!def.paths || !tower.ranks) continue;
+      for (const p of def.paths) {
+        const cur = tower.ranks[p.id] || 0;
+        if (cur >= 2) continue;
+        const need = 1;
+        if (B.chevronsUsed(tower.type, tower.ranks) + need > B.chevronCap) continue;
+        const cost = p.tiers[cur].cost;
+        if (state.cash >= cost && state.towers.length >= 2) {
+          state.selectedId = tower.id;
+          upgrade(p.id);
+          return;
+        }
       }
     }
     if (!state.waveActive && state.launchLock <= 0 && state.started < B.waves.length && state.towers.length >= 2) {
@@ -876,7 +1165,19 @@
     }
     if (state.screen === "title" && (e.key === " " || e.key === "Enter")) {
       e.preventDefault();
-      startGame();
+      openMaps();
+      return;
+    }
+    if (state.screen === "maps") {
+      if (e.key === "1" || e.key === "Enter") {
+        e.preventDefault();
+        startGame("maple");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        startGame("cactus");
+      } else if (e.key === "Escape") {
+        title();
+      }
       return;
     }
     if ((state.screen === "win" || state.screen === "lose") && (e.key === "Enter" || e.key === " ")) {
@@ -888,6 +1189,13 @@
     if (e.key === "1") pick("trooper");
     else if (e.key === "2") pick("longshot");
     else if (e.key === "3") pick("gatling");
+    else if (e.key === "4") pick("mortar");
+    else if (e.key === "5") pick("tread");
+    else if (e.key === "6") pick("engineer");
+    else if (e.key === "7") pick("sky");
+    else if (e.key === "8") pick("chopper");
+    else if (e.key === "[") shopTurn(-1);
+    else if (e.key === "]") shopTurn(1);
     else if (e.key === "f" || e.key === "F") toggleSpeed();
     else if (e.key === "Escape") {
       state.placing = null;
@@ -899,16 +1207,31 @@
     else if (e.key === "x" || e.key === "X") sell();
   });
 
-  function startGame() {
+  function startGame(mapId) {
+    const id = mapId || state.mapId || "maple";
+    const map = B.setMap(id);
     const debug = state.debug;
     const motion = state.reducedMotion;
     state = fresh();
+    state.mapId = map.id;
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
     audio.ensure();
     audio.play("wave");
-    announce("Maple Grove. Plant a Trooper on the grass, then start wave 1.");
+    const ground = map.theme === "desert" ? "sand" : "grass";
+    announce(map.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
+    resize();
+  }
+
+  function openMaps() {
+    const debug = state.debug;
+    const motion = state.reducedMotion;
+    state = fresh();
+    state.debug = debug;
+    state.reducedMotion = motion;
+    state.screen = "maps";
+    announce("Pick a map. Maple Grove or Cactus Junction.");
     resize();
   }
 
@@ -925,8 +1248,11 @@
   function jump(waveNumber) {
     const debug = state.debug;
     const motion = state.reducedMotion;
+    const mapId = state.mapId || "maple";
+    B.setMap(mapId);
     const keepTowers = state.towers.map((t) => Object.assign({}, t));
     state = fresh();
+    state.mapId = mapId;
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
@@ -950,7 +1276,9 @@
     refund,
     sell,
     pick,
+    shopTurn,
     startGame,
+    openMaps,
     title,
     cycleAim,
   };

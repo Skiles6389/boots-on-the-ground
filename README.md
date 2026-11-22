@@ -1,14 +1,10 @@
 # Boots on the Ground
 
-A cartoon tower defense. You play the green plastic army men and hold the dirt lane through Maple Grove. The Scowl Corps — the same soldiers, cast in purple with spiked helmets and red eyes — march in from the left. Stop them before they reach the gate.
+A cartoon tower defense. You play the green army and hold a lane against the Scowl Corps — the same soldiers, in dark red and black, with spiked helmets and red eyes. Stop them before they reach the gate.
 
-There are three towers:
+Eight towers: Trooper, Longshot, Gatling Gunner, Mortar Crew, Tread Tank, Engineer, Sky Guard, and Chopper Pad. Tap a planted tower to spend chevrons. Each tower has three paths, and a tower can hold six chevrons in all.
 
-- **Trooper** — cheap rifle, steady shots.
-- **Gatling** — a short-range stream of light rounds. Park one on a corner.
-- **Longshot** — slow shots that punch through armor. Heavies, jeeps, and the tank care about this one.
-
-Ten rounds. The last one brings General Grimstache's tank.
+Two maps, thirty rounds. Maple Grove is the green starter. Cactus Junction is the dusty roadside. Round 20 brings General Grimstache's tank. Round 30 brings Ironjaw.
 
 ## Play it on a phone
 
@@ -40,19 +36,20 @@ Then open http://localhost:8080 . Use a local server rather than double-clicking
 
 ## How to play
 
-Tap a soldier card, then tap the grass. You cannot plant on the dirt, in the pond, or on top of another soldier. The first good patch pulses until you use it.
+Pick a map, tap a soldier card, then tap open ground. You cannot plant on the lane, in the pond or the well, or on top of another soldier. The first good patch pulses until you use it.
 
-**Start Round** sends the next wave. You can send the following wave early for a small bonus. Tap a planted soldier to upgrade, change who they shoot, or sell them. The **1× / 2×** button speeds the round up.
+**Start Round** sends the next wave. You can send the following wave early for a small bonus. Tap a planted soldier to open the chevron paths, change who they shoot, or sell them. The **1× / 2×** button speeds the round up.
 
-On a keyboard: `1` `2` `3` pick a soldier, `Space` starts the round, `F` changes speed, `U` upgrades, `X` sells, `Esc` cancels, `M` mutes.
+On a keyboard: `1` through `8` pick a soldier, `[` and `]` turn the shop page, `Space` starts the round, `F` changes speed, `U` buys the first affordable chevron, `X` sells, `Esc` cancels, `M` mutes. On the map screen, `1` is Maple Grove and `2` is Cactus Junction.
 
 ## What's in the folder
 
 - `index.html` — the page
 - `css/game.css` — fills the screen, including the iPhone safe area, and turns off scroll and pinch-zoom while you play
-- `js/balance.js` — prices, ranges, and the ten rounds
+- `js/balance.js` — prices, ranges, the two maps, and the thirty rounds
+- `js/paths.js` — the chevron paths for every tower
 - `js/game.js` — planting, shooting, and waves
-- `js/render.js` — the map, soldiers, and buttons
+- `js/render.js` — the maps, soldiers, and buttons
 - `js/audio.js` — tiny synthesized sounds, no audio files
 - `js/build.js` — the corner label. The Pages workflow rewrites it with the date and commit
 - `js/soldiers.js` — the cartoon soldiers (green kit for us, dark red and black for the Scowl Corps)

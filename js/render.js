@@ -180,10 +180,13 @@
       const ink = spec.ink || "#ffffff";
       const stroke = spec.stroke == null ? INK : spec.stroke;
       if (spec.sub) {
-        const ls = fitSize(ctx, spec.label, w - 16, spec.labelSize || 18);
-        label(ctx, spec.label, x + w / 2, py + h / 2 - 9, ls, ink, stroke, Math.max(3, ls * 0.16));
-        const ss = fitSize(ctx, spec.sub, w - 14, spec.subSize || 11);
-        label(ctx, spec.sub, x + w / 2, py + h / 2 + 10, ss, ink, stroke, Math.max(2, ss * 0.14));
+        const ls = fitSize(ctx, spec.label, w - 16, spec.labelSize || 16);
+        const ss = fitSize(ctx, spec.sub, w - 16, spec.subSize || 12);
+        const gap = 3;
+        const block = ls + gap + ss;
+        const top = py + Math.max(3, (h - block) / 2);
+        label(ctx, spec.label, x + w / 2, top + ls * 0.55, ls, ink, stroke, stroke ? Math.max(2, ls * 0.12) : 0);
+        label(ctx, spec.sub, x + w / 2, top + ls + gap + ss * 0.55, ss, ink, stroke, stroke ? Math.max(2, ss * 0.12) : 0);
       } else {
         const ls = fitSize(ctx, spec.label, w - 12, spec.labelSize || 18);
         label(ctx, spec.label, x + w / 2, py + h / 2 + 1, ls, ink, stroke, Math.max(3, ls * 0.16));
@@ -291,8 +294,13 @@
   }
 
   function drawPortrait(ctx, key, x, y, w, h) {
-    const enemy = key === "grunt" || key === "scout" || key === "heavy";
-    const vehicle = key === "jeep" || key === "tank";
+    const foe = {
+      grunt: "grunt", scout: "scout", heavy: "heavy", moto: "scout", brute: "heavy",
+      riot: "riot", medic: "medic", sneak: "sneak", gnat: "gnat",
+    };
+    const vehicle = key === "jeep" || key === "tank" || key === "halftrack" || key === "ironjaw";
+    const enemy = !!foe[key] || vehicle;
+    const role = foe[key] || (key === "halftrack" ? "jeep" : key === "ironjaw" ? "tank" : key);
     ctx.save();
     fillRound(ctx, x, y, w, h, 12, enemy || vehicle ? "#4a2040" : "#2f9a3c");
     ctx.lineWidth = 2.5;
@@ -302,7 +310,7 @@
     roundPath(ctx, x + 1, y + 1, w - 2, h - 2, 11);
     ctx.clip();
     if (vehicle) {
-      fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" ? "#5a32b0" : "#8a5ad4");
+      fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" || key === "ironjaw" ? "#5a32b0" : "#8a5ad4");
     } else if (root.BOTGSoldier) {
       const prone = key === "longshot";
       const sc = prone
@@ -310,7 +318,7 @@
         : Math.min((w * 0.88) / 28, (h * 0.94) / 40);
       root.BOTGSoldier.draw(ctx, x + w / 2, y + (prone ? h * 0.58 : h - 2), {
         team: enemy ? "enemy" : "player",
-        role: key,
+        role: role,
         aim: prone ? -0.08 : 0.12,
         scale: sc,
       });
@@ -320,8 +328,11 @@
   }
 
   let terrain = null;
+  let terrainId = "";
   function ensureTerrain() {
-    if (terrain) return;
+    const id = (B.map && B.map.id) || "maple";
+    if (terrain && terrainId === id) return;
+    terrainId = id;
     const S = 2;
     terrain = document.createElement("canvas");
     terrain.width = 400 * S;
@@ -349,19 +360,36 @@
     ctx.stroke();
   }
 
+  function nearBlock(x, y, pad) {
+    const pond = B.map.pond;
+    return pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + pad;
+  }
+
   function paintTerrain(ctx) {
-    ctx.fillStyle = GRASS;
+    const desert = B.map.theme === "desert";
+    ctx.fillStyle = desert ? "#e2b15a" : GRASS;
     ctx.fillRect(0, 0, 400, 570);
-    const blobs = [
-      [70, 180, 130, 70, "#6ed84a"],
-      [300, 150, 120, 60, "#3ea028"],
-      [200, 300, 160, 80, "#7ae052"],
-      [80, 400, 140, 70, "#369424"],
-      [320, 430, 130, 64, "#62c840"],
-      [180, 500, 170, 50, "#8ae85e"],
-      [40, 120, 90, 40, "#3d9a2c"],
-      [340, 260, 80, 48, "#2f8a24"],
-    ];
+    const blobs = desert
+      ? [
+          [70, 180, 130, 70, "#efc56e"],
+          [300, 150, 120, 60, "#c98a3a"],
+          [200, 300, 160, 80, "#f0d48a"],
+          [80, 400, 140, 70, "#d9a04a"],
+          [320, 430, 130, 64, "#e8b45a"],
+          [180, 500, 170, 50, "#f3d7a0"],
+          [40, 120, 90, 40, "#c4843a"],
+          [340, 260, 80, 48, "#b87428"],
+        ]
+      : [
+          [70, 180, 130, 70, "#6ed84a"],
+          [300, 150, 120, 60, "#3ea028"],
+          [200, 300, 160, 80, "#7ae052"],
+          [80, 400, 140, 70, "#369424"],
+          [320, 430, 130, 64, "#62c840"],
+          [180, 500, 170, 50, "#8ae85e"],
+          [40, 120, 90, 40, "#3d9a2c"],
+          [340, 260, 80, 48, "#2f8a24"],
+        ];
     blobs.forEach((b) => {
       ctx.fillStyle = b[4];
       ctx.beginPath();
@@ -369,30 +397,40 @@
       ctx.fill();
     });
 
-    const rand = mulberry32(11);
+    const rand = mulberry32(desert ? 29 : 11);
     for (let i = 0; i < 70; i++) {
       const x = 8 + rand() * 384;
       const y = 60 + rand() * 490;
       if (B.distToRoute(x, y) < 32) continue;
-      const pond = B.map.pond;
-      if (Math.hypot(x - pond.x, y - pond.y) < pond.r + 6) continue;
-      drawTuft(ctx, x, y, 5 + rand() * 6);
+      if (nearBlock(x, y, 6)) continue;
+      if (desert) drawPebble(ctx, x, y, 2 + rand() * 2.4);
+      else drawTuft(ctx, x, y, 5 + rand() * 6);
     }
-    const colors = ["#ff8ab4", "#ffe56a", "#ffffff", "#ff9a3c", "#8ad4ff"];
-    for (let i = 0; i < 34; i++) {
+    const colors = desert
+      ? ["#ff9a3c", "#ffe56a", "#f07a3a", "#fff2c4"]
+      : ["#ff8ab4", "#ffe56a", "#ffffff", "#ff9a3c", "#8ad4ff"];
+    for (let i = 0; i < (desert ? 18 : 34); i++) {
       const x = 12 + rand() * 376;
       const y = 70 + rand() * 470;
       if (B.distToRoute(x, y) < 30) continue;
-      const pond = B.map.pond;
-      if (Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) continue;
-      drawFlower(ctx, x, y, 2.4 + rand() * 1.6, colors[i % colors.length]);
+      if (nearBlock(x, y, 8)) continue;
+      if (desert && i % 2 === 0) drawPebble(ctx, x, y, 3 + rand() * 2);
+      else drawFlower(ctx, x, y, 2.4 + rand() * 1.6, colors[i % colors.length]);
     }
 
-    strokePath(ctx, 64, "rgba(36, 70, 16, 0.35)");
-    strokePath(ctx, 54, "#5c3b22");
-    strokePath(ctx, 46, "#e6c98a");
-    strokePath(ctx, 34, "#f0d7a4");
-    strokePath(ctx, 14, "rgba(255, 244, 214, 0.55)");
+    if (desert) {
+      strokePath(ctx, 64, "rgba(120, 64, 18, 0.35)");
+      strokePath(ctx, 54, "#8a4e22");
+      strokePath(ctx, 46, "#e2b56a");
+      strokePath(ctx, 34, "#f0d09a");
+      strokePath(ctx, 14, "rgba(255, 236, 196, 0.45)");
+    } else {
+      strokePath(ctx, 64, "rgba(36, 70, 16, 0.35)");
+      strokePath(ctx, 54, "#5c3b22");
+      strokePath(ctx, 46, "#e6c98a");
+      strokePath(ctx, 34, "#f0d7a4");
+      strokePath(ctx, 14, "rgba(255, 244, 214, 0.55)");
+    }
 
     ctx.fillStyle = "rgba(120, 78, 36, 0.35)";
     for (let d = 0; d < B.route.total; d += 9) {
@@ -404,29 +442,13 @@
     }
 
     const pond = B.map.pond;
-    shadow(ctx, pond.x + 2, pond.y + 4, pond.r + 4, pond.r * 0.72);
-    ctx.fillStyle = "#1f8fbf";
-    ctx.beginPath();
-    ctx.ellipse(pond.x, pond.y, pond.r, pond.r * 0.68, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = INK;
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.beginPath();
-    ctx.ellipse(pond.x - 6, pond.y - 4, pond.r * 0.28, pond.r * 0.12, -0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#3ecf6a";
-    ctx.beginPath();
-    ctx.ellipse(pond.x + 8, pond.y + 4, 6, 3, 0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
+    if (pond && pond.kind === "well") drawWell(ctx, pond);
+    else if (pond) drawPond(ctx, pond);
 
     const exit = B.pointAt(B.route.total - 16);
     drawFort(ctx, exit.x, exit.y);
-    drawSign(ctx, 78, 524);
+    const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Maple Grove" };
+    drawSign(ctx, sign.x, sign.y, sign.label);
 
     ctx.fillStyle = "rgba(90, 40, 120, 0.0)";
     drawBannerPost(ctx, 26, 96);
@@ -488,7 +510,7 @@
     drawHeart(ctx, x, y - 32, 1.15);
   }
 
-  function drawSign(ctx, x, y) {
+  function drawSign(ctx, x, y, text) {
     shadow(ctx, x + 40, y + 16, 36, 6);
     fillRound(ctx, x, y, 96, 26, 8, "#fff4d2");
     ctx.lineWidth = 3;
@@ -497,7 +519,63 @@
     fillRound(ctx, x + 44, y + 24, 6, 14, 2, "#8a5a32");
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, "Maple Grove", x + 48, y + 14, 13, "#5c3b22", null, 0);
+    label(ctx, text || "Maple Grove", x + 48, y + 14, 13, "#5c3b22", null, 0);
+  }
+
+  function drawPond(ctx, pond) {
+    shadow(ctx, pond.x + 2, pond.y + 4, pond.r + 4, pond.r * 0.72);
+    ctx.fillStyle = "#1f8fbf";
+    ctx.beginPath();
+    ctx.ellipse(pond.x, pond.y, pond.r, pond.r * 0.68, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(pond.x - 6, pond.y - 4, pond.r * 0.28, pond.r * 0.12, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#3ecf6a";
+    ctx.beginPath();
+    ctx.ellipse(pond.x + 8, pond.y + 4, 6, 3, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  function drawWell(ctx, pond) {
+    shadow(ctx, pond.x, pond.y + 6, pond.r + 6, pond.r * 0.45);
+    ctx.fillStyle = "#8a8e96";
+    ctx.beginPath();
+    ctx.ellipse(pond.x, pond.y, pond.r + 4, pond.r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.fillStyle = "#2a241c";
+    ctx.beginPath();
+    ctx.ellipse(pond.x, pond.y, pond.r * 0.55, pond.r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#c9a06a";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pond.x - pond.r, pond.y - 4);
+    ctx.lineTo(pond.x - pond.r, pond.y - 16);
+    ctx.lineTo(pond.x + pond.r, pond.y - 16);
+    ctx.lineTo(pond.x + pond.r, pond.y - 4);
+    ctx.stroke();
+  }
+
+  function drawPebble(ctx, x, y, r) {
+    ctx.fillStyle = "#c4a06a";
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.62, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#6a4020";
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 
   function drawBannerPost(ctx, x, y) {
@@ -513,27 +591,17 @@
     label(ctx, "IN", x + 24, y + 11, 11, "#ffe56a", INK, 2);
   }
 
-  const PROPS = [
-    { kind: "fence", x: 78, y: 86, w: 150 },
-    { kind: "fence", x: 250, y: 86, w: 136 },
-    { kind: "bags", x: 50, y: 168 },
-    { kind: "bush", x: 368, y: 164 },
-    { kind: "crate", x: 26, y: 250 },
-    { kind: "bags", x: 356, y: 252 },
-    { kind: "rock", x: 24, y: 336 },
-    { kind: "crate", x: 368, y: 336 },
-    { kind: "bush", x: 22, y: 424 },
-    { kind: "rock", x: 370, y: 418 },
-    { kind: "bags", x: 46, y: 508 },
-    { kind: "crate", x: 196, y: 516 },
-    { kind: "bush", x: 300, y: 508 },
-  ].filter((p) => {
-    const px = p.kind === "fence" ? p.x + p.w / 2 : p.x;
-    const py = p.y;
-    if (B.distToRoute(px, py) < (p.kind === "fence" ? 24 : 34)) return false;
-    const pond = B.map.pond;
-    return Math.hypot(px - pond.x, py - pond.y) > pond.r + 12;
-  });
+  function mapProps() {
+    const list = (B.map && B.map.props) || [];
+    return list.filter((p) => {
+      const px = p.kind === "fence" ? p.x + (p.w || 0) / 2 : p.x;
+      const py = p.y;
+      if (B.distToRoute(px, py) < (p.kind === "fence" ? 24 : 34)) return false;
+      const pond = B.map.pond;
+      if (pond && Math.hypot(px - pond.x, py - pond.y) < pond.r + 12) return false;
+      return true;
+    });
+  }
 
   function drawFence(ctx, x, y, w) {
     shadow(ctx, x + w / 2, y + 4, w / 2, 5);
@@ -637,7 +705,7 @@
     ctx.stroke();
   }
 
-  function drawTree(ctx, tree) {
+  function drawTree(ctx, tree, time) {
     const sets = {
       green: ["#145c22", "#2f9a32", "#8ae85a"],
       amber: ["#8a3e08", "#e08618", "#ffe07a"],
@@ -645,11 +713,16 @@
     };
     const cols = sets[tree.style] || sets.green;
     const r = tree.r;
+    const sway = Math.sin((time || 0) * 1.3 + tree.x * 0.02) * 0.08;
     shadow(ctx, tree.x, tree.y + 4, r * 0.85, r * 0.32);
     fillRound(ctx, tree.x - 5, tree.y - r * 0.2, 10, r * 0.85, 3, "#8a5a32");
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = INK;
     strokeRound(ctx, tree.x - 5, tree.y - r * 0.2, 10, r * 0.85, 3);
+    ctx.save();
+    ctx.translate(tree.x, tree.y);
+    ctx.rotate(sway);
+    ctx.translate(-tree.x, -tree.y);
     [[-r * 0.45, -r * 0.55, r * 0.72], [r * 0.42, -r * 0.5, r * 0.68], [0, -r * 0.95, r * 0.78]].forEach((c, i) => {
       ctx.fillStyle = cols[Math.min(2, i)];
       ctx.beginPath();
@@ -663,6 +736,31 @@
     ctx.beginPath();
     ctx.arc(tree.x - r * 0.2, tree.y - r * 1.1, r * 0.28, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+  }
+
+  function drawCactus(ctx, tree, time) {
+    const r = tree.r;
+    const sway = Math.sin((time || 0) * 1.1 + tree.x) * 1.4;
+    shadow(ctx, tree.x, tree.y + 3, r * 0.55, r * 0.22);
+    ctx.save();
+    ctx.translate(sway, 0);
+    ctx.fillStyle = "#2f9a3c";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    fillRound(ctx, tree.x - 5, tree.y - r * 1.5, 10, r * 1.55, 5, "#3caf4c");
+    strokeRound(ctx, tree.x - 5, tree.y - r * 1.5, 10, r * 1.55, 5);
+    fillRound(ctx, tree.x - r * 0.85, tree.y - r * 1.15, r * 0.7, 7, 3, "#3caf4c");
+    strokeRound(ctx, tree.x - r * 0.85, tree.y - r * 1.15, r * 0.7, 7, 3);
+    fillRound(ctx, tree.x - r * 0.85, tree.y - r * 1.45, 8, r * 0.4, 3, "#2f9a3c");
+    strokeRound(ctx, tree.x - r * 0.85, tree.y - r * 1.45, 8, r * 0.4, 3);
+    fillRound(ctx, tree.x + 2, tree.y - r * 0.85, r * 0.65, 7, 3, "#57c85a");
+    strokeRound(ctx, tree.x + 2, tree.y - r * 0.85, r * 0.65, 7, 3);
+    ctx.fillStyle = "#145c22";
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(tree.x - 3 + (i % 3), tree.y - r * 1.3 + i * r * 0.22, 1.2, 3);
+    }
+    ctx.restore();
   }
 
   function drawChevrons(ctx, state) {
@@ -752,6 +850,34 @@
       }
     }
     if (opt.rank) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
+  }
+
+  function drawGnat(ctx, e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.fillStyle = "rgba(20, 16, 24, 0.28)";
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 8, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.translate(0, -12);
+    fillRound(ctx, -6, -3, 12, 6, 2, "#3a1848");
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    strokeRound(ctx, -6, -3, 12, 6, 2);
+    const spin = (e.phase || 0) * 2.4;
+    ctx.strokeStyle = "#1a120c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(spin) * -10, -4 + Math.sin(spin) * 2);
+    ctx.lineTo(Math.cos(spin) * 10, -4 - Math.sin(spin) * 2);
+    ctx.moveTo(6, -1);
+    ctx.lineTo(12, -1);
+    ctx.stroke();
+    ctx.fillStyle = "#ff3030";
+    ctx.beginPath();
+    ctx.arc(-2, -1, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawJeep(ctx, e) {
@@ -883,11 +1009,26 @@
     if (def.boss) {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      label(ctx, "GRIMSTACHE", e.x, y - 2, 12, "#ffe56a", INK, 3);
+      label(ctx, def.name.toUpperCase(), e.x, y - 2, 12, "#ffe56a", INK, 3);
     }
   }
 
   function drawShot(ctx, s) {
+    if (s.kind === "mortar" || s.kind === "flak" || s.kind === "rocket") {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      const rad = s.kind === "mortar" ? 5 : s.kind === "rocket" ? 4 : 3.5;
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.arc(0, 0, rad + 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.kind === "flak" ? "#ffe14a" : s.kind === "rocket" ? "#ff8a3d" : "#c8ccd0";
+      ctx.beginPath();
+      ctx.arc(0, 0, rad, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     const ang = Math.atan2(s.y - s.py, s.x - s.px);
     const gat = s.kind === "gatling";
     ctx.save();
@@ -948,6 +1089,27 @@
         ctx.fill();
         ctx.restore();
       });
+      ctx.restore();
+    } else if (fx.kind === "boom") {
+      ctx.save();
+      ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = "#ffe56a";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(fx.x, fx.y, 8 + k * (fx.r || 28), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "#ff8a3d";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(fx.x, fx.y, 4 + k * (fx.r || 28) * 0.7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(90,50,20," + (1 - k) * 0.7 + ")";
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(fx.x + Math.cos(a) * k * 22, fx.y + Math.sin(a) * k * 14, 3 + k * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     } else if (fx.kind === "spark") {
       ctx.save();
@@ -1014,6 +1176,40 @@
     ctx.restore();
   }
 
+  function drawBirds(ctx, state) {
+    for (let i = 0; i < 3; i++) {
+      const x = ((state.time * 26 + i * 150) % 480) - 40;
+      const y = 78 + i * 28 + Math.sin(state.time * 1.4 + i) * 6;
+      const flap = Math.sin(state.time * 12 + i);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-7, flap * 2);
+      ctx.quadraticCurveTo(-3, -5 - flap * 3, 0, 0);
+      ctx.quadraticCurveTo(3, -5 - flap * 3, 7, flap * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawMotes(ctx, state) {
+    const desert = B.map.theme === "desert";
+    ctx.save();
+    for (let i = 0; i < 8; i++) {
+      const x = (i * 53 + state.time * (desert ? 10 : 6)) % 400;
+      const y = 90 + ((i * 67 + state.time * 8) % 420);
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = desert ? "#f4e2b0" : "#fff6d0";
+      ctx.beginPath();
+      ctx.arc(x, y, desert ? 1.8 : 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawButterfly(ctx, x, y, t, color) {
     const flap = 0.4 + Math.abs(Math.sin(t * 7)) * 0.85;
     ctx.save();
@@ -1040,26 +1236,41 @@
   function composition(wave) {
     const counts = {};
     wave.groups.forEach((g) => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    return ["grunt", "scout", "heavy", "jeep", "tank"].filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
+    const order = ["grunt", "scout", "moto", "heavy", "brute", "riot", "medic", "sneak", "jeep", "halftrack", "gnat", "tank", "ironjaw"];
+    return order.filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
   }
 
-  function metrics(L) {
+  function metrics(L, inspecting) {
     const p = L.panel;
     const inner = { x: p.x + 12, y: p.y + 12, w: p.w - 24, h: p.h - 20 };
-    const infoH = L.portrait
-      ? Math.max(58, Math.min(74, inner.h * 0.26))
-      : Math.max(78, Math.min(96, inner.h * 0.3));
-    const startH = Math.max(50, Math.min(62, inner.h * 0.22));
-    const gap = 8;
-    const speedW = 76;
-    if (L.portrait) {
+    const gap = 6;
+    const speedW = inspecting && L.portrait ? 64 : 72;
+    let infoH;
+    let startH;
+    let compactStart = false;
+    if (L.portrait && inspecting) {
+      // Paths sit under the tower. Start Round shrinks to one line at the bottom.
+      infoH = 46;
+      startH = 36;
+      compactStart = true;
+    } else if (L.portrait) {
+      infoH = Math.max(78, Math.min(88, inner.h * 0.3));
+      startH = Math.max(48, Math.min(56, inner.h * 0.18));
+    } else if (inspecting) {
+      infoH = Math.max(68, Math.min(80, inner.h * 0.24));
+      startH = 46;
+    } else {
+      infoH = Math.max(72, Math.min(90, inner.h * 0.26));
+      startH = Math.max(48, Math.min(56, inner.h * 0.17));
+    }
+    if (L.portrait && !inspecting) {
       const cardsY = inner.y + infoH + gap + startH + gap;
-      const cardsH = Math.max(48, inner.y + inner.h - cardsY);
       return {
         info: { x: inner.x, y: inner.y, w: inner.w, h: infoH },
         start: { x: inner.x, y: inner.y + infoH + gap, w: inner.w - speedW - 8, h: startH },
         speed: { x: inner.x + inner.w - speedW, y: inner.y + infoH + gap, w: speedW, h: startH },
-        cards: { x: inner.x, y: cardsY, w: inner.w, h: cardsH },
+        cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, inner.y + inner.h - cardsY) },
+        compactStart: false,
       };
     }
     const startY = inner.y + inner.h - startH;
@@ -1069,17 +1280,19 @@
       cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, startY - gap - cardsY) },
       start: { x: inner.x, y: startY, w: inner.w - speedW - 8, h: startH },
       speed: { x: inner.x + inner.w - speedW, y: startY, w: speedW, h: startH },
+      compactStart: compactStart,
     };
   }
 
   function drawHeader(ctx, state, L) {
     const h = L.headerH;
+    const desert = B.map.theme === "desert";
     const bar = ctx.createLinearGradient(0, 0, 0, h);
-    bar.addColorStop(0, "#3ecf4e");
-    bar.addColorStop(1, "#127a32");
+    bar.addColorStop(0, desert ? "#f0c56a" : "#3ecf4e");
+    bar.addColorStop(1, desert ? "#c47a28" : "#127a32");
     ctx.fillStyle = bar;
     ctx.fillRect(0, 0, L.vw, h);
-    ctx.fillStyle = "#08381a";
+    ctx.fillStyle = desert ? "#5a3010" : "#08381a";
     ctx.fillRect(0, h - 4, L.vw, 4);
     ctx.fillStyle = "#ffe56a";
     ctx.fillRect(0, h - 7, L.vw, 3);
@@ -1087,7 +1300,7 @@
     const pillH = Math.min(36, h - 14);
     const py = (h - 4 - pillH) / 2;
     function pill(x, w) {
-      fillRound(ctx, x, py, w, pillH, pillH / 2, "#0e4a22");
+      fillRound(ctx, x, py, w, pillH, pillH / 2, desert ? "#6a3a12" : "#0e4a22");
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = INK;
       strokeRound(ctx, x, py, w, pillH, pillH / 2);
@@ -1124,7 +1337,7 @@
 
     if (!L.portrait && roundX - 230 > 120) {
       ctx.textAlign = "center";
-      label(ctx, "MAPLE GROVE", (230 + roundX) / 2, py + pillH / 2 + 1, 16, "#fff6d0", INK, 3);
+      label(ctx, (B.map.name || "MAP").toUpperCase(), (230 + roundX) / 2, py + pillH / 2 + 1, 16, "#fff6d0", INK, 3);
     }
 
     uiButton(ctx, state, {
@@ -1155,15 +1368,22 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     if (tower) {
-      const stats = B.statsFor(tower.type, tower.rank);
+      const stats = B.statsFor(tower.type, tower.ranks);
       drawPortrait(ctx, tower.type, rect.x, rect.y, 46, rect.h - 2);
-      const def = B.towers[tower.type];
-      const kit = tower.rank === 0 ? def.name : def.upgrades[tower.rank - 1].name;
-      label(ctx, kit, rect.x + 54, rect.y + 14, 15, INK, null, 0);
+      const used = B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : 0;
+      const kit = (stats.badge || B.towers[tower.type].name) + "  " + used + "/6";
+      const nameY = rect.h < 56 ? rect.y + 13 : rect.y + 16;
+      const statY = rect.h < 56 ? rect.y + 31 : rect.y + 36;
+      label(ctx, kit, rect.x + 54, nameY, rect.h < 56 ? 14 : 15, INK, null, 0);
       font(ctx, 12);
       ctx.fillStyle = "#5c4630";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
       const line = "Dmg " + stats.damage + "  ·  Reach " + stats.range + "  ·  " + stats.rate.toFixed(1) + "/s";
-      drawWrapped(ctx, line + "  ·  " + armorWord(stats.armorBite), rect.x + 54, rect.y + 34, rect.w - 96, 14, 2);
+      const stat = line + "  ·  " + armorWord(stats.armorBite);
+      font(ctx, 12);
+      const statSize = fitSize(ctx, stat, Math.max(80, rect.w - 100), 12);
+      label(ctx, stat, rect.x + 54, statY, statSize, "#5c4630", null, 0);
       uiButton(ctx, state, {
         id: "close",
         x: rect.x + rect.w - 34,
@@ -1185,7 +1405,7 @@
     } else {
       const idx = nextWaveIndex(state);
       const wave = idx >= 0 ? B.waves[idx] : null;
-      let heading = "Grove is quiet";
+      let heading = (B.map.name || "The lane") + " is quiet";
       if (wave) {
         heading = state.placedCount === 0
           ? "First, pick a soldier"
@@ -1196,14 +1416,17 @@
               : "Next: " + wave.name;
       }
       label(ctx, heading, rect.x, rect.y + 12, 15, INK, null, 0);
-      if (wave) {
+      const hintLines = rect.h >= 96 ? 2 : 1;
+      const hintY = rect.y + rect.h - (hintLines === 2 ? 30 : 15);
+      if (wave && hintY >= rect.y + 54) {
         let cx = rect.x;
         composition(wave).forEach((c) => {
-          drawPortrait(ctx, c.type, cx, rect.y + 18, 30, 32);
+          if (cx > rect.x + rect.w - 48) return;
+          drawPortrait(ctx, c.type, cx, rect.y + 20, 28, 30);
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          label(ctx, String(c.count), cx + 34, rect.y + 34, 14, INK, false, 0);
-          cx += 52 + String(c.count).length * 8;
+          label(ctx, String(c.count), cx + 32, rect.y + 35, 13, INK, false, 0);
+          cx += 50 + String(c.count).length * 8;
         });
       }
       font(ctx, 12);
@@ -1211,14 +1434,14 @@
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       const hint = !wave
-        ? "Maple Grove holds."
+        ? (B.map.name || "The lane") + " holds."
         : state.placedCount === 0
           ? "Tap Trooper, then the glowing grass."
           : state.started === 0
             ? "Tap Start Round. Arrows show the march."
             : wave.hint;
       font(ctx, 12);
-      drawWrapped(ctx, hint, rect.x, rect.y + Math.max(50, rect.h - 30), rect.w, 13, 2);
+      drawWrapped(ctx, hint, rect.x, hintY, rect.w, 13, hintLines);
     }
     ctx.restore();
   }
@@ -1253,13 +1476,14 @@
       y: m.start.y,
       w: m.start.w,
       h: m.start.h,
-      label: startLabel,
-      sub: startSub,
+      label: m.compactStart ? (disabled ? "HOLDING" : early ? "SEND NEXT" : "START ROUND") : startLabel,
+      sub: m.compactStart ? "" : startSub,
+      labelSize: m.compactStart ? 15 : 18,
       fillTop: top,
       fillBot: bot,
       lip: lip,
       disabled: disabled,
-      pulse: state.placedCount > 0 && state.started === 0,
+      pulse: state.placedCount > 0 && state.started === 0 && !m.compactStart,
       action: () => root.BOTG.launch(),
     });
     const spd = B.meta.speeds[state.speedIndex];
@@ -1271,8 +1495,8 @@
       w: m.speed.w,
       h: m.speed.h,
       label: spd + "×",
-      sub: fast ? "Normal" : "Fast",
-      labelSize: 20,
+      sub: m.compactStart ? "" : (fast ? "Normal" : "Fast"),
+      labelSize: m.compactStart ? 16 : 20,
       fillTop: fast ? "#c8f8a4" : "#fff3b0",
       fillBot: fast ? "#46c85a" : "#ffc83a",
       lip: fast ? "#0e6a22" : "#a86a08",
@@ -1283,15 +1507,53 @@
   }
 
   function drawCards(ctx, state, area) {
-    const keys = ["trooper", "longshot", "gatling"];
+    const order = B.towerOrder || ["trooper", "longshot", "gatling"];
+    const pages = Math.max(1, Math.ceil(order.length / 3));
+    const page = ((state.shopPage || 0) % pages + pages) % pages;
+    const keys = order.slice(page * 3, page * 3 + 3);
     const gap = 8;
-    const w = (area.w - gap * 2) / 3;
+    const arrow = pages > 1 ? 28 : 0;
+    const w = (area.w - gap * Math.max(0, keys.length - 1) - arrow * 2) / Math.max(1, keys.length);
+    if (pages > 1) {
+      uiButton(ctx, state, {
+        id: "shop-prev",
+        x: area.x,
+        y: area.y + area.h * 0.28,
+        w: 24,
+        h: Math.min(36, area.h * 0.44),
+        label: "<",
+        labelSize: 16,
+        fillTop: "#fff8e4",
+        fillBot: "#f0ddb0",
+        lip: "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.shopTurn(-1),
+      });
+      uiButton(ctx, state, {
+        id: "shop-next",
+        x: area.x + area.w - 24,
+        y: area.y + area.h * 0.28,
+        w: 24,
+        h: Math.min(36, area.h * 0.44),
+        label: ">",
+        labelSize: 16,
+        fillTop: "#fff8e4",
+        fillBot: "#f0ddb0",
+        lip: "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.shopTurn(1),
+      });
+    }
     keys.forEach((key, i) => {
       const def = B.towers[key];
-      const name = key === "gatling" ? "Gatling" : def.name;
+      let name = def.short || def.name;
+      font(ctx, 13);
+      if (ctx.measureText(name).width > w - 16) name = name.split(" ")[0];
       uiButton(ctx, state, {
         id: "buy-" + key,
-        x: area.x + i * (w + gap),
+        x: area.x + arrow + i * (w + gap),
         y: area.y,
         w: w,
         h: area.h,
@@ -1310,87 +1572,49 @@
 
   function drawUpgrade(ctx, state, tower, area) {
     const def = B.towers[tower.type];
-    const maxed = tower.rank >= def.upgrades.length;
-    const up = maxed ? null : def.upgrades[tower.rank];
-    const broke = up && state.cash < up.cost;
+    const paths = def.paths || [];
     const aimNames = { first: "First", last: "Last", tough: "Toughest", near: "Nearest" };
-    const gap = 8;
-    if (area.h >= 130) {
-      const uh = Math.min(86, area.h - 52 - gap);
-      uiButton(ctx, state, {
-        id: "upgrade",
-        x: area.x,
-        y: area.y,
-        w: area.w,
-        h: uh,
-        label: maxed ? "Fully kitted" : up.name,
-        sub: maxed ? "Nothing left to buy" : "$" + up.cost,
-        fillTop: maxed ? "#efe6d2" : broke ? "#ffe4dc" : "#c8f8b0",
-        fillBot: maxed ? "#e4d8c0" : broke ? "#f3b8b0" : "#5ad86a",
-        lip: maxed ? "#8a6840" : broke ? "#a04030" : "#0e6a22",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.upgrade(),
-      });
-      const bw = (area.w - gap) / 2;
-      const by = area.y + uh + gap;
-      uiButton(ctx, state, {
-        id: "aim",
-        x: area.x,
-        y: by,
-        w: bw,
-        h: 52,
-        label: "Aim: " + (aimNames[tower.priority] || "First"),
-        labelSize: 14,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.cycleAim(),
-      });
-      uiButton(ctx, state, {
-        id: "sell",
-        x: area.x + bw + gap,
-        y: by,
-        w: bw,
-        h: 52,
-        label: "Sell +$" + root.BOTG.refund(tower),
-        labelSize: 14,
-        fillTop: "#ffd0c8",
-        fillBot: "#f09890",
-        lip: "#a04030",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.sell(),
-      });
-      return;
+    let gap = 6;
+    let sellH = 36;
+    const n = Math.max(1, paths.length);
+    let pathH = (area.h - sellH - gap) / n - gap;
+    if (pathH < 44) {
+      sellH = 32;
+      gap = 5;
+      pathH = (area.h - sellH - gap) / n - gap;
     }
-    const side = Math.min(118, area.w * 0.38);
-    uiButton(ctx, state, {
-      id: "upgrade",
-      x: area.x,
-      y: area.y,
-      w: area.w - side - gap,
-      h: area.h,
-      label: maxed ? "Fully kitted" : up.name,
-      sub: maxed ? "Maxed" : "$" + up.cost,
-      fillTop: maxed ? "#efe6d2" : broke ? "#ffe4dc" : "#c8f8b0",
-      fillBot: maxed ? "#e4d8c0" : broke ? "#f3b8b0" : "#5ad86a",
-      lip: "#0e6a22",
-      ink: INK,
-      stroke: false,
-      action: () => root.BOTG.upgrade(),
+    paths.forEach(function (p, i) {
+      const cur = (tower.ranks && tower.ranks[p.id]) || 0;
+      const next = cur < p.tiers.length ? p.tiers[cur] : null;
+      const chev = !next ? "" : cur >= 3 ? " · 2 chev" : " · 1 chev";
+      uiButton(ctx, state, {
+        id: "path-" + p.id,
+        x: area.x,
+        y: area.y + i * (pathH + gap),
+        w: area.w,
+        h: pathH,
+        label: next ? p.name + " " + (cur + 1) : p.name + " max",
+        sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
+        labelSize: 15,
+        subSize: 12,
+        fillTop: next ? "#c8f8b0" : "#efe6d2",
+        fillBot: next ? "#5ad86a" : "#e4d8c0",
+        lip: "#0e6a22",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.upgrade(p.id),
+      });
     });
-    const bh = (area.h - gap) / 2;
+    const y = area.y + paths.length * (pathH + gap);
+    const half = (area.w - gap) / 2;
     uiButton(ctx, state, {
       id: "aim",
-      x: area.x + area.w - side,
-      y: area.y,
-      w: side,
-      h: bh,
-      label: aimNames[tower.priority] || "First",
-      labelSize: 13,
+      x: area.x,
+      y: y,
+      w: half,
+      h: sellH,
+      label: "Aim: " + (aimNames[tower.priority] || "First"),
+      labelSize: 14,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
@@ -1400,12 +1624,12 @@
     });
     uiButton(ctx, state, {
       id: "sell",
-      x: area.x + area.w - side,
-      y: area.y + bh + gap,
-      w: side,
-      h: bh,
-      label: "+$" + root.BOTG.refund(tower),
-      labelSize: 13,
+      x: area.x + half + gap,
+      y: y,
+      w: half,
+      h: sellH,
+      label: "Sell +$" + root.BOTG.refund(tower),
+      labelSize: 14,
       fillTop: "#ffd0c8",
       fillBot: "#f09890",
       lip: "#a04030",
@@ -1434,9 +1658,9 @@
       ? { tl: 16, tr: 16, br: 0, bl: 0 }
       : { tl: 16, tr: 0, br: 0, bl: 16 };
     fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, "#fff6df");
-    const m = metrics(L);
     const selected = state.towers.find((t) => t.id === state.selectedId) || null;
     const show = selected && !state.placing;
+    const m = metrics(L, show);
     drawInfo(ctx, state, m.info, show ? selected : null);
     drawStartButtons(ctx, state, m);
     if (show) drawUpgrade(ctx, state, selected, m.cards);
@@ -1452,19 +1676,24 @@
     else if (k > 0.78) alpha = Math.max(0, (1 - k) / 0.22);
     const bw = Math.min(360, L.mapBox.w - 12);
     const bh = 78;
-    const x = L.mapBox.x + (L.mapBox.w - bw) / 2;
-    const y = L.mapBox.y + 8;
     const boss = b.kind === "boss";
+    const clear = b.kind === "clear";
+    const x = L.mapBox.x + (L.mapBox.w - bw) / 2;
+    const y = boss ? L.mapBox.y + L.mapBox.h - bh - 14 : L.mapBox.y + 8;
     ctx.save();
     ctx.globalAlpha = alpha;
+    const pop = k < 0.16 ? 0.86 + (k / 0.16) * 0.14 : 1;
+    ctx.translate(x + bw / 2, y + bh / 2);
+    ctx.scale(pop, pop);
+    ctx.translate(-(x + bw / 2), -(y + bh / 2));
     fillRound(ctx, x, y + 4, bw, bh, 16, "rgba(0,0,0,0.25)");
-    fillRound(ctx, x, y, bw, bh, 16, boss ? "#3a1860" : "#fff8e6");
+    fillRound(ctx, x, y, bw, bh, 16, boss ? "#3a1860" : clear ? "#e8ffd4" : "#fff8e6");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, bw, bh, 16);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, b.kicker, x + bw / 2, y + 14, 11, boss ? "#ffb4c4" : "#8a5a32", null, 0);
+    label(ctx, b.kicker, x + bw / 2, y + 14, 11, boss ? "#ffb4c4" : clear ? "#1f7a32" : "#8a5a32", null, 0);
     label(ctx, b.title, x + bw / 2, y + 32, 16, boss ? "#ffe56a" : INK, boss ? INK : null, 3);
     font(ctx, 12);
     ctx.fillStyle = boss ? "#fff6f2" : "#5c4630";
@@ -1521,7 +1750,7 @@
       ctx.textBaseline = "middle";
       label(ctx, "BOOTS ON", L.vw / 2, 86, 40, "#ffe56a", "#145214", 8);
       label(ctx, "THE GROUND", L.vw / 2, 132, 36, "#ffe56a", "#145214", 8);
-      label(ctx, "Maple Grove", L.vw / 2, 168, 16, "#ffffff", INK, 3);
+      label(ctx, "Thirty rounds. Two maps.", L.vw / 2, 168, 16, "#ffffff", INK, 3);
       const feet = Math.min(L.vh * 0.46, 420);
       drawSoldier(ctx, L.vw * 0.28, feet, { team: "player", role: "trooper", aim: 0.35, phase: state.time * 2, scale: 1.7 });
       drawSoldier(ctx, L.vw * 0.74, feet, { team: "enemy", role: "grunt", aim: Math.PI - 0.35, phase: state.time * 2 + 1, scale: 1.65 });
@@ -1549,7 +1778,7 @@
         fillBot: "#2fbe3c",
         lip: "#0e6a22",
         pulse: true,
-        action: () => root.BOTG.startGame(),
+        action: () => root.BOTG.openMaps(),
       });
       uiButton(ctx, state, {
         id: "title-mute",
@@ -1571,7 +1800,7 @@
       ctx.textBaseline = "middle";
       label(ctx, "BOOTS ON", 28, 78, 36, "#ffe56a", "#145214", 7);
       label(ctx, "THE GROUND", 28, 118, 32, "#ffe56a", "#145214", 7);
-      label(ctx, "Maple Grove", 28, 156, 16, "#ffffff", INK, 3);
+      label(ctx, "Thirty rounds. Two maps.", 28, 156, 16, "#ffffff", INK, 3);
       drawSoldier(ctx, L.vw * 0.42, L.vh * 0.62, { team: "player", role: "gatling", aim: 0.45, phase: state.time * 2, scale: 1.35 });
       drawSoldier(ctx, L.vw * 0.58, L.vh * 0.66, { team: "enemy", role: "heavy", aim: Math.PI, phase: state.time * 2, scale: 1.3 });
       uiButton(ctx, state, {
@@ -1586,7 +1815,7 @@
         fillBot: "#2fbe3c",
         lip: "#0e6a22",
         pulse: true,
-        action: () => root.BOTG.startGame(),
+        action: () => root.BOTG.openMaps(),
       });
       font(ctx, 14);
       ctx.fillStyle = INK;
@@ -1610,6 +1839,154 @@
         action: () => root.BOTGAudio.toggle(),
       });
     }
+  }
+
+  function drawMiniPath(ctx, map, x, y, w, h) {
+    const desert = map.theme === "desert";
+    fillRound(ctx, x, y, w, h, 12, desert ? "#e2b15a" : "#4fb534");
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, x, y, w, h, 12);
+    const pts = map.path;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    pts.forEach((p) => {
+      minX = Math.min(minX, p[0]);
+      minY = Math.min(minY, p[1]);
+      maxX = Math.max(maxX, p[0]);
+      maxY = Math.max(maxY, p[1]);
+    });
+    const s = Math.min((w - 22) / (maxX - minX || 1), (h - 22) / (maxY - minY || 1));
+    ctx.save();
+    ctx.beginPath();
+    roundPath(ctx, x + 2, y + 2, w - 4, h - 4, 10);
+    ctx.clip();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = desert ? "#8a4e22" : "#5c3b22";
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const px = x + 12 + (p[0] - minX) * s;
+      const py = y + 12 + (p[1] - minY) * s;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.strokeStyle = desert ? "#f0d09a" : "#f0d7a4";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMaps(ctx, state, L) {
+    const g = ctx.createLinearGradient(0, 0, 0, L.vh);
+    g.addColorStop(0, "#8fd8ff");
+    g.addColorStop(0.4, "#d7f4ff");
+    g.addColorStop(1, "#2f9a2a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, L.vw, L.vh);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 52 : 40, L.portrait ? 32 : 28, "#ffe56a", "#145214", 7);
+    const maps = [B.maps.maple, B.maps.cactus];
+    if (L.portrait) {
+      maps.forEach((map, i) => {
+        const x = 16;
+        const y = 84 + i * 280;
+        const w = L.vw - 32;
+        const h = 264;
+        fillRound(ctx, x, y + 4, w, h, 18, "rgba(0,0,0,0.18)");
+        fillRound(ctx, x, y, w, h, 18, "#fff6df");
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = INK;
+        strokeRound(ctx, x, y, w, h, 18);
+        label(ctx, map.name, x + w / 2, y + 24, 22, INK, null, 0);
+        font(ctx, 13);
+        ctx.fillStyle = "#5c4630";
+        drawWrapped(ctx, map.blurb, x + w / 2, y + 44, w - 28, 16, 2);
+        drawMiniPath(ctx, map, x + 16, y + 72, w - 32, 110);
+        uiButton(ctx, state, {
+          id: "map-" + map.id,
+          x: x + (w - 180) / 2,
+          y: y + h - 64,
+          w: 180,
+          h: 48,
+          label: "DEFEND",
+          labelSize: 20,
+          fillTop: "#b6f56a",
+          fillBot: "#2fbe3c",
+          lip: "#0e6a22",
+          action: () => root.BOTG.startGame(map.id),
+        });
+      });
+    } else {
+      maps.forEach((map, i) => {
+        const gap = 16;
+        const w = (L.vw - 48 - gap) / 2;
+        const x = 24 + i * (w + gap);
+        const y = 70;
+        const h = L.vh - 120;
+        fillRound(ctx, x, y + 4, w, h, 18, "rgba(0,0,0,0.18)");
+        fillRound(ctx, x, y, w, h, 18, "#fff6df");
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = INK;
+        strokeRound(ctx, x, y, w, h, 18);
+        label(ctx, map.name, x + w / 2, y + 28, 22, INK, null, 0);
+        font(ctx, 14);
+        ctx.fillStyle = "#5c4630";
+        drawWrapped(ctx, map.blurb, x + w / 2, y + 52, w - 28, 18, 2);
+        drawMiniPath(ctx, map, x + 16, y + 86, w - 32, Math.max(80, h - 180));
+        uiButton(ctx, state, {
+          id: "map-" + map.id,
+          x: x + (w - 180) / 2,
+          y: y + h - 64,
+          w: 180,
+          h: 48,
+          label: "DEFEND",
+          labelSize: 20,
+          fillTop: "#b6f56a",
+          fillBot: "#2fbe3c",
+          lip: "#0e6a22",
+          action: () => root.BOTG.startGame(map.id),
+        });
+      });
+    }
+    uiButton(ctx, state, {
+      id: "maps-back",
+      x: 16,
+      y: L.vh - 48,
+      w: 110,
+      h: 36,
+      label: "Back",
+      labelSize: 15,
+      fillTop: "#fff8e4",
+      fillBot: "#f0ddb0",
+      lip: "#8a6840",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.title(),
+    });
+  }
+
+  function drawBossHud(ctx, state, L) {
+    const boss = state.enemies.find((e) => !e.dead && B.enemies[e.type] && B.enemies[e.type].boss);
+    if (!boss) return;
+    const def = B.enemies[boss.type];
+    const w = Math.min(300, L.mapBox.w - 20);
+    const x = L.mapBox.x + (L.mapBox.w - w) / 2;
+    const y = L.mapBox.y + 8;
+    const pct = Math.max(0, boss.hp / boss.maxHp);
+    fillRound(ctx, x, y, w, 28, 10, "#2a1428");
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, x, y, w, 28, 10);
+    fillRound(ctx, x + 6, y + 16, Math.max(8, (w - 12) * pct), 8, 4, pct > 0.4 ? "#ff5d6c" : "#ffe14a");
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    label(ctx, def.name.toUpperCase(), x + w / 2, y + 9, 12, "#ffe56a", INK, 3);
   }
 
   function drawEnd(ctx, state, L) {
@@ -1637,11 +2014,11 @@
         ctx.stroke();
       }
     }
-    label(ctx, win ? "Grove holds!" : "They slipped by", x + w / 2, y + 78, 26, win ? "#1f8a32" : "#a02840", null, 0);
+    label(ctx, win ? (B.map.name || "The lane") + " holds!" : "They slipped by", x + w / 2, y + 78, 22, win ? "#1f8a32" : "#a02840", null, 0);
     font(ctx, 14);
     ctx.fillStyle = "#5c4630";
     const body = win
-      ? "General Grimstache's tank went up in stars and smoke. Maple Grove is still smiling."
+      ? "The Scowl Corps went up in stars and smoke. " + (B.map.name || "The lane") + " is still smiling."
       : "The Scowl Corps reached the gate on wave " + Math.max(1, state.started) + ". Plant tighter on the bends and bring a Longshot for armor.";
     drawWrapped(ctx, body, x + w / 2, y + 112, w - 48, 18, 4);
     uiButton(ctx, state, {
@@ -1678,7 +2055,7 @@
     ctx.beginPath();
     ctx.rect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     ctx.clip();
-    ctx.fillStyle = GRASS;
+    ctx.fillStyle = B.map.theme === "desert" ? "#e2b15a" : GRASS;
     ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     const scale = L.scale || 1;
     const left = L.ox - L.mapBox.x;
@@ -1694,8 +2071,9 @@
       spots.push([L.ox + L.worldW * scale + right * 0.5, L.mapBox.y + L.mapBox.h * 0.62, "bush"]);
       spots.push([L.ox + L.worldW * scale + right * 0.4, L.mapBox.y + L.mapBox.h * 0.84, "bush"]);
     }
+    const desert = B.map.theme === "desert";
     spots.forEach((s) => {
-      if (s[2] === "bush") drawBush(ctx, s[0], s[1], 1.15);
+      if (!desert && s[2] === "bush") drawBush(ctx, s[0], s[1], 1.15);
       else drawRock(ctx, s[0], s[1], 13);
     });
     const colors = ["#ff8ab4", "#ffe56a", "#ffffff", "#ff9a3c", "#8ad4ff"];
@@ -1704,7 +2082,10 @@
       for (let i = 0; i < n; i++) {
         const x = x0 + ((i * 47) % Math.max(1, x1 - x0));
         const y = y0 + ((i * 83) % Math.max(1, y1 - y0));
-        if (i % 4 === 0) drawBush(ctx, x, y, 0.72);
+        if (desert) {
+          if (i % 2 === 0) drawRock(ctx, x, y, 8);
+          else drawPebble(ctx, x, y, 3.2);
+        } else if (i % 4 === 0) drawBush(ctx, x, y, 0.72);
         else if (i % 4 === 1) drawRock(ctx, x, y, 8);
         else drawFlower(ctx, x, y, 4.2, colors[i % colors.length]);
       }
@@ -1726,6 +2107,9 @@
     if (state.screen === "title") {
       x = 8;
       y = L.vh - 22;
+    } else if (state.screen === "maps") {
+      x = L.vw - tw - 10;
+      y = L.vh - 22;
     } else {
       x = L.mapBox.x + L.mapBox.w - tw - 8;
       y = L.mapBox.y + L.mapBox.h - 22;
@@ -1742,8 +2126,12 @@
     ensureTerrain();
     ctx.drawImage(terrain, 0, 0, 400, 570);
     if (!state.reducedMotion) {
-      drawButterfly(ctx, 48, 188, state.time, "#ff8ab4");
-      drawButterfly(ctx, 250, 430, state.time + 2, "#ffe56a");
+      if (B.map.theme !== "desert") {
+        drawButterfly(ctx, 48, 188, state.time, "#ff8ab4");
+        drawButterfly(ctx, 250, 430, state.time + 2, "#ffe56a");
+      }
+      drawBirds(ctx, state);
+      drawMotes(ctx, state);
     }
     drawChevrons(ctx, state);
 
@@ -1753,15 +2141,15 @@
     } else if (state.screen === "play") {
       const selected = state.towers.find((t) => t.id === state.selectedId);
       if (selected && !state.placing) {
-        drawRange(ctx, selected.x, selected.y, B.statsFor(selected.type, selected.rank).range, true);
+        drawRange(ctx, selected.x, selected.y, B.statsFor(selected.type, selected.ranks).range, true);
       } else if (state.hoverTowerId && !state.placing) {
         const hov = state.towers.find((t) => t.id === state.hoverTowerId);
-        if (hov) drawRange(ctx, hov.x, hov.y, B.statsFor(hov.type, hov.rank).range, true);
+        if (hov) drawRange(ctx, hov.x, hov.y, B.statsFor(hov.type, hov.ranks).range, true);
       }
     }
 
     const items = [];
-    PROPS.forEach((p) => {
+    mapProps().forEach((p) => {
       items.push({
         y: p.y,
         draw: () => {
@@ -1774,7 +2162,10 @@
       });
     });
     B.map.trees.forEach((tree) => {
-      items.push({ y: tree.y, draw: () => drawTree(ctx, tree) });
+      items.push({
+        y: tree.y,
+        draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : drawTree(ctx, tree, state.time)),
+      });
     });
     state.towers.forEach((tower) => {
       items.push({
@@ -1790,29 +2181,51 @@
             scale: 1,
             flash: tower.flash,
             spin: tower.spin,
-            rank: tower.rank,
+            rank: Math.min(3, B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : tower.rank || 0),
+            badge: B.statsFor(tower.type, tower.ranks).badge,
           });
         },
       });
     });
     state.enemies.forEach((e) => {
-      if (e.dead) return;
+      if (e.dead && !(e.dying > 0)) return;
       items.push({
         y: e.y,
         draw: () => {
-          if (e.type === "scout" || e.type === "jeep") drawDust(ctx, e, state.time);
-          if (e.type === "jeep") drawJeep(ctx, e);
-          else if (e.type === "tank") drawTank(ctx, e, state.time);
+          const dying = e.dead && e.dying > 0;
+          ctx.save();
+          if (dying) {
+            const k = 1 - e.dying / 0.42;
+            ctx.translate(e.x, e.y);
+            ctx.rotate(k * 1.2 * (e.id % 2 ? 1 : -1));
+            ctx.scale(1 + k * 0.2, Math.max(0.2, 1 - k * 0.75));
+            ctx.globalAlpha = Math.max(0, 1 - k);
+            ctx.translate(-e.x, -e.y);
+          }
+          if (!dying && (e.type === "scout" || e.type === "moto" || e.type === "jeep" || e.type === "halftrack")) drawDust(ctx, e, state.time);
+          if (e.type === "jeep" || e.type === "halftrack") drawJeep(ctx, e);
+          else if (e.type === "tank" || e.type === "ironjaw") drawTank(ctx, e, state.time);
+          else if (e.type === "gnat") drawGnat(ctx, e);
           else {
+            const role = e.type === "brute" ? "heavy" : e.type === "moto" ? "scout" : e.type;
             drawSoldier(ctx, e.x, e.y, {
               team: "enemy",
-              role: e.type,
+              role: role,
               aim: e.angle,
               phase: e.phase,
               scale: B.enemies[e.type].scale,
               flash: e.flash,
+              revealed: e.revealed,
             });
           }
+          if (!dying && e.flash > 0.05) {
+            ctx.strokeStyle = "rgba(255,255,255," + Math.min(0.9, e.flash * 4) + ")";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y - 10, e.radius + 3, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.restore();
         },
       });
     });
@@ -1884,11 +2297,15 @@
     try { ctx.imageSmoothingQuality = "high"; } catch (err) { /* ignore */ }
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.fillStyle = GRASS;
+    const ground = state.screen === "play" && B.map.theme === "desert" ? "#e2b15a" : GRASS;
+    ctx.fillStyle = ground;
     ctx.fillRect(-30, -30, L.vw + 60, L.vh + 60);
 
     if (state.screen === "title") {
       drawTitle(ctx, state, L);
+      drawBuild(ctx, state, L);
+    } else if (state.screen === "maps") {
+      drawMaps(ctx, state, L);
       drawBuild(ctx, state, L);
     } else {
       drawMargin(ctx, L);
@@ -1918,6 +2335,7 @@
         drawHeader(ctx, state, L);
         drawPanel(ctx, state, L);
         drawBanner(ctx, state, L);
+        drawBossHud(ctx, state, L);
         drawToast(ctx, state, L);
       } else {
         drawEnd(ctx, state, L);

@@ -120,7 +120,7 @@
     ctx.stroke();
   }
 
-  function face(ctx, x, y, r, pal, enemy) {
+  function paintFace(ctx, x, y, r, pal, enemy) {
     disk(ctx, x, y, r, pal.skin, pal.skinSh);
     ctx.fillStyle = pal.skinHi;
     ctx.beginPath();
@@ -274,26 +274,29 @@
     piece(ctx, -2, -22, 3.2, 7, 1, pal.strap, null);
     limb(ctx, -4, -22, -8, -16, pal.jacket, 3.4);
     limb(ctx, 3, -22, 6, -17, pal.jacketSh, 3.6);
-    face(ctx, 1.5, -32, 6.1, pal, enemy);
+    paintFace(ctx, 1.5, -32, 6.1, pal, enemy);
     helmet(ctx, 1.5, -33, 6.4, pal, enemy ? (bulk > 1.05 ? 4 : 3) : 0);
   }
 
   function stand(ctx, pal, enemy, phase, bulk) {
     const b = bulk || 1;
-    const swing = Math.sin(phase || 0) * (enemy ? 5 : 1.2);
+    const ph = phase || 0;
+    const swing = Math.sin(ph) * (enemy ? 6.4 : 2.1);
+    const liftL = Math.max(0, Math.sin(ph)) * (enemy ? 2.6 : 1.1);
+    const liftR = Math.max(0, -Math.sin(ph)) * (enemy ? 2.6 : 1.1);
     groundShadow(ctx, 9 * b, 3.6);
     const hip = -13;
-    limb(ctx, -1, hip, -4 + swing, -1, pal.pants, 4 * b);
-    boot(ctx, -7 + swing, -3.4, pal);
-    limb(ctx, 1, hip, 4 - swing, -1, pal.pants, 4 * b);
-    boot(ctx, 2 - swing * 0.3, -3.2, pal);
+    limb(ctx, -1, hip, -4 + swing, -1 - liftL * 0.3, pal.pants, 4 * b);
+    boot(ctx, -7 + swing, -3.4 - liftL, pal);
+    limb(ctx, 1, hip, 4 - swing, -1 - liftR * 0.3, pal.pants, 4 * b);
+    boot(ctx, 2 - swing * 0.35, -3.2 - liftR, pal);
     piece(ctx, -6.5 * b, -28, 13 * b, 16, 4, pal.jacket, pal.jacketSh);
     ctx.fillStyle = pal.jacketHi;
     ctx.fillRect(-4.5 * b, -27, 4.5, 3.5);
     piece(ctx, -5.5 * b, -15.5, 11 * b, 3, 1.2, pal.belt, null);
-    limb(ctx, -3, -22, -7, -15, pal.jacket, 3.3);
-    limb(ctx, 3, -22, 6, -16, pal.jacketSh, 3.4);
-    face(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
+    limb(ctx, -3, -22, -8 - swing * 0.45, -14, pal.jacket, 3.3);
+    limb(ctx, 3, -22, 7 + swing * 0.45, -15, pal.jacketSh, 3.4);
+    paintFace(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
     helmet(ctx, 0.5, -34, enemy && bulk < 0.95 ? 5.6 : 6.3, pal, enemy ? 3 : 0);
   }
 
@@ -307,7 +310,7 @@
     ctx.fillRect(-8, -4, 7, 2.2);
     piece(ctx, -4, 1.6, 8, 2.2, 1, pal.belt, null);
     limb(ctx, 6, -0.4, 11, -0.8, pal.jacket, 3.2);
-    face(ctx, 10, -0.6, 4.6, pal, false);
+    paintFace(ctx, 10, -0.6, 4.6, pal, false);
     helmet(ctx, 9.4, -1.8, 4.8, pal, 0);
     ctx.save();
     ctx.translate(12, -0.8);
@@ -327,7 +330,7 @@
     const aim = opt.aim || 0;
     const face = Math.cos(aim) >= 0 ? 1 : -1;
     const sc = opt.scale || 1;
-    const bob = enemy ? Math.abs(Math.sin(opt.phase || 0)) * 2.2 * sc : Math.sin((opt.phase || 0) * 0.7) * 0.6 * sc;
+    const bob = enemy ? Math.abs(Math.sin(opt.phase || 0)) * 2.6 * sc : Math.sin((opt.phase || 0) * 0.7) * 0.8 * sc;
     const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)))));
 
     if (!enemy && role === "longshot") {
@@ -343,7 +346,57 @@
     ctx.save();
     ctx.translate(x, y - bob);
     ctx.scale(face * sc, sc);
-    if (role === "gatling") {
+    if (role === "mortar") {
+      kneel(ctx, pal, false, 1);
+      ctx.save();
+      ctx.translate(5, -20);
+      ctx.rotate(-0.85);
+      piece(ctx, -2, -2.2, 16, 4.4, 1.4, pal.gun, "#00000066");
+      disk(ctx, 14, 0, 2.2, pal.gunHi, null);
+      ctx.restore();
+    } else if (role === "tread") {
+      groundShadow(ctx, 14, 5);
+      piece(ctx, -14, -6, 26, 8, 2, "#2f8a3c", "#1c5c28");
+      piece(ctx, -16, -8, 8, 12, 2, "#245c30", null);
+      piece(ctx, 6, -8, 8, 12, 2, "#245c30", null);
+      disk(ctx, -2, -8, 5, "#3caf4c", "#1f7a34");
+      ctx.save();
+      ctx.translate(-2, -8);
+      ctx.rotate(gunAngle);
+      piece(ctx, 2, -1.6, 14, 3.2, 1, pal.gun, null);
+      ctx.restore();
+      paintFace(ctx, -2, -16, 4.2, pal, false);
+      helmet(ctx, -2, -17, 4.4, pal, 0);
+    } else if (role === "engineer") {
+      stand(ctx, pal, false, opt.phase || 0, 1);
+      piece(ctx, -12, -3, 8, 4, 1.2, "#d7b56a", "#a8843e");
+      piece(ctx, 6, -3, 8, 4, 1.2, "#e6c98a", "#b8924a");
+      ctx.save();
+      ctx.translate(8, -18);
+      ctx.rotate(-0.4);
+      piece(ctx, 0, -1.2, 8, 2.4, 0.8, "#c0c6cc", null);
+      ctx.restore();
+    } else if (role === "sky") {
+      stand(ctx, pal, false, 0, 1);
+      ctx.save();
+      ctx.translate(4, -24);
+      ctx.rotate(-1.05);
+      piece(ctx, 0, -2.4, 14, 4.8, 1.2, pal.gun, "#00000066");
+      piece(ctx, 10, -4.2, 4, 8.4, 1, pal.gunHi, null);
+      ctx.restore();
+    } else if (role === "chopper") {
+      groundShadow(ctx, 10, 4);
+      piece(ctx, -10, -3, 20, 5, 2, "#6a5430", "#3e3018");
+      const ang = (opt.spin || 0) * 0.15;
+      ctx.save();
+      ctx.translate(Math.cos(ang) * 12, -16 + Math.sin(ang) * 5);
+      piece(ctx, -7, -3, 14, 6, 2, pal.jacket, pal.jacketSh);
+      piece(ctx, 6, -1.2, 7, 2.4, 1, pal.jacketSh, null);
+      limb(ctx, -8, -3, 8, -3, "#1a120c", 1.4);
+      paintFace(ctx, -1, -6, 3.4, pal, false);
+      helmet(ctx, -1, -6.6, 3.5, pal, 0);
+      ctx.restore();
+    } else if (role === "gatling") {
       kneel(ctx, pal, false, 1.08);
       ctx.save();
       ctx.translate(6, -16);
@@ -364,6 +417,18 @@
       ctx.rotate(gunAngle);
       rifle(ctx, 12, pal);
       ctx.restore();
+    } else if (role === "sneak" && !opt.revealed) {
+      ctx.globalAlpha = 0.38;
+      stand(ctx, pal, true, opt.phase || 0, 0.95);
+      ctx.globalAlpha = 1;
+    } else if (role === "medic") {
+      stand(ctx, pal, true, opt.phase || 0, 1);
+      ctx.fillStyle = "#7dff6a";
+      ctx.fillRect(-1.2, -24, 2.4, 7);
+      ctx.fillRect(-3.4, -21.6, 7, 2.4);
+    } else if (role === "riot") {
+      stand(ctx, pal, true, opt.phase || 0, 1.05);
+      piece(ctx, 6, -26, 5, 16, 2, "#6a6e78", "#3a3e48");
     } else if (role === "scout") {
       stand(ctx, pal, true, (opt.phase || 0) * 1.4, 0.9);
       ctx.save();
@@ -378,6 +443,13 @@
       ctx.rotate(enemy ? gunAngle * 0.45 : gunAngle);
       rifle(ctx, 11, pal);
       ctx.restore();
+    }
+    if (opt.badge) {
+      ctx.fillStyle = "#ffe56a";
+      ctx.fillRect(-8, -25, 16, 2.4);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-8, -25, 16, 2.4);
     }
     if (opt.flash > 0.03) {
       ctx.save();
