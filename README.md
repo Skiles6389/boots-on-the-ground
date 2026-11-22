@@ -36,7 +36,9 @@ Then open http://localhost:8080 . Use a local server rather than double-clicking
 
 ## How to play
 
-Pick a map, tap a soldier card, then tap open ground. You cannot plant on the lane, in the pond or the well, or on top of another soldier. The first good patch pulses until you use it.
+Pick a map and Easy, Medium, or Hard, then tap a soldier tile and the open ground. Easy kits cost less and you get more lives. Hard kits cost more and you get fewer. You cannot plant on the lane, in the pond or the well, or on top of another soldier. The first good patch pulses until you use it.
+
+Cactus Junction stays locked until you win Maple Grove on any difficulty. Add `?unlockall=1` to the address if you need both maps for a test. Stars and your best round are saved on this phone. Sound, music, and effects toggles are saved too. The march is an original boot-camp cadence made in the browser, not a recording.
 
 **Start Round** sends the next wave. You can send the following wave early for a small bonus. Tap a planted soldier to open the chevron paths, change who they shoot, or sell them. The **1× / 2×** button speeds the round up.
 
@@ -46,11 +48,12 @@ On a keyboard: `1` through `8` pick a soldier, `Space` starts the round, `F` cha
 
 - `index.html` — the page
 - `css/game.css` — fills the screen, including the iPhone safe area, and turns off scroll and pinch-zoom while you play
-- `js/balance.js` — prices, ranges, the two maps, and the thirty rounds
+- `js/balance.js` — prices, ranges, the two maps, the thirty rounds, and the three difficulties
+- `js/save.js` — stars, best round, and the chosen difficulty, kept in the browser
+- `js/audio.js` — synthesized effects and the boot-camp march
 - `js/paths.js` — the chevron paths for every tower
 - `js/game.js` — planting, shooting, and waves
 - `js/render.js` — the maps, soldiers, and buttons
-- `js/audio.js` — tiny synthesized sounds, no audio files
 - `js/build.js` — the corner label. The Pages workflow rewrites it with the date and commit
 - `js/soldiers.js` — the cartoon soldiers (green kit for us, dark red and black for the Scowl Corps)
 - `assets/sprites/` — the original toy-figure sheets, kept for reference and not drawn in the game

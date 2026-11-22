@@ -1464,7 +1464,7 @@
       drawPortrait(ctx, state.placing, rect.x, rect.y, pw, rect.h - 2);
       const tx = rect.x + pw + 6;
       const maxW = rect.w - pw - 10;
-      label(ctx, def.name + "  $" + def.cost, tx, rect.y + 12, rect.h < 56 ? 13 : 15, INK, null, 0);
+      label(ctx, def.name + "  $" + B.pay(def.cost), tx, rect.y + 12, rect.h < 56 ? 13 : 15, INK, null, 0);
       font(ctx, 11);
       ctx.fillStyle = "#5c4630";
       ctx.textAlign = "left";
@@ -1584,7 +1584,8 @@
     const th = (area.h - gap * (rows - 1)) / rows;
     order.forEach(function (key, i) {
       const def = B.towers[key];
-      const afford = state.cash >= def.cost;
+      const price = B.pay(def.cost);
+      const afford = state.cash >= price;
       const on = state.placing === key;
       uiButton(ctx, state, {
         id: "buy-" + key,
@@ -1592,7 +1593,7 @@
         y: area.y + Math.floor(i / cols) * (th + gap),
         w: tw,
         h: th,
-        cost: def.cost,
+        cost: price,
         affordable: afford,
         portraitKey: key,
         shopTile: true,
@@ -1617,7 +1618,7 @@
       w: w,
       h: h,
       label: next ? p.name + " " + (cur + 1) : p.name + " max",
-      sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
+      sub: next ? next.name + "  $" + B.pay(next.cost) + chev : "Path finished",
       labelSize: tight ? 13 : 15,
       subSize: tight ? 11 : 12,
       fillTop: next ? "#c8f8b0" : "#efe6d2",
@@ -1930,21 +1931,7 @@
         pulse: true,
         action: () => root.BOTG.openMaps(),
       });
-      uiButton(ctx, state, {
-        id: "title-mute",
-        x: L.vw / 2 - 70,
-        y: cardY + 238,
-        w: 140,
-        h: 36,
-        label: root.BOTGAudio.muted ? "Sound off" : "Sound on",
-        labelSize: 14,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTGAudio.toggle(),
-      });
+      drawAudioRow(ctx, state, 16, Math.min(cardY + 236, L.vh - 46), L.vw - 32, 36);
     } else {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -1973,21 +1960,7 @@
       ["Plant on the grass.", "Longshots crack armor.", "Gatlings own a corner."].forEach((t, i) => {
         ctx.fillText(t, L.vw - 250, L.vh * 0.38 + 88 + i * 22);
       });
-      uiButton(ctx, state, {
-        id: "title-mute",
-        x: 28,
-        y: L.vh - 56,
-        w: 130,
-        h: 36,
-        label: root.BOTGAudio.muted ? "Sound off" : "Sound on",
-        labelSize: 14,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTGAudio.toggle(),
-      });
+      drawAudioRow(ctx, state, 16, L.vh - 48, Math.min(360, L.vw - 32), 36);
     }
   }
 
@@ -2031,6 +2004,45 @@
     ctx.restore();
   }
 
+  function drawAudioRow(ctx, state, x, y, w, h) {
+    const A = root.BOTGAudio;
+    const gap = 6;
+    const bw = Math.floor((w - gap * 2) / 3);
+    const items = [
+      { id: "mute", label: A.muted ? "Muted" : "Sound", on: !A.muted, go: () => A.toggle() },
+      { id: "music", label: A.music ? "Music" : "No music", on: A.music && !A.muted, go: () => A.toggleMusic() },
+      { id: "sfx", label: A.sfx ? "SFX" : "No SFX", on: A.sfx && !A.muted, go: () => A.toggleSfx() },
+    ];
+    items.forEach((item, i) => {
+      uiButton(ctx, state, {
+        id: "audio-" + item.id,
+        x: x + i * (bw + gap),
+        y: y,
+        w: bw,
+        h: h,
+        label: item.label,
+        labelSize: 13,
+        fillTop: item.on ? "#c8f8a4" : "#e7e2d8",
+        fillBot: item.on ? "#46c85a" : "#c9c3b6",
+        lip: item.on ? "#0e6a22" : "#8d867c",
+        ink: INK,
+        stroke: false,
+        action: item.go,
+      });
+    });
+  }
+
+  function drawStars(ctx, x, y, n) {
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = i < n ? "#ffe56a" : "#e4dcc8";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.6;
+      star(ctx, x + i * 18, y, 7, -0.2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
   function drawMaps(ctx, state, L) {
     const g = ctx.createLinearGradient(0, 0, 0, L.vh);
     g.addColorStop(0, "#8fd8ff");
@@ -2040,78 +2052,90 @@
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 52 : 40, L.portrait ? 32 : 28, "#ffe56a", "#145214", 7);
+    const Save = root.BOTGSave;
+    const diffId = state.difficulty || (Save && Save.data.difficulty) || "medium";
+    const openCactus = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll()) || (Save && Save.wonAny("maple"));
+    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 28 : 22, L.portrait ? 28 : 22, "#ffe56a", "#145214", 6);
+    const diffY = L.portrait ? 52 : 42;
+    const diffH = 40;
+    const names = ["easy", "medium", "hard"];
+    const dw = Math.min(112, Math.floor((L.vw - 40) / 3) - 6);
+    const dx0 = (L.vw - (dw * 3 + 12)) / 2;
+    names.forEach((id, i) => {
+      const on = diffId === id;
+      uiButton(ctx, state, {
+        id: "diff-" + id,
+        x: dx0 + i * (dw + 6),
+        y: diffY,
+        w: dw,
+        h: diffH,
+        label: B.difficulties[id].name,
+        labelSize: 15,
+        fillTop: on ? "#ffe08a" : "#fff8e4",
+        fillBot: on ? "#f0b429" : "#f0ddb0",
+        lip: on ? "#a86a08" : "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.setDifficulty(id),
+      });
+    });
+    const audioH = 36;
+    const audioY = L.vh - audioH - 8;
+    const cardsTop = diffY + diffH + 8;
+    const cardsBottom = audioY - 8;
     const maps = [B.maps.maple, B.maps.cactus];
+    function card(map, x, y, w, h) {
+      const locked = map.id === "cactus" && !openCactus;
+      const stars = Save ? Save.stars(map.id) : 0;
+      const best = Save ? Save.best(map.id, diffId) : 0;
+      fillRound(ctx, x, y + 4, w, h, 16, "rgba(0,0,0,0.18)");
+      fillRound(ctx, x, y, w, h, 16, locked ? "#efe8dc" : "#fff6df");
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, x, y, w, h, 16);
+      ctx.textAlign = "center";
+      label(ctx, map.name, x + w / 2, y + 18, L.portrait ? 20 : 18, INK, null, 0);
+      drawStars(ctx, x + w / 2 - 26, y + 38, stars);
+      font(ctx, 12);
+      ctx.fillStyle = "#5c4630";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(best ? "Best round " + best : "No run yet", x + w / 2, y + 54);
+      const mapH = Math.max(36, h - 148);
+      drawMiniPath(ctx, map, x + 14, y + 66, w - 28, mapH);
+      uiButton(ctx, state, {
+        id: "map-" + map.id,
+        x: x + (w - Math.min(180, w - 24)) / 2,
+        y: y + h - 52,
+        w: Math.min(180, w - 24),
+        h: 42,
+        label: locked ? "LOCKED" : "DEFEND",
+        labelSize: 18,
+        fillTop: locked ? "#d9d3c8" : "#b6f56a",
+        fillBot: locked ? "#c9c2b6" : "#2fbe3c",
+        lip: locked ? "#8d867c" : "#0e6a22",
+        disabled: locked,
+        action: () => root.BOTG.startGame(map.id),
+      });
+    }
     if (L.portrait) {
-      maps.forEach((map, i) => {
-        const x = 16;
-        const y = 84 + i * 280;
-        const w = L.vw - 32;
-        const h = 264;
-        fillRound(ctx, x, y + 4, w, h, 18, "rgba(0,0,0,0.18)");
-        fillRound(ctx, x, y, w, h, 18, "#fff6df");
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = INK;
-        strokeRound(ctx, x, y, w, h, 18);
-        label(ctx, map.name, x + w / 2, y + 24, 22, INK, null, 0);
-        font(ctx, 13);
-        ctx.fillStyle = "#5c4630";
-        drawWrapped(ctx, map.blurb, x + w / 2, y + 44, w - 28, 16, 2);
-        drawMiniPath(ctx, map, x + 16, y + 72, w - 32, 110);
-        uiButton(ctx, state, {
-          id: "map-" + map.id,
-          x: x + (w - 180) / 2,
-          y: y + h - 64,
-          w: 180,
-          h: 48,
-          label: "DEFEND",
-          labelSize: 20,
-          fillTop: "#b6f56a",
-          fillBot: "#2fbe3c",
-          lip: "#0e6a22",
-          action: () => root.BOTG.startGame(map.id),
-        });
-      });
+      const gap = 8;
+      const h = Math.floor((cardsBottom - cardsTop - gap) / 2);
+      maps.forEach((map, i) => card(map, 14, cardsTop + i * (h + gap), L.vw - 28, h));
     } else {
-      maps.forEach((map, i) => {
-        const gap = 16;
-        const w = (L.vw - 48 - gap) / 2;
-        const x = 24 + i * (w + gap);
-        const y = 70;
-        const h = L.vh - 120;
-        fillRound(ctx, x, y + 4, w, h, 18, "rgba(0,0,0,0.18)");
-        fillRound(ctx, x, y, w, h, 18, "#fff6df");
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = INK;
-        strokeRound(ctx, x, y, w, h, 18);
-        label(ctx, map.name, x + w / 2, y + 28, 22, INK, null, 0);
-        font(ctx, 14);
-        ctx.fillStyle = "#5c4630";
-        drawWrapped(ctx, map.blurb, x + w / 2, y + 52, w - 28, 18, 2);
-        drawMiniPath(ctx, map, x + 16, y + 86, w - 32, Math.max(80, h - 180));
-        uiButton(ctx, state, {
-          id: "map-" + map.id,
-          x: x + (w - 180) / 2,
-          y: y + h - 64,
-          w: 180,
-          h: 48,
-          label: "DEFEND",
-          labelSize: 20,
-          fillTop: "#b6f56a",
-          fillBot: "#2fbe3c",
-          lip: "#0e6a22",
-          action: () => root.BOTG.startGame(map.id),
-        });
-      });
+      const gap = 12;
+      const w = (L.vw - 36 - gap) / 2;
+      const h = cardsBottom - cardsTop;
+      maps.forEach((map, i) => card(map, 18 + i * (w + gap), cardsTop, w, h));
     }
     uiButton(ctx, state, {
       id: "maps-back",
-      x: 16,
-      y: L.vh - 48,
-      w: 110,
-      h: 36,
+      x: 10,
+      y: audioY,
+      w: 72,
+      h: audioH,
       label: "Back",
-      labelSize: 15,
+      labelSize: 14,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
@@ -2119,6 +2143,7 @@
       stroke: false,
       action: () => root.BOTG.title(),
     });
+    drawAudioRow(ctx, state, 90, audioY, L.vw - 102, audioH);
   }
 
   function drawBossHud(ctx, state, L) {
@@ -2254,12 +2279,9 @@
     const tw = ctx.measureText(text).width + 14;
     let x;
     let y;
-    if (state.screen === "title") {
-      x = 8;
-      y = L.vh - 22;
-    } else if (state.screen === "maps") {
-      x = L.vw - tw - 10;
-      y = L.vh - 22;
+    if (state.screen === "title" || state.screen === "maps") {
+      x = L.vw - tw - 8;
+      y = 6;
     } else {
       x = L.mapBox.x + L.mapBox.w - tw - 8;
       y = L.mapBox.y + L.mapBox.h - 22;

@@ -104,13 +104,13 @@
       },
       longshot: {
         name: "Longshot",
-        cost: 165,
-        blurb: "Slow, far shots that punch straight through armor.",
+        cost: 230,
+        blurb: "A slow bolt rifle. One heavy shot, then a long pause. Swarms walk past.",
         aim: "tough",
         base: {
-          damage: 16,
-          range: 176,
-          rate: 0.42,
+          damage: 22,
+          range: 160,
+          rate: 0.24,
           armorBite: 1,
           projectileSpeed: 0,
           role: "longshot",
@@ -226,12 +226,12 @@
         blurb: "Flak bursts. Deadly to anything overhead, splashy on the ground.",
         aim: "first",
         base: {
-          damage: 6,
-          range: 140,
-          rate: 0.85,
+          damage: 5,
+          range: 132,
+          rate: 0.7,
           armorBite: 0.2,
           projectileSpeed: 280,
-          splash: 26,
+          splash: 20,
           airBonus: 2.2,
           role: "sky",
         },
@@ -784,6 +784,16 @@
     B.meta.mapName = next.name;
     B.route = B.buildPath(next.path);
     return next;
+  };
+
+  B.difficulties = {
+    easy: { id: "easy", name: "Easy", cost: 0.8, cash: 300, lives: 45, blurb: "Cheaper kits and more lives." },
+    medium: { id: "medium", name: "Medium", cost: 1, cash: 230, lives: 30, blurb: "The regular fight." },
+    hard: { id: "hard", name: "Hard", cost: 1.35, cash: 180, lives: 16, blurb: "Pricier kits and fewer lives." },
+  };
+  B.costMul = 1;
+  B.pay = function pay(n) {
+    return Math.max(5, Math.round(Number(n) * (B.costMul || 1)));
   };
 
   B.setMap("maple");
