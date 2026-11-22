@@ -60,6 +60,7 @@
   function fresh() {
     return {
       screen: "title",
+      mapId: "maple",
       time: 0,
       cash: B.meta.startingCash,
       lives: B.meta.startingLives,
@@ -205,8 +206,8 @@
       return { ok: false, reason: "The lane is for marching." };
     }
     const pond = map.pond;
-    if (Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) {
-      return { ok: false, reason: "That's the pond." };
+    if (pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) {
+      return { ok: false, reason: pond.kind === "well" ? "That's the well." : "That's the pond." };
     }
     for (const tree of map.trees) {
       if (Math.hypot(x - tree.x, y - tree.y) < map.trunkBlock) {
@@ -459,6 +460,7 @@
   function defeat(enemy) {
     if (enemy.dead) return;
     enemy.dead = true;
+    enemy.dying = 0.42;
     enemy.hp = 0;
     state.cash += enemy.cash;
     const boss = !!B.enemies[enemy.type].boss;
@@ -591,7 +593,9 @@
         deal(enemy, damage, armorBite);
       }
     }
-    spawnPoof(x, y, 0.8, true);
+    spawnPoof(x, y, 1.15, true);
+    state.effects.push({ kind: "boom", x, y, t: 0, life: 0.38, r: radius });
+    if (!state.reducedMotion) state.shake = Math.max(state.shake, radius > 30 ? 3.4 : 2.2);
   }
 
   function chopperGun(tower) {
@@ -666,6 +670,7 @@
       splashDamage(target.x, target.y, stats.splash || 22, Math.max(1, stats.damage * 0.35), stats.armorBite, target.id);
       state.effects.push({ kind: "tracer", x1: mx, y1: my, x2: target.x, y2: target.y, t: 0, life: 0.18 });
       audio.play("cannon");
+      if (!state.reducedMotion) state.shake = Math.max(state.shake, 2.6);
       tower.cooldown = 1 / stats.rate;
       return;
     }
@@ -829,7 +834,10 @@
     state.shots = state.shots.filter((s) => s.life > 0);
 
     for (const enemy of state.enemies) {
-      if (enemy.dead) continue;
+      if (enemy.dead) {
+        enemy.dying = (enemy.dying || 0) - dt;
+        continue;
+      }
       if (enemy.hobble > 0) {
         enemy.hobble -= dt;
         enemy.slow = Math.min(enemy.slow || 1, 0.62);
@@ -880,9 +888,10 @@
       state.enemies = state.enemies.filter((e) => !e.dead);
       return;
     }
-    state.enemies = state.enemies.filter((e) => !e.dead);
+    state.enemies = state.enemies.filter((e) => !e.dead || e.dying > 0);
+    const laneClear = state.enemies.every((e) => e.dead);
 
-    if (state.waveActive && state.spawnQueue.length === 0 && state.enemies.length === 0) {
+    if (state.waveActive && state.spawnQueue.length === 0 && laneClear) {
       let purse = 0;
       while (state.rewarded < state.started) {
         purse += B.waves[state.rewarded].reward;
@@ -903,6 +912,14 @@
         }
         if (livesBack) state.lives += livesBack;
         if (supply) audio.play("wrench");
+        if (state.rewarded < B.waves.length) {
+          showBanner(
+            "Lane clear",
+            "Round " + state.rewarded + " holds",
+            "Purse +$" + (purse + supply) + ". Plant or upgrade, then send the next one.",
+            "clear"
+          );
+        }
       }
       if (state.rewarded >= B.waves.length) win();
     }
@@ -951,7 +968,7 @@
       state.shots = [];
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
     audio.play("win");
-    announce("Maple Grove holds. General Grimstache's tank poofed into smoke.");
+    announce((B.map.name || "The lane") + " holds. The Scowl Corps poofed into smoke.");
   }
 
   const PLAN = [
@@ -1147,7 +1164,19 @@
     }
     if (state.screen === "title" && (e.key === " " || e.key === "Enter")) {
       e.preventDefault();
-      startGame();
+      openMaps();
+      return;
+    }
+    if (state.screen === "maps") {
+      if (e.key === "1" || e.key === "Enter") {
+        e.preventDefault();
+        startGame("maple");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        startGame("cactus");
+      } else if (e.key === "Escape") {
+        title();
+      }
       return;
     }
     if ((state.screen === "win" || state.screen === "lose") && (e.key === "Enter" || e.key === " ")) {
@@ -1177,16 +1206,31 @@
     else if (e.key === "x" || e.key === "X") sell();
   });
 
-  function startGame() {
+  function startGame(mapId) {
+    const id = mapId || state.mapId || "maple";
+    const map = B.setMap(id);
     const debug = state.debug;
     const motion = state.reducedMotion;
     state = fresh();
+    state.mapId = map.id;
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
     audio.ensure();
     audio.play("wave");
-    announce("Maple Grove. Plant a Trooper on the grass, then start wave 1.");
+    const ground = map.theme === "desert" ? "sand" : "grass";
+    announce(map.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
+    resize();
+  }
+
+  function openMaps() {
+    const debug = state.debug;
+    const motion = state.reducedMotion;
+    state = fresh();
+    state.debug = debug;
+    state.reducedMotion = motion;
+    state.screen = "maps";
+    announce("Pick a map. Maple Grove or Cactus Junction.");
     resize();
   }
 
@@ -1203,8 +1247,11 @@
   function jump(waveNumber) {
     const debug = state.debug;
     const motion = state.reducedMotion;
+    const mapId = state.mapId || "maple";
+    B.setMap(mapId);
     const keepTowers = state.towers.map((t) => Object.assign({}, t));
     state = fresh();
+    state.mapId = mapId;
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
@@ -1230,6 +1277,7 @@
     pick,
     shopTurn,
     startGame,
+    openMaps,
     title,
     cycleAim,
   };

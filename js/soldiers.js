@@ -280,19 +280,22 @@
 
   function stand(ctx, pal, enemy, phase, bulk) {
     const b = bulk || 1;
-    const swing = Math.sin(phase || 0) * (enemy ? 5 : 1.2);
+    const ph = phase || 0;
+    const swing = Math.sin(ph) * (enemy ? 6.4 : 2.1);
+    const liftL = Math.max(0, Math.sin(ph)) * (enemy ? 2.6 : 1.1);
+    const liftR = Math.max(0, -Math.sin(ph)) * (enemy ? 2.6 : 1.1);
     groundShadow(ctx, 9 * b, 3.6);
     const hip = -13;
-    limb(ctx, -1, hip, -4 + swing, -1, pal.pants, 4 * b);
-    boot(ctx, -7 + swing, -3.4, pal);
-    limb(ctx, 1, hip, 4 - swing, -1, pal.pants, 4 * b);
-    boot(ctx, 2 - swing * 0.3, -3.2, pal);
+    limb(ctx, -1, hip, -4 + swing, -1 - liftL * 0.3, pal.pants, 4 * b);
+    boot(ctx, -7 + swing, -3.4 - liftL, pal);
+    limb(ctx, 1, hip, 4 - swing, -1 - liftR * 0.3, pal.pants, 4 * b);
+    boot(ctx, 2 - swing * 0.35, -3.2 - liftR, pal);
     piece(ctx, -6.5 * b, -28, 13 * b, 16, 4, pal.jacket, pal.jacketSh);
     ctx.fillStyle = pal.jacketHi;
     ctx.fillRect(-4.5 * b, -27, 4.5, 3.5);
     piece(ctx, -5.5 * b, -15.5, 11 * b, 3, 1.2, pal.belt, null);
-    limb(ctx, -3, -22, -7, -15, pal.jacket, 3.3);
-    limb(ctx, 3, -22, 6, -16, pal.jacketSh, 3.4);
+    limb(ctx, -3, -22, -8 - swing * 0.45, -14, pal.jacket, 3.3);
+    limb(ctx, 3, -22, 7 + swing * 0.45, -15, pal.jacketSh, 3.4);
     paintFace(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
     helmet(ctx, 0.5, -34, enemy && bulk < 0.95 ? 5.6 : 6.3, pal, enemy ? 3 : 0);
   }
@@ -327,7 +330,7 @@
     const aim = opt.aim || 0;
     const face = Math.cos(aim) >= 0 ? 1 : -1;
     const sc = opt.scale || 1;
-    const bob = enemy ? Math.abs(Math.sin(opt.phase || 0)) * 2.2 * sc : Math.sin((opt.phase || 0) * 0.7) * 0.6 * sc;
+    const bob = enemy ? Math.abs(Math.sin(opt.phase || 0)) * 2.6 * sc : Math.sin((opt.phase || 0) * 0.7) * 0.8 * sc;
     const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)))));
 
     if (!enemy && role === "longshot") {
