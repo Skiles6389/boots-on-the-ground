@@ -177,6 +177,27 @@
       strokeRound(ctx, cx, py + (h - chipH) / 2, cw, chipH, 8);
       ctx.textAlign = "center";
       label(ctx, cost, cx + cw / 2, py + h / 2, 12, INK, null, 0);
+    } else if (spec.shopTile) {
+      const affordable = spec.affordable !== false;
+      const chipH = 13;
+      const top = py + 2;
+      const ph = Math.max(16, h - chipH - 6);
+      const pw = Math.min(w - 6, ph);
+      ctx.save();
+      if (!affordable) ctx.globalAlpha = 0.4;
+      drawPortrait(ctx, spec.portraitKey, x + (w - pw) / 2, top, pw, ph);
+      ctx.restore();
+      const cost = "$" + spec.cost;
+      font(ctx, 11);
+      const cw = Math.min(w - 6, Math.max(28, ctx.measureText(cost).width + 8));
+      const chipY = py + h - chipH - 2;
+      fillRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 6, affordable ? "#ffe14a" : "#d5d0c6");
+      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = affordable ? INK : "#8a8680";
+      strokeRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 6);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      label(ctx, cost, x + w / 2, chipY + chipH / 2, 11, affordable ? INK : "#6a6560", null, 0);
     } else if (spec.portraitKey) {
       const priceSize = h < 130 ? 11 : 12;
       const nameSize = h < 130 ? 12 : 14;
@@ -1437,6 +1458,19 @@
           root.BOTGAudio.play("ui");
         },
       });
+    } else if (state.placing && B.towers[state.placing]) {
+      const def = B.towers[state.placing];
+      const pw = Math.min(34, Math.max(24, rect.h - 4));
+      drawPortrait(ctx, state.placing, rect.x, rect.y, pw, rect.h - 2);
+      const tx = rect.x + pw + 6;
+      const maxW = rect.w - pw - 10;
+      label(ctx, def.name + "  $" + def.cost, tx, rect.y + 12, rect.h < 56 ? 13 : 15, INK, null, 0);
+      font(ctx, 11);
+      ctx.fillStyle = "#5c4630";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      const lines = rect.h >= 64 ? 2 : 1;
+      drawWrapped(ctx, def.blurb, tx, rect.y + (rect.h < 56 ? 24 : 30), maxW, 12, lines);
     } else {
       const idx = nextWaveIndex(state);
       const wave = idx >= 0 ? B.waves[idx] : null;
@@ -1541,93 +1575,31 @@
     });
   }
 
-  function shopName(ctx, def, maxW) {
-    const full = def.short || def.name;
-    font(ctx, 12);
-    if (ctx.measureText(full).width <= maxW) return full;
-    return full.split(" ")[0];
-  }
-
   function drawCards(ctx, state, area) {
-    const order = B.towerOrder || ["trooper", "longshot", "gatling"];
-    const pages = Math.max(1, Math.ceil(order.length / 3));
-    const page = ((state.shopPage || 0) % pages + pages) % pages;
-    const keys = order.slice(page * 3, page * 3 + 3);
-    const gap = 5;
-    const arrowW = pages > 1 ? 40 : 0;
-    const across = (area.w - gap * Math.max(0, keys.length - 1) - arrowW * 2) / Math.max(1, keys.length);
-    const stack = across < 44;
-    function arrow(id, x, y, w, h, label, dir) {
-      uiButton(ctx, state, {
-        id: id,
-        x: x,
-        y: y,
-        w: w,
-        h: h,
-        label: label,
-        labelSize: 18,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.shopTurn(dir),
-      });
-    }
-    if (stack) {
-      const pagerH = 40;
-      const rowGap = 4;
-      const rowH = Math.max(40, (area.h - pagerH - rowGap) / keys.length - rowGap);
-      keys.forEach((key, i) => {
-        const def = B.towers[key];
-        uiButton(ctx, state, {
-          id: "buy-" + key,
-          x: area.x,
-          y: area.y + i * (rowH + rowGap),
-          w: area.w,
-          h: rowH,
-          label: shopName(ctx, def, area.w - 120),
-          cost: def.cost,
-          affordable: state.cash >= def.cost,
-          portraitKey: key,
-          shopRow: true,
-          fillTop: state.placing === key ? "#fff3a0" : "#fff8e4",
-          fillBot: state.placing === key ? "#ffe08a" : "#f3e2bc",
-          lip: "#a07840",
-          active: state.placing === key,
-          action: () => root.BOTG.pick(key),
-        });
-      });
-      if (pages > 1) {
-        const y = area.y + area.h - pagerH;
-        const w = (area.w - gap) / 2;
-        arrow("shop-prev", area.x, y, w, pagerH, "<", -1);
-        arrow("shop-next", area.x + w + gap, y, w, pagerH, ">", 1);
-      }
-      return;
-    }
-    if (pages > 1) {
-      const ah = Math.min(44, Math.max(40, area.h * 0.5));
-      const ay = area.y + (area.h - ah) / 2;
-      arrow("shop-prev", area.x, ay, arrowW, ah, "<", -1);
-      arrow("shop-next", area.x + area.w - arrowW, ay, arrowW, ah, ">", 1);
-    }
-    keys.forEach((key, i) => {
+    const order = B.towerOrder || ["trooper", "longshot", "gatling", "mortar", "tread", "engineer", "sky", "chopper"];
+    const cols = area.w >= area.h ? 4 : 2;
+    const rows = Math.ceil(order.length / cols);
+    const gap = 4;
+    const tw = (area.w - gap * (cols - 1)) / cols;
+    const th = (area.h - gap * (rows - 1)) / rows;
+    order.forEach(function (key, i) {
       const def = B.towers[key];
+      const afford = state.cash >= def.cost;
+      const on = state.placing === key;
       uiButton(ctx, state, {
         id: "buy-" + key,
-        x: area.x + arrowW + i * (across + gap),
-        y: area.y,
-        w: across,
-        h: area.h,
-        label: shopName(ctx, def, across - 16),
+        x: area.x + (i % cols) * (tw + gap),
+        y: area.y + Math.floor(i / cols) * (th + gap),
+        w: tw,
+        h: th,
         cost: def.cost,
-        affordable: state.cash >= def.cost,
+        affordable: afford,
         portraitKey: key,
-        fillTop: state.placing === key ? "#fff3a0" : "#fff8e4",
-        fillBot: state.placing === key ? "#ffe08a" : "#f3e2bc",
-        lip: "#a07840",
-        active: state.placing === key,
+        shopTile: true,
+        fillTop: on ? "#fff3a0" : afford ? "#fff8e4" : "#e6e2d8",
+        fillBot: on ? "#ffe08a" : afford ? "#f3e2bc" : "#c8c4ba",
+        lip: on || afford ? "#a07840" : "#8d8980",
+        active: on,
         action: () => root.BOTG.pick(key),
       });
     });
