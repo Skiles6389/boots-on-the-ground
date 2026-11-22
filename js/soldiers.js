@@ -429,6 +429,13 @@
       rifle(ctx, 11, pal);
       ctx.restore();
     }
+    if (opt.badge) {
+      ctx.fillStyle = "#ffe56a";
+      ctx.fillRect(-8, -25, 16, 2.4);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-8, -25, 16, 2.4);
+    }
     if (opt.flash > 0.03) {
       ctx.save();
       ctx.globalAlpha = Math.min(0.8, opt.flash * 4.5);

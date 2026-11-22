@@ -1170,11 +1170,11 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     if (tower) {
-      const stats = B.statsFor(tower.type, tower.rank);
+      const stats = B.statsFor(tower.type, tower.ranks);
       drawPortrait(ctx, tower.type, rect.x, rect.y, 46, rect.h - 2);
-      const def = B.towers[tower.type];
-      const kit = tower.rank === 0 ? def.name : def.upgrades[tower.rank - 1].name;
-      label(ctx, kit, rect.x + 54, rect.y + 14, 15, INK, null, 0);
+      const used = B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : 0;
+      const kit = (stats.badge || B.towers[tower.type].name) + "  " + used + "/6";
+      label(ctx, kit, rect.x + 54, rect.y + 14, 14, INK, null, 0);
       font(ctx, 12);
       ctx.fillStyle = "#5c4630";
       const line = "Dmg " + stats.damage + "  ·  Reach " + stats.range + "  ·  " + stats.rate.toFixed(1) + "/s";
@@ -1361,87 +1361,42 @@
 
   function drawUpgrade(ctx, state, tower, area) {
     const def = B.towers[tower.type];
-    const maxed = tower.rank >= def.upgrades.length;
-    const up = maxed ? null : def.upgrades[tower.rank];
-    const broke = up && state.cash < up.cost;
+    const paths = def.paths || [];
     const aimNames = { first: "First", last: "Last", tough: "Toughest", near: "Nearest" };
-    const gap = 8;
-    if (area.h >= 130) {
-      const uh = Math.min(86, area.h - 52 - gap);
+    const gap = 4;
+    const sellH = Math.min(32, Math.max(26, area.h * 0.22));
+    const pathH = Math.max(22, (area.h - sellH - gap) / Math.max(1, paths.length) - gap);
+    paths.forEach(function (p, i) {
+      const cur = (tower.ranks && tower.ranks[p.id]) || 0;
+      const next = cur < p.tiers.length ? p.tiers[cur] : null;
+      const chev = !next ? "" : cur >= 3 ? " · 2 chev" : " · 1 chev";
       uiButton(ctx, state, {
-        id: "upgrade",
+        id: "path-" + p.id,
         x: area.x,
-        y: area.y,
+        y: area.y + i * (pathH + gap),
         w: area.w,
-        h: uh,
-        label: maxed ? "Fully kitted" : up.name,
-        sub: maxed ? "Nothing left to buy" : "$" + up.cost,
-        fillTop: maxed ? "#efe6d2" : broke ? "#ffe4dc" : "#c8f8b0",
-        fillBot: maxed ? "#e4d8c0" : broke ? "#f3b8b0" : "#5ad86a",
-        lip: maxed ? "#8a6840" : broke ? "#a04030" : "#0e6a22",
+        h: pathH,
+        label: next ? p.name + " " + (cur + 1) : p.name + " max",
+        sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
+        labelSize: 13,
+        fillTop: next ? "#c8f8b0" : "#efe6d2",
+        fillBot: next ? "#5ad86a" : "#e4d8c0",
+        lip: "#0e6a22",
         ink: INK,
         stroke: false,
-        action: () => root.BOTG.upgrade(),
+        action: () => root.BOTG.upgrade(p.id),
       });
-      const bw = (area.w - gap) / 2;
-      const by = area.y + uh + gap;
-      uiButton(ctx, state, {
-        id: "aim",
-        x: area.x,
-        y: by,
-        w: bw,
-        h: 52,
-        label: "Aim: " + (aimNames[tower.priority] || "First"),
-        labelSize: 14,
-        fillTop: "#fff8e4",
-        fillBot: "#f0ddb0",
-        lip: "#8a6840",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.cycleAim(),
-      });
-      uiButton(ctx, state, {
-        id: "sell",
-        x: area.x + bw + gap,
-        y: by,
-        w: bw,
-        h: 52,
-        label: "Sell +$" + root.BOTG.refund(tower),
-        labelSize: 14,
-        fillTop: "#ffd0c8",
-        fillBot: "#f09890",
-        lip: "#a04030",
-        ink: INK,
-        stroke: false,
-        action: () => root.BOTG.sell(),
-      });
-      return;
-    }
-    const side = Math.min(118, area.w * 0.38);
-    uiButton(ctx, state, {
-      id: "upgrade",
-      x: area.x,
-      y: area.y,
-      w: area.w - side - gap,
-      h: area.h,
-      label: maxed ? "Fully kitted" : up.name,
-      sub: maxed ? "Maxed" : "$" + up.cost,
-      fillTop: maxed ? "#efe6d2" : broke ? "#ffe4dc" : "#c8f8b0",
-      fillBot: maxed ? "#e4d8c0" : broke ? "#f3b8b0" : "#5ad86a",
-      lip: "#0e6a22",
-      ink: INK,
-      stroke: false,
-      action: () => root.BOTG.upgrade(),
     });
-    const bh = (area.h - gap) / 2;
+    const y = area.y + paths.length * (pathH + gap);
+    const half = (area.w - gap) / 2;
     uiButton(ctx, state, {
       id: "aim",
-      x: area.x + area.w - side,
-      y: area.y,
-      w: side,
-      h: bh,
-      label: aimNames[tower.priority] || "First",
-      labelSize: 13,
+      x: area.x,
+      y: y,
+      w: half,
+      h: sellH,
+      label: "Aim: " + (aimNames[tower.priority] || "First"),
+      labelSize: 12,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
@@ -1451,12 +1406,12 @@
     });
     uiButton(ctx, state, {
       id: "sell",
-      x: area.x + area.w - side,
-      y: area.y + bh + gap,
-      w: side,
-      h: bh,
-      label: "+$" + root.BOTG.refund(tower),
-      labelSize: 13,
+      x: area.x + half + gap,
+      y: y,
+      w: half,
+      h: sellH,
+      label: "Sell +$" + root.BOTG.refund(tower),
+      labelSize: 12,
       fillTop: "#ffd0c8",
       fillBot: "#f09890",
       lip: "#a04030",
@@ -1804,10 +1759,10 @@
     } else if (state.screen === "play") {
       const selected = state.towers.find((t) => t.id === state.selectedId);
       if (selected && !state.placing) {
-        drawRange(ctx, selected.x, selected.y, B.statsFor(selected.type, selected.rank).range, true);
+        drawRange(ctx, selected.x, selected.y, B.statsFor(selected.type, selected.ranks).range, true);
       } else if (state.hoverTowerId && !state.placing) {
         const hov = state.towers.find((t) => t.id === state.hoverTowerId);
-        if (hov) drawRange(ctx, hov.x, hov.y, B.statsFor(hov.type, hov.rank).range, true);
+        if (hov) drawRange(ctx, hov.x, hov.y, B.statsFor(hov.type, hov.ranks).range, true);
       }
     }
 
@@ -1841,7 +1796,8 @@
             scale: 1,
             flash: tower.flash,
             spin: tower.spin,
-            rank: tower.rank,
+            rank: Math.min(3, B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : tower.rank || 0),
+            badge: B.statsFor(tower.type, tower.ranks).badge,
           });
         },
       });
