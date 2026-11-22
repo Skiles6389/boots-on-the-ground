@@ -55,7 +55,8 @@ On a keyboard: `1` `2` `3` pick a soldier, `Space` starts the round, `F` changes
 - `js/render.js` — the map, soldiers, and buttons
 - `js/audio.js` — tiny synthesized sounds, no audio files
 - `js/build.js` — the corner label. The Pages workflow rewrites it with the date and commit
-- `assets/sprites/` — Trooper, Gatling, Longshot, Grunt, Scout, and Heavy
+- `js/soldiers.js` — the cartoon soldiers (green kit for us, dark red and black for the Scowl Corps)
+- `assets/sprites/` — the original toy-figure sheets, kept for reference and not drawn in the game
 - `manifest.webmanifest` and `assets/icons/` — so Add to Home Screen opens full screen
 
 The corner label and the `?v=` on each script are the cache buster. Phones request a new file whenever that stamp changes.

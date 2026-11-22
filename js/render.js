@@ -1,39 +1,10 @@
 // Cartoon battlefield renderer for Boots on the Ground.
-// Bright flat colors, thick outlines, and the toy-soldier sprites.
+// Bright flat colors and thick outlines. Soldiers are drawn in soldiers.js.
 (function (root) {
   const B = root.BOTG_BALANCE;
   const FONT = '"Lilita One", "Trebuchet MS", Verdana, sans-serif';
   const GRASS = "#4fb534";
   const INK = "#1a120c";
-
-  const BUILD = root.BOTG_BUILD || "dev";
-  const TOY = {};
-  ["trooper", "gatling", "longshot", "grunt", "scout", "heavy"].forEach((key) => {
-    const img = new Image();
-    img.decoding = "async";
-    img.src = "assets/sprites/" + key + ".png?v=" + encodeURIComponent(BUILD);
-    TOY[key] = img;
-  });
-  root.BOTGSprites = TOY;
-
-  root.BOTGAimOrigin = function (x, y, role) {
-    if (role === "longshot") return { x: x, y: y };
-    return { x: x, y: y - 40 };
-  };
-
-  root.BOTGMuzzle = function (x, y, role, aim) {
-    const o = root.BOTGAimOrigin(x, y, role);
-    const len = role === "longshot" ? 78 : role === "gatling" ? 40 : 34;
-    return { x: o.x + Math.cos(aim) * len, y: o.y + Math.sin(aim) * len };
-  };
-
-  function ready(img) {
-    return !!(img && img.complete && img.naturalWidth);
-  }
-
-  function ratioOf(img, fallback) {
-    return ready(img) ? img.naturalWidth / img.naturalHeight : fallback;
-  }
 
   function font(ctx, size) {
     ctx.font = size + "px " + FONT;
@@ -109,27 +80,6 @@
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-  }
-
-  let scratch = null;
-  function blitFlash(ctx, img, dx, dy, dw, dh, amount) {
-    if (!(amount > 0.04) || !ready(img)) {
-      if (ready(img)) ctx.drawImage(img, dx, dy, dw, dh);
-      return;
-    }
-    const w = Math.max(1, Math.ceil(Math.abs(dw)));
-    const h = Math.max(1, Math.ceil(Math.abs(dh)));
-    if (!scratch) scratch = document.createElement("canvas");
-    if (scratch.width < w) scratch.width = w;
-    if (scratch.height < h) scratch.height = h;
-    const g = scratch.getContext("2d");
-    g.clearRect(0, 0, w, h);
-    g.globalCompositeOperation = "source-over";
-    g.drawImage(img, 0, 0, w, h);
-    g.globalCompositeOperation = "source-atop";
-    g.fillStyle = "rgba(255,255,255," + Math.min(0.92, amount) + ")";
-    g.fillRect(0, 0, w, h);
-    ctx.drawImage(scratch, 0, 0, w, h, dx, dy, dw, dh);
   }
 
   function pointerHot(state, x, y, w, h) {
@@ -344,28 +294,28 @@
     const enemy = key === "grunt" || key === "scout" || key === "heavy";
     const vehicle = key === "jeep" || key === "tank";
     ctx.save();
-    fillRound(ctx, x, y, w, h, 12, enemy || vehicle ? "#4b2d86" : "#2f9a3c");
+    fillRound(ctx, x, y, w, h, 12, enemy || vehicle ? "#4a2040" : "#2f9a3c");
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, w, h, 12);
+    ctx.save();
     roundPath(ctx, x + 1, y + 1, w - 2, h - 2, 11);
     ctx.clip();
-    const img = TOY[key];
-    if (ready(img)) {
-      const sc = Math.min((w * 0.94) / img.naturalWidth, (h * 0.96) / img.naturalHeight);
-      const dw = img.naturalWidth * sc;
-      const dh = img.naturalHeight * sc;
-      ctx.drawImage(img, x + (w - dw) / 2, y + h - dh - 1, dw, dh);
-    } else if (vehicle) {
-      ctx.fillStyle = "#c9b4ff";
-      fillRound(ctx, x + w * 0.18, y + h * 0.38, w * 0.64, h * 0.36, 6, "#c9b4ff");
-    } else {
-      ctx.fillStyle = enemy ? "#c9b4ff" : "#b6f58a";
-      ctx.beginPath();
-      ctx.arc(x + w / 2, y + h * 0.42, Math.min(w, h) * 0.18, 0, Math.PI * 2);
-      ctx.fill();
-      fillRound(ctx, x + w * 0.32, y + h * 0.55, w * 0.36, h * 0.3, 6, enemy ? "#8a6ad4" : "#3cba4a");
+    if (vehicle) {
+      fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" ? "#5a32b0" : "#8a5ad4");
+    } else if (root.BOTGSoldier) {
+      const prone = key === "longshot";
+      const sc = prone
+        ? Math.min((w * 0.9) / 40, (h * 0.7) / 16)
+        : Math.min((w * 0.88) / 28, (h * 0.94) / 40);
+      root.BOTGSoldier.draw(ctx, x + w / 2, y + (prone ? h * 0.58 : h - 2), {
+        team: enemy ? "enemy" : "player",
+        role: key,
+        aim: prone ? -0.08 : 0.12,
+        scale: sc,
+      });
     }
+    ctx.restore();
     ctx.restore();
   }
 
@@ -770,99 +720,38 @@
     ctx.translate(x, y);
     ctx.rotate(aim || 0);
     ctx.globalAlpha = a;
-    const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, 20);
+    const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, 12);
     glow.addColorStop(0, "#ffffff");
     glow.addColorStop(0.35, "#ffe56a");
     glow.addColorStop(0.7, "#ff9a1f");
     glow.addColorStop(1, "rgba(255,120,20,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#fff8d0";
-    star(ctx, 0, 0, 9, 0.2);
+    star(ctx, 0, 0, 6, 0.2);
     ctx.fill();
     ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.4;
     ctx.stroke();
     ctx.fillStyle = "#ffd23a";
-    star(ctx, 8, 0, 5, 0.8);
+    star(ctx, 5, 0, 3.4, 0.8);
     ctx.fill();
     ctx.restore();
-  }
-
-  function drawStanding(ctx, x, y, opt) {
-    const enemy = opt.team === "enemy";
-    const role = opt.role || (enemy ? "grunt" : "trooper");
-    const img = TOY[role];
-    const sc = opt.scale || 1;
-    const baseH = enemy ? 80 : role === "gatling" ? 92 : 88;
-    const dh = baseH * sc;
-    const dw = dh * ratioOf(img, role === "gatling" ? 145 / 280 : role === "scout" ? 113 / 280 : 0.5);
-    const aim = opt.aim || 0;
-    const face = Math.cos(aim) >= 0 ? 1 : -1;
-    const tilt = Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)));
-    const phase = opt.phase || 0;
-    const bob = enemy ? Math.abs(Math.sin(phase)) * 3.6 : Math.sin(phase * 0.7) * 1.1;
-    const sway = enemy ? Math.sin(phase) * 0.06 : 0;
-    const kick = !enemy && opt.flash > 0 ? 2.5 : 0;
-    shadow(ctx, x, y + 2, Math.max(14, dw * 0.38), 7);
-    ctx.save();
-    ctx.translate(x - Math.cos(aim) * kick, y - bob - Math.sin(aim) * kick * 0.3);
-    ctx.rotate(tilt * 0.55 + sway);
-    ctx.scale(face, 1);
-    const flash = enemy ? Math.min(0.95, (opt.flash || 0) * 5.5) : 0;
-    if (ready(img)) blitFlash(ctx, img, -dw / 2, -dh, dw, dh, flash);
-    else drawBlob(ctx, dw, dh, enemy);
-    ctx.restore();
-    if (!enemy && opt.flash > 0) {
-      const tip = root.BOTGMuzzle(x, y, role, aim);
-      drawMuzzle(ctx, tip.x, tip.y, aim, opt.flash);
-    }
-    if (opt.rank) drawRanks(ctx, x, y - dh - 4, opt.rank);
-  }
-
-  function drawBlob(ctx, dw, dh, enemy) {
-    ctx.fillStyle = enemy ? "#6a3ec4" : "#2f9a3c";
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, -dh * 0.78, dh * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    fillRound(ctx, -dw * 0.28, -dh * 0.62, dw * 0.56, dh * 0.42, 8, enemy ? "#5a32a8" : "#3cba4a");
-    ctx.strokeStyle = INK;
-    strokeRound(ctx, -dw * 0.28, -dh * 0.62, dw * 0.56, dh * 0.42, 8);
-  }
-
-  function drawLongshot(ctx, x, y, opt) {
-    const img = TOY.longshot;
-    const sc = opt.scale || 1;
-    const w = 100 * sc;
-    const h = w * (ready(img) ? img.naturalHeight / img.naturalWidth : 79 / 280);
-    const aim = opt.aim || 0;
-    shadow(ctx, x, y + 2, 36 * sc, 11);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(aim);
-    if (ready(img)) blitFlash(ctx, img, -w * 0.34, -h / 2, w, h, 0);
-    else {
-      fillRound(ctx, -20, -8, w * 0.7, 16, 8, "#2f9a3c");
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 3;
-      strokeRound(ctx, -20, -8, w * 0.7, 16, 8);
-    }
-    ctx.restore();
-    if (opt.flash > 0) {
-      const tip = root.BOTGMuzzle(x, y, "longshot", aim);
-      drawMuzzle(ctx, tip.x, tip.y, aim, opt.flash);
-    }
-    if (opt.rank) drawRanks(ctx, x, y - 20, opt.rank);
   }
 
   function drawSoldier(ctx, x, y, opt) {
-    if (opt.team !== "enemy" && opt.role === "longshot") drawLongshot(ctx, x, y, opt);
-    else drawStanding(ctx, x, y, opt);
+    if (root.BOTGSoldier) root.BOTGSoldier.draw(ctx, x, y, opt);
+    const role = opt.role || "trooper";
+    const sc = opt.scale || 1;
+    if (!opt.team || opt.team === "player") {
+      if (opt.flash > 0 && root.BOTGMuzzle) {
+        const tip = root.BOTGMuzzle(x, y, role, opt.aim || 0);
+        drawMuzzle(ctx, tip.x, tip.y, opt.aim || 0, opt.flash);
+      }
+    }
+    if (opt.rank) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
   }
 
   function drawJeep(ctx, e) {
@@ -911,6 +800,7 @@
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.angle);
+    ctx.scale(0.75, 0.75);
     shadow(ctx, 0, 10, 34, 12);
     ctx.fillStyle = "#241433";
     fillRound(ctx, -30, -16, 60, 10, 4, "#241433");
@@ -1119,7 +1009,7 @@
     ctx.setLineDash([5, 4]);
     ctx.lineDashOffset = -state.time * 16;
     ctx.beginPath();
-    ctx.ellipse(x, y + 3, 26, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + 2, 14, 5.5, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -1309,22 +1199,11 @@
       if (wave) {
         let cx = rect.x;
         composition(wave).forEach((c) => {
-          const img = TOY[c.type];
-          let used = 28;
-          if (ready(img) && c.type !== "jeep" && c.type !== "tank") {
-            const dh = 34;
-            const dw = Math.min(28, dh * (img.naturalWidth / img.naturalHeight));
-            const scale = dw / img.naturalWidth;
-            ctx.drawImage(img, cx, rect.y + 20, img.naturalWidth * scale, img.naturalHeight * scale);
-            used = img.naturalWidth * scale;
-          } else {
-            drawPortrait(ctx, c.type, cx, rect.y + 22, 28, 28);
-            used = 28;
-          }
+          drawPortrait(ctx, c.type, cx, rect.y + 18, 30, 32);
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          label(ctx, String(c.count), cx + used + 4, rect.y + 38, 14, INK, false, 0);
-          cx += used + 22 + String(c.count).length * 8;
+          label(ctx, String(c.count), cx + 34, rect.y + 34, 14, INK, false, 0);
+          cx += 52 + String(c.count).length * 8;
         });
       }
       font(ctx, 12);
@@ -1644,8 +1523,8 @@
       label(ctx, "THE GROUND", L.vw / 2, 132, 36, "#ffe56a", "#145214", 8);
       label(ctx, "Maple Grove", L.vw / 2, 168, 16, "#ffffff", INK, 3);
       const feet = Math.min(L.vh * 0.46, 420);
-      drawSoldier(ctx, L.vw * 0.28, feet, { team: "player", role: "trooper", aim: 0.2, phase: state.time * 2, scale: 1.35 });
-      drawSoldier(ctx, L.vw * 0.74, feet, { team: "enemy", role: "grunt", aim: Math.PI - 0.2, phase: state.time * 2 + 1, scale: 1.3 });
+      drawSoldier(ctx, L.vw * 0.28, feet, { team: "player", role: "trooper", aim: 0.35, phase: state.time * 2, scale: 1.7 });
+      drawSoldier(ctx, L.vw * 0.74, feet, { team: "enemy", role: "grunt", aim: Math.PI - 0.35, phase: state.time * 2 + 1, scale: 1.65 });
       const cardY = feet + 24;
       fillRound(ctx, 16, cardY, L.vw - 32, 150, 18, "#fff6df");
       ctx.lineWidth = 4;
@@ -1693,8 +1572,8 @@
       label(ctx, "BOOTS ON", 28, 78, 36, "#ffe56a", "#145214", 7);
       label(ctx, "THE GROUND", 28, 118, 32, "#ffe56a", "#145214", 7);
       label(ctx, "Maple Grove", 28, 156, 16, "#ffffff", INK, 3);
-      drawSoldier(ctx, L.vw * 0.42, L.vh * 0.62, { team: "player", role: "gatling", aim: 0.4, phase: state.time * 2, scale: 1.05 });
-      drawSoldier(ctx, L.vw * 0.58, L.vh * 0.66, { team: "enemy", role: "heavy", aim: Math.PI, phase: state.time * 2, scale: 1 });
+      drawSoldier(ctx, L.vw * 0.42, L.vh * 0.62, { team: "player", role: "gatling", aim: 0.45, phase: state.time * 2, scale: 1.35 });
+      drawSoldier(ctx, L.vw * 0.58, L.vh * 0.66, { team: "enemy", role: "heavy", aim: Math.PI, phase: state.time * 2, scale: 1.3 });
       uiButton(ctx, state, {
         id: "play",
         x: L.vw - 250,
@@ -1945,7 +1824,7 @@
       ctx.strokeStyle = ring;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.ellipse(state.ghost.x, state.ghost.y + 2, 22, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(state.ghost.x, state.ghost.y + 2, 14, 5.5, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.save();
       ctx.globalAlpha = 0.8;
@@ -1960,7 +1839,7 @@
       if (state.placedCount === 0) {
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        label(ctx, "PLANT HERE", state.ghost.x, state.ghost.y - 96, 13, "#fff6c0", INK, 3);
+        label(ctx, "PLANT HERE", state.ghost.x, state.ghost.y - 48, 13, "#fff6c0", INK, 3);
       }
       if (!state.ghost.valid && state.ghost.reason && !(state.toast && state.toast.text === state.ghost.reason)) {
         font(ctx, 12);

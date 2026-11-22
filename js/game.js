@@ -253,9 +253,9 @@
     let bestD = 1e9;
     for (const t of state.towers) {
       const dx = Math.abs(t.x - p.x);
-      if (dx > 42) continue;
-      const top = t.type === "longshot" ? t.y - 28 : t.y - 96;
-      if (p.y > t.y + 20 || p.y < top) continue;
+      if (dx > 26) continue;
+      const top = t.type === "longshot" ? t.y - 16 : t.y - 46;
+      if (p.y > t.y + 12 || p.y < top) continue;
       const d = dx + Math.abs(Math.min(0, p.y - t.y)) * 0.25;
       if (d < bestD) {
         best = t;
