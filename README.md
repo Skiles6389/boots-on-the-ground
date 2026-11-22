@@ -40,7 +40,7 @@ Pick a map, tap a soldier card, then tap open ground. You cannot plant on the la
 
 **Start Round** sends the next wave. You can send the following wave early for a small bonus. Tap a planted soldier to open the chevron paths, change who they shoot, or sell them. The **1× / 2×** button speeds the round up.
 
-On a keyboard: `1` through `8` pick a soldier, `[` and `]` turn the shop page, `Space` starts the round, `F` changes speed, `U` buys the first affordable chevron, `X` sells, `Esc` cancels, `M` mutes. On the map screen, `1` is Maple Grove and `2` is Cactus Junction.
+On a keyboard: `1` through `8` pick a soldier, `Space` starts the round, `F` changes speed, `U` buys the first affordable chevron, `X` sells, `Esc` cancels, `M` mutes. On the map screen, `1` is Maple Grove and `2` is Cactus Junction.
 
 ## What's in the folder
 

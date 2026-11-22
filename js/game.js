@@ -79,7 +79,6 @@
       toast: null,
       selectedId: null,
       placing: null,
-      shopPage: 0,
       ghost: null,
       pointer: { x: 200, y: 160, sx: 200, sy: 320, inside: false, insideMap: false },
       pressedId: null,
@@ -304,13 +303,6 @@
     spawnPoof(x, y + 2, 0.55, false);
     audio.play("place");
     floater(x, y - 26, `-$${def.cost}`, "#fff6d0", 0.7);
-  }
-
-  function shopTurn(dir) {
-    const order = B.towerOrder || Object.keys(B.towers);
-    const pages = Math.max(1, Math.ceil(order.length / 3));
-    state.shopPage = ((state.shopPage || 0) + dir + pages) % pages;
-    audio.play("ui");
   }
 
   function pick(key) {
@@ -1198,8 +1190,6 @@
     else if (e.key === "6") pick("engineer");
     else if (e.key === "7") pick("sky");
     else if (e.key === "8") pick("chopper");
-    else if (e.key === "[") shopTurn(-1);
-    else if (e.key === "]") shopTurn(1);
     else if (e.key === "f" || e.key === "F") toggleSpeed();
     else if (e.key === "Escape") {
       state.placing = null;
@@ -1280,7 +1270,6 @@
     refund,
     sell,
     pick,
-    shopTurn,
     startGame,
     openMaps,
     title,
