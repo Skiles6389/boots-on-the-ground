@@ -180,10 +180,13 @@
       const ink = spec.ink || "#ffffff";
       const stroke = spec.stroke == null ? INK : spec.stroke;
       if (spec.sub) {
-        const ls = fitSize(ctx, spec.label, w - 16, spec.labelSize || 18);
-        label(ctx, spec.label, x + w / 2, py + h / 2 - 9, ls, ink, stroke, Math.max(3, ls * 0.16));
-        const ss = fitSize(ctx, spec.sub, w - 14, spec.subSize || 11);
-        label(ctx, spec.sub, x + w / 2, py + h / 2 + 10, ss, ink, stroke, Math.max(2, ss * 0.14));
+        const ls = fitSize(ctx, spec.label, w - 16, spec.labelSize || 16);
+        const ss = fitSize(ctx, spec.sub, w - 16, spec.subSize || 12);
+        const gap = 3;
+        const block = ls + gap + ss;
+        const top = py + Math.max(3, (h - block) / 2);
+        label(ctx, spec.label, x + w / 2, top + ls * 0.55, ls, ink, stroke, stroke ? Math.max(2, ls * 0.12) : 0);
+        label(ctx, spec.sub, x + w / 2, top + ls + gap + ss * 0.55, ss, ink, stroke, stroke ? Math.max(2, ss * 0.12) : 0);
       } else {
         const ls = fitSize(ctx, spec.label, w - 12, spec.labelSize || 18);
         label(ctx, spec.label, x + w / 2, py + h / 2 + 1, ls, ink, stroke, Math.max(3, ls * 0.16));
@@ -1237,23 +1240,37 @@
     return order.filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
   }
 
-  function metrics(L) {
+  function metrics(L, inspecting) {
     const p = L.panel;
     const inner = { x: p.x + 12, y: p.y + 12, w: p.w - 24, h: p.h - 20 };
-    const infoH = L.portrait
-      ? Math.max(58, Math.min(74, inner.h * 0.26))
-      : Math.max(78, Math.min(96, inner.h * 0.3));
-    const startH = Math.max(50, Math.min(62, inner.h * 0.22));
-    const gap = 8;
-    const speedW = 76;
-    if (L.portrait) {
+    const gap = 6;
+    const speedW = inspecting && L.portrait ? 64 : 72;
+    let infoH;
+    let startH;
+    let compactStart = false;
+    if (L.portrait && inspecting) {
+      // Paths sit under the tower. Start Round shrinks to one line at the bottom.
+      infoH = 46;
+      startH = 36;
+      compactStart = true;
+    } else if (L.portrait) {
+      infoH = Math.max(78, Math.min(88, inner.h * 0.3));
+      startH = Math.max(48, Math.min(56, inner.h * 0.18));
+    } else if (inspecting) {
+      infoH = Math.max(68, Math.min(80, inner.h * 0.24));
+      startH = 46;
+    } else {
+      infoH = Math.max(72, Math.min(90, inner.h * 0.26));
+      startH = Math.max(48, Math.min(56, inner.h * 0.17));
+    }
+    if (L.portrait && !inspecting) {
       const cardsY = inner.y + infoH + gap + startH + gap;
-      const cardsH = Math.max(48, inner.y + inner.h - cardsY);
       return {
         info: { x: inner.x, y: inner.y, w: inner.w, h: infoH },
         start: { x: inner.x, y: inner.y + infoH + gap, w: inner.w - speedW - 8, h: startH },
         speed: { x: inner.x + inner.w - speedW, y: inner.y + infoH + gap, w: speedW, h: startH },
-        cards: { x: inner.x, y: cardsY, w: inner.w, h: cardsH },
+        cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, inner.y + inner.h - cardsY) },
+        compactStart: false,
       };
     }
     const startY = inner.y + inner.h - startH;
@@ -1263,6 +1280,7 @@
       cards: { x: inner.x, y: cardsY, w: inner.w, h: Math.max(48, startY - gap - cardsY) },
       start: { x: inner.x, y: startY, w: inner.w - speedW - 8, h: startH },
       speed: { x: inner.x + inner.w - speedW, y: startY, w: speedW, h: startH },
+      compactStart: compactStart,
     };
   }
 
@@ -1354,11 +1372,18 @@
       drawPortrait(ctx, tower.type, rect.x, rect.y, 46, rect.h - 2);
       const used = B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : 0;
       const kit = (stats.badge || B.towers[tower.type].name) + "  " + used + "/6";
-      label(ctx, kit, rect.x + 54, rect.y + 14, 14, INK, null, 0);
+      const nameY = rect.h < 56 ? rect.y + 13 : rect.y + 16;
+      const statY = rect.h < 56 ? rect.y + 31 : rect.y + 36;
+      label(ctx, kit, rect.x + 54, nameY, rect.h < 56 ? 14 : 15, INK, null, 0);
       font(ctx, 12);
       ctx.fillStyle = "#5c4630";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
       const line = "Dmg " + stats.damage + "  ·  Reach " + stats.range + "  ·  " + stats.rate.toFixed(1) + "/s";
-      drawWrapped(ctx, line + "  ·  " + armorWord(stats.armorBite), rect.x + 54, rect.y + 34, rect.w - 96, 14, 2);
+      const stat = line + "  ·  " + armorWord(stats.armorBite);
+      font(ctx, 12);
+      const statSize = fitSize(ctx, stat, Math.max(80, rect.w - 100), 12);
+      label(ctx, stat, rect.x + 54, statY, statSize, "#5c4630", null, 0);
       uiButton(ctx, state, {
         id: "close",
         x: rect.x + rect.w - 34,
@@ -1391,14 +1416,17 @@
               : "Next: " + wave.name;
       }
       label(ctx, heading, rect.x, rect.y + 12, 15, INK, null, 0);
-      if (wave) {
+      const hintLines = rect.h >= 96 ? 2 : 1;
+      const hintY = rect.y + rect.h - (hintLines === 2 ? 30 : 15);
+      if (wave && hintY >= rect.y + 54) {
         let cx = rect.x;
         composition(wave).forEach((c) => {
-          drawPortrait(ctx, c.type, cx, rect.y + 18, 30, 32);
+          if (cx > rect.x + rect.w - 48) return;
+          drawPortrait(ctx, c.type, cx, rect.y + 20, 28, 30);
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          label(ctx, String(c.count), cx + 34, rect.y + 34, 14, INK, false, 0);
-          cx += 52 + String(c.count).length * 8;
+          label(ctx, String(c.count), cx + 32, rect.y + 35, 13, INK, false, 0);
+          cx += 50 + String(c.count).length * 8;
         });
       }
       font(ctx, 12);
@@ -1413,7 +1441,7 @@
             ? "Tap Start Round. Arrows show the march."
             : wave.hint;
       font(ctx, 12);
-      drawWrapped(ctx, hint, rect.x, rect.y + Math.max(50, rect.h - 30), rect.w, 13, 2);
+      drawWrapped(ctx, hint, rect.x, hintY, rect.w, 13, hintLines);
     }
     ctx.restore();
   }
@@ -1448,13 +1476,14 @@
       y: m.start.y,
       w: m.start.w,
       h: m.start.h,
-      label: startLabel,
-      sub: startSub,
+      label: m.compactStart ? (disabled ? "HOLDING" : early ? "SEND NEXT" : "START ROUND") : startLabel,
+      sub: m.compactStart ? "" : startSub,
+      labelSize: m.compactStart ? 15 : 18,
       fillTop: top,
       fillBot: bot,
       lip: lip,
       disabled: disabled,
-      pulse: state.placedCount > 0 && state.started === 0,
+      pulse: state.placedCount > 0 && state.started === 0 && !m.compactStart,
       action: () => root.BOTG.launch(),
     });
     const spd = B.meta.speeds[state.speedIndex];
@@ -1466,8 +1495,8 @@
       w: m.speed.w,
       h: m.speed.h,
       label: spd + "×",
-      sub: fast ? "Normal" : "Fast",
-      labelSize: 20,
+      sub: m.compactStart ? "" : (fast ? "Normal" : "Fast"),
+      labelSize: m.compactStart ? 16 : 20,
       fillTop: fast ? "#c8f8a4" : "#fff3b0",
       fillBot: fast ? "#46c85a" : "#ffc83a",
       lip: fast ? "#0e6a22" : "#a86a08",
@@ -1519,7 +1548,9 @@
     }
     keys.forEach((key, i) => {
       const def = B.towers[key];
-      const name = def.short || def.name;
+      let name = def.short || def.name;
+      font(ctx, 13);
+      if (ctx.measureText(name).width > w - 16) name = name.split(" ")[0];
       uiButton(ctx, state, {
         id: "buy-" + key,
         x: area.x + arrow + i * (w + gap),
@@ -1543,9 +1574,15 @@
     const def = B.towers[tower.type];
     const paths = def.paths || [];
     const aimNames = { first: "First", last: "Last", tough: "Toughest", near: "Nearest" };
-    const gap = 4;
-    const sellH = Math.min(32, Math.max(26, area.h * 0.22));
-    const pathH = Math.max(22, (area.h - sellH - gap) / Math.max(1, paths.length) - gap);
+    let gap = 6;
+    let sellH = 36;
+    const n = Math.max(1, paths.length);
+    let pathH = (area.h - sellH - gap) / n - gap;
+    if (pathH < 44) {
+      sellH = 32;
+      gap = 5;
+      pathH = (area.h - sellH - gap) / n - gap;
+    }
     paths.forEach(function (p, i) {
       const cur = (tower.ranks && tower.ranks[p.id]) || 0;
       const next = cur < p.tiers.length ? p.tiers[cur] : null;
@@ -1558,7 +1595,8 @@
         h: pathH,
         label: next ? p.name + " " + (cur + 1) : p.name + " max",
         sub: next ? next.name + "  $" + next.cost + chev : "Path finished",
-        labelSize: 13,
+        labelSize: 15,
+        subSize: 12,
         fillTop: next ? "#c8f8b0" : "#efe6d2",
         fillBot: next ? "#5ad86a" : "#e4d8c0",
         lip: "#0e6a22",
@@ -1576,7 +1614,7 @@
       w: half,
       h: sellH,
       label: "Aim: " + (aimNames[tower.priority] || "First"),
-      labelSize: 12,
+      labelSize: 14,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
@@ -1591,7 +1629,7 @@
       w: half,
       h: sellH,
       label: "Sell +$" + root.BOTG.refund(tower),
-      labelSize: 12,
+      labelSize: 14,
       fillTop: "#ffd0c8",
       fillBot: "#f09890",
       lip: "#a04030",
@@ -1620,9 +1658,9 @@
       ? { tl: 16, tr: 16, br: 0, bl: 0 }
       : { tl: 16, tr: 0, br: 0, bl: 16 };
     fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, "#fff6df");
-    const m = metrics(L);
     const selected = state.towers.find((t) => t.id === state.selectedId) || null;
     const show = selected && !state.placing;
+    const m = metrics(L, show);
     drawInfo(ctx, state, m.info, show ? selected : null);
     drawStartButtons(ctx, state, m);
     if (show) drawUpgrade(ctx, state, selected, m.cards);

@@ -15,9 +15,10 @@
     let footerH = 0;
     let sideW = 0;
     if (portrait) {
-      footerH = Math.round(Math.min(304, Math.max(236, vh * 0.34)));
-      const minMap = 200;
-      if (headerH + footerH > vh - minMap) footerH = Math.max(180, vh - headerH - minMap);
+      // Tall enough for three two-line upgrade buttons on a short phone.
+      footerH = Math.round(Math.min(348, Math.max(286, vh * 0.4)));
+      const minMap = 210;
+      if (headerH + footerH > vh - minMap) footerH = Math.max(200, vh - headerH - minMap);
     } else {
       sideW = Math.max(270, Math.min(332, Math.round(vw * 0.36)));
       if (sideW > vw - 220) sideW = Math.max(200, vw - 220);
