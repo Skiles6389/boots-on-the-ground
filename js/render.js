@@ -421,8 +421,23 @@
 
   function paintTerrain(ctx) {
     const desert = B.map.theme === "desert";
-    ctx.fillStyle = desert ? "#e2b15a" : GRASS;
+    const sky = ctx.createLinearGradient(0, 0, 0, 570);
+    if (desert) {
+      sky.addColorStop(0, "#f6d48a");
+      sky.addColorStop(0.45, "#e2b15a");
+      sky.addColorStop(1, "#c4843a");
+    } else {
+      sky.addColorStop(0, "#b6f07a");
+      sky.addColorStop(0.4, "#5ec63a");
+      sky.addColorStop(1, "#2f8a24");
+    }
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, 400, 570);
+    const sun = ctx.createRadialGradient(70, 40, 8, 90, 80, 220);
+    sun.addColorStop(0, "rgba(255,255,220,0.35)");
+    sun.addColorStop(1, "rgba(255,255,220,0)");
+    ctx.fillStyle = sun;
+    ctx.fillRect(0, 0, 400, 280);
     const blobs = desert
       ? [
           [70, 180, 130, 70, "#efc56e"],
@@ -490,6 +505,24 @@
       strokePath(ctx, 16, "rgba(255, 250, 230, 0.75)");
     }
 
+    ctx.save();
+    ctx.translate(0, -3);
+    strokePath(ctx, 18, desert ? "rgba(255,236,196,0.35)" : "rgba(255,250,230,0.4)");
+    ctx.restore();
+    ctx.save();
+    ctx.translate(0, 2);
+    strokePath(ctx, 8, "rgba(40, 24, 12, 0.28)");
+    ctx.restore();
+
+    const specks = mulberry32(desert ? 7 : 3);
+    for (let i = 0; i < 420; i++) {
+      const x = specks() * 400;
+      const y = 50 + specks() * 510;
+      if (B.distToRoute(x, y) < 28) continue;
+      ctx.fillStyle = desert ? "rgba(120,70,20," + (0.08 + specks() * 0.12) + ")" : "rgba(10,50,10," + (0.06 + specks() * 0.12) + ")";
+      ctx.fillRect(x, y, 2, 2);
+    }
+
     ctx.fillStyle = "rgba(120, 78, 36, 0.35)";
     for (let d = 0; d < B.route.total; d += 9) {
       const p = B.pointAt(d);
@@ -510,6 +543,67 @@
 
     ctx.fillStyle = "rgba(90, 40, 120, 0.0)";
     drawBannerPost(ctx, 26, 96);
+    drawCamp(ctx);
+  }
+
+  function drawCamp(ctx) {
+    const spots = [
+      { kind: "tent", x: 168, y: 70 },
+      { kind: "flag", x: 250, y: 78 },
+      { kind: "jeep", x: 330, y: 96 },
+      { kind: "wall", x: 40, y: 150 },
+    ];
+    spots.forEach((s) => {
+      if (B.distToRoute(s.x, s.y) < 36) return;
+      if (s.kind === "tent") {
+        shadow(ctx, s.x, s.y + 8, 22, 6);
+        ctx.fillStyle = "#f4e2b0";
+        ctx.beginPath();
+        ctx.moveTo(s.x - 18, s.y + 8);
+        ctx.lineTo(s.x, s.y - 16);
+        ctx.lineTo(s.x + 18, s.y + 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = INK;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath();
+        ctx.moveTo(s.x - 8, s.y + 2);
+        ctx.lineTo(s.x, s.y - 12);
+        ctx.lineTo(s.x + 2, s.y + 4);
+        ctx.fill();
+      } else if (s.kind === "flag") {
+        fillRound(ctx, s.x, s.y, 3, 28, 1, "#6a4a28");
+        ctx.fillStyle = "#e23a3a";
+        ctx.beginPath();
+        ctx.moveTo(s.x + 3, s.y + 2);
+        ctx.lineTo(s.x + 18, s.y + 7);
+        ctx.lineTo(s.x + 3, s.y + 12);
+        ctx.fill();
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else if (s.kind === "jeep") {
+        shadow(ctx, s.x, s.y + 6, 16, 5);
+        fillRound(ctx, s.x - 14, s.y - 6, 28, 12, 4, "#3f8f4a");
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 2;
+        strokeRound(ctx, s.x - 14, s.y - 6, 28, 12, 4);
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillRect(s.x - 12, s.y - 5, 20, 3);
+      } else if (s.kind === "wall") {
+        shadow(ctx, s.x + 16, s.y + 4, 20, 5);
+        for (let i = 0; i < 4; i++) pieceSafe(ctx, s.x + i * 9, s.y - (i % 2) * 3, 10, 6);
+      }
+    });
+  }
+
+  function pieceSafe(ctx, x, y, w, h) {
+    fillRound(ctx, x, y, w, h, 2, "#e7d3a4");
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    strokeRound(ctx, x, y, w, h, 2);
   }
 
   function drawTuft(ctx, x, y, h) {
@@ -1360,6 +1454,8 @@
     ctx.fillRect(0, 0, L.vw, h);
     ctx.fillStyle = desert ? "#5a3010" : "#08381a";
     ctx.fillRect(0, h - 4, L.vw, 4);
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillRect(0, 0, L.vw, 6);
     ctx.fillStyle = "#ffe56a";
     ctx.fillRect(0, h - 7, L.vw, 3);
 
@@ -2378,6 +2474,7 @@
             flash: tower.flash,
             spin: tower.spin,
             rank: Math.min(3, B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : tower.rank || 0),
+            ranks: tower.ranks,
             badge: B.statsFor(tower.type, tower.ranks).badge,
             idle: !tower.targetId,
           });
@@ -2514,6 +2611,18 @@
       ctx.scale(L.scale, L.scale);
       ctx.translate(0, -L.worldTop);
       drawWorld(ctx, state);
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
+      ctx.clip();
+      const cx = L.mapBox.x + L.mapBox.w / 2;
+      const cy = L.mapBox.y + L.mapBox.h / 2;
+      const vg = ctx.createRadialGradient(cx, cy, L.mapBox.w * 0.2, cx, cy, L.mapBox.w * 0.75);
+      vg.addColorStop(0, "rgba(0,0,0,0)");
+      vg.addColorStop(1, "rgba(10, 28, 8, 0.28)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
       ctx.restore();
 
       if (state.screen === "play") {

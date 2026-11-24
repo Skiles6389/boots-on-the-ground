@@ -83,9 +83,16 @@
       ctx.fillRect(x, y + h * 0.52, w, h * 0.55);
       ctx.restore();
     }
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.6;
     ctx.strokeStyle = INK;
     ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.15, y + h * 0.22, w * 0.28, h * 0.16, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function disk(ctx, x, y, r, fill, shade) {
@@ -102,9 +109,13 @@
       ctx.fill();
       ctx.restore();
     }
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.6;
     ctx.strokeStyle = INK;
     ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(x - r * 0.28, y - r * 0.32, r * 0.36, r * 0.2, -0.4, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function limb(ctx, x1, y1, x2, y2, color, width) {
@@ -253,9 +264,12 @@
   }
 
   function groundShadow(ctx, rx, ry) {
-    ctx.fillStyle = "rgba(20, 50, 16, 0.28)";
+    const g = ctx.createRadialGradient(1, 2, 1, 1, 3, Math.max(rx, 4));
+    g.addColorStop(0, "rgba(16, 28, 12, 0.38)");
+    g.addColorStop(1, "rgba(16, 28, 12, 0)");
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(1, 2, rx, ry, 0, 0, Math.PI * 2);
+    ctx.ellipse(1, 3, rx * 1.25, ry * 1.35, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -322,27 +336,75 @@
     ctx.restore();
   }
 
-  function tierKit(ctx, role, rank) {
-    if (!rank) return;
-    piece(ctx, -10, -14, 4.2, 5, 1.1, "#e0a04a", "#a87430");
-    if (rank >= 2) {
-      ctx.fillStyle = "#ffe56a";
-      ctx.fillRect(-5, -40, 10, 1.8);
-      if (role === "gatling" || role === "mortar" || role === "tread") {
-        disk(ctx, 12, role === "mortar" ? -24 : -16, 2.6, "#dfe6ee", null);
-      }
-      if (role === "engineer") piece(ctx, 8, -2, 9, 3.4, 1, "#e6c98a", "#b8924a");
-      if (role === "longshot") piece(ctx, 8, -6, 5, 2.2, 0.6, "#2a3038", null);
-    }
-    if (rank >= 3) {
-      ctx.fillStyle = "#ffe56a";
-      ctx.strokeStyle = "#1a120c";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(0, -42, 2.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      if (role === "engineer" || role === "trooper") piece(ctx, -14, 0, 8, 3.2, 1, "#d7b56a", "#a8843e");
+  function pip(ctx, x, y, r, color) {
+    disk(ctx, x, y, r, color, "#00000066");
+  }
+
+  function gear(ctx, role, ranks) {
+    const g = function (id) { return (ranks && ranks[id]) || 0; };
+    if (role === "trooper") {
+      const m = g("marksman");
+      if (m >= 1) piece(ctx, 2, -23, 7, 2, 0.5, "#1c242c", null);
+      if (m >= 2) piece(ctx, 1, -25, 10, 2.2, 0.6, "#10161c", null);
+      if (m >= 3) { ctx.fillStyle = "#ffe56a"; ctx.fillRect(-5, -40, 10, 2); }
+      if (m >= 4) pip(ctx, 0, -43, 2.3, "#ffe56a");
+      const f = g("fireteam");
+      for (let i = 0; i < Math.min(4, f); i++) pip(ctx, -7 + i * 3.4, -6, 1.5, i === 3 ? "#ffd23a" : "#3aa0e8");
+      const n = g("grenadier");
+      if (n >= 1) pip(ctx, -10, -16, 2.1, "#3c9a32");
+      if (n >= 2) pip(ctx, -10, -11, 2.1, "#3c9a32");
+      if (n >= 3) piece(ctx, -12, -22, 3, 14, 1, "#6a3a18", null);
+      if (n >= 4) pip(ctx, 9, -18, 2.5, "#e23a2a");
+    } else if (role === "longshot") {
+      if (g("deadeye") >= 1) piece(ctx, 10, -3, 6, 1.6, 0.4, "#d0d6de", null);
+      if (g("deadeye") >= 3) piece(ctx, 8, -5, 8, 1.8, 0.4, "#ffe56a", null);
+      if (g("spotter") >= 1) pip(ctx, -6, -4, 2, "#3aa0e8");
+      if (g("spotter") >= 3) pip(ctx, -6, -8, 1.6, "#ffd23a");
+      if (g("antimateriel") >= 1) piece(ctx, 6, 1.2, 12, 2.4, 0.6, "#2a3038", null);
+      if (g("antimateriel") >= 4) pip(ctx, 16, 2, 2, "#ff5a3a");
+    } else if (role === "gatling") {
+      if (g("belt") >= 1) piece(ctx, -8, -8, 5, 7, 1, "#c9843a", "#8a5a28");
+      if (g("belt") >= 2) pip(ctx, 16, -18, 2.2, "#dfe6ee");
+      if (g("belt") >= 4) pip(ctx, 18, -14, 2.2, "#dfe6ee");
+      if (g("suppress") >= 1) piece(ctx, -12, 1, 8, 3, 1, "#d7b56a", null);
+      if (g("suppress") >= 4) piece(ctx, 6, 2, 10, 3, 1, "#e6c98a", null);
+      if (g("tracer") >= 1) { ctx.fillStyle = "#ff5a2a"; ctx.fillRect(8, -18, 6, 1.2); }
+      if (g("tracer") >= 3) piece(ctx, 6, -20, 10, 1.6, 0.4, "#222", null);
+    } else if (role === "mortar") {
+      if (g("heavy") >= 1) pip(ctx, 16, -18, 2.4, "#c8ccd4");
+      if (g("heavy") >= 3) pip(ctx, 18, -22, 3, "#ffd23a");
+      if (g("battery") >= 1) piece(ctx, -12, -18, 4, 8, 1, "#6a7278", null);
+      if (g("battery") >= 2) piece(ctx, -16, -16, 4, 8, 1, "#8a9298", null);
+      if (g("smoke") >= 1) pip(ctx, -8, -8, 2.2, "#d8d8d8");
+      if (g("smoke") >= 4) pip(ctx, -4, -6, 2.4, "#333");
+    } else if (role === "tread") {
+      if (g("bore") >= 1) piece(ctx, 8, -10, 8, 3, 1, "#2a3038", null);
+      if (g("bore") >= 3) piece(ctx, 10, -13, 8, 2.4, 0.8, "#3a424a", null);
+      if (g("patrol") >= 2) piece(ctx, -16, -2, 6, 4, 1, "#8a9298", null);
+      if (g("patrol") >= 4) pip(ctx, 0, -20, 2.2, "#ffe56a");
+      if (g("coax") >= 1) piece(ctx, -4, -12, 6, 1.6, 0.4, "#222", null);
+      if (g("coax") >= 3) pip(ctx, 12, -16, 1.8, "#7ec8ff");
+    } else if (role === "engineer") {
+      const bags = Math.min(4, g("fort"));
+      for (let i = 0; i < bags; i++) piece(ctx, -12 + (i % 2) * 8, -2 - Math.floor(i / 2) * 3, 7, 2.6, 1, i % 2 ? "#e6c98a" : "#d7b56a", null);
+      if (g("quarter") >= 1) piece(ctx, 8, -12, 6, 5, 1, "#c9843a", "#8a5a28");
+      if (g("quarter") >= 3) piece(ctx, 10, -18, 5, 5, 1, "#e0a04a", null);
+      if (g("radar") >= 1) pip(ctx, 0, -44, 2.4, "#7ec8ff");
+      if (g("radar") >= 3) piece(ctx, -2, -48, 8, 1.4, 0.4, "#d0d6de", null);
+    } else if (role === "sky") {
+      if (g("flak") >= 1) piece(ctx, 8, -28, 4, 6, 1, "#6a7278", null);
+      if (g("flak") >= 3) piece(ctx, 12, -30, 4, 8, 1, "#8a9298", null);
+      if (g("missile") >= 1) piece(ctx, -8, -22, 3, 7, 1,2, "#e23a2a", null);
+      if (g("missile") >= 2) piece(ctx, -12, -20, 3, 7, 1.2, "#ffd23a", null);
+      if (g("dual") >= 2) { ctx.fillStyle = "#ffe56a"; ctx.fillRect(-4, -40, 8, 1.8); }
+      if (g("dual") >= 4) pip(ctx, 0, -44, 2.2, "#ffe56a");
+    } else if (role === "chopper") {
+      if (g("gunship") >= 2) piece(ctx, 4, -14, 6, 2, 0.6, "#e23a2a", null);
+      if (g("gunship") >= 4) pip(ctx, -10, -18, 2, "#7ec8ff");
+      if (g("strike") >= 1) pip(ctx, 8, -10, 2, "#333");
+      if (g("strike") >= 3) pip(ctx, 11, -8, 2.2, "#ff5a2a");
+      if (g("recon") >= 1) pip(ctx, -2, -22, 1.8, "#ffe56a");
+      if (g("recon") >= 4) piece(ctx, -6, -8, 5, 3, 0.8, "#c9843a", null);
     }
   }
 
@@ -356,9 +418,10 @@
     const sc = opt.scale || 1;
     const ph = opt.phase || 0;
     const bob = enemy ? Math.abs(Math.sin(ph)) * 2.6 * sc : Math.sin(ph * 0.55) * 1.3 * sc;
-    const breath = !enemy && opt.idle ? 1 + Math.sin(ph * 0.7) * 0.04 : 1;
-    const look = !enemy && opt.idle ? Math.sin(ph * 0.22) * 0.05 : 0;
-    const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)))));
+    const breath = !enemy ? 1 + Math.sin(ph * 0.8) * 0.06 : 1;
+    const look = !enemy && opt.idle ? Math.sin(ph * 0.28) * 0.14 : 0;
+    const kick = opt.idle ? Math.max(0, Math.sin(ph * 1.4)) * 0.22 : 0;
+    const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim))))) - kick;
 
     if (!enemy && role === "longshot") {
       ctx.save();
@@ -366,7 +429,7 @@
       ctx.rotate(aim);
       ctx.scale(sc, sc);
       prone(ctx, pal);
-      if ((opt.rank || 0) >= 2) piece(ctx, 14, -4, 4, 2, 0.5, "#dfe6ee", null);
+      gear(ctx, "longshot", opt.ranks);
       ctx.restore();
       return;
     }
@@ -473,7 +536,7 @@
       rifle(ctx, 11, pal);
       ctx.restore();
     }
-    tierKit(ctx, role, opt.rank || 0, pal);
+    gear(ctx, role, opt.ranks);
     if (opt.badge) {
       ctx.fillStyle = "#ffe56a";
       ctx.fillRect(-8, -25, 16, 2.4);
