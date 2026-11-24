@@ -95,7 +95,7 @@
       nextId: 1,
       placedCount: 0,
       laneCursor: 0,
-      popped: 0,
+      takedowns: 0,
       leaked: 0,
       coach: false,
       suppressGhost: false,
@@ -519,7 +519,7 @@
     enemy.dying = 0.42;
     enemy.hp = 0;
     state.cash += enemy.cash;
-    state.popped = (state.popped || 0) + 1;
+    state.takedowns = (state.takedowns || 0) + 1;
     const boss = !!B.enemies[enemy.type].boss;
     const scale = boss ? 2.15 : enemy.type === "jeep" ? 1.35 : enemy.type === "heavy" ? 1.15 : 1;
     spawnPoof(enemy.x, enemy.y, scale, true);
@@ -1131,17 +1131,22 @@
   function stampResult(won) {
     remember(won);
     const stars = root.BOTGSave ? root.BOTGSave.stars(state.mapId) : (won ? 1 : 0);
+    const diff = state.difficulty || "medium";
+    const medals = won ? ((B.medalPay && B.medalPay[diff]) || 20) : 0;
+    if (won && medals && root.BOTGSave) root.BOTGSave.award(medals);
     state.result = {
       won: !!won,
       map: (B.map && B.map.name) || "The lane",
-      diff: state.difficulty || "medium",
+      diff: diff,
       round: won ? B.waves.length : Math.max(1, state.started),
       rounds: B.waves.length,
       lives: state.lives,
-      popped: state.popped || 0,
+      takedowns: state.takedowns || 0,
       leaked: state.leaked || 0,
       towers: state.towers.length,
       stars: stars,
+      medals: medals,
+      purse: root.BOTGSave ? root.BOTGSave.data.medals : medals,
     };
   }
 
@@ -1370,6 +1375,10 @@
       openMaps();
       return;
     }
+    if (state.screen === "armory" && e.key === "Escape") {
+      leaveArmory();
+      return;
+    }
     if (state.screen === "maps") {
       if (e.key === "1" || e.key === "Enter") {
         e.preventDefault();
@@ -1464,6 +1473,37 @@
     resize();
   }
 
+  function openArmory() {
+    state.armoryBack = state.screen === "title" ? "title" : "maps";
+    state.screen = "armory";
+    announce("The armory. Medals buy a new kit.");
+    resize();
+  }
+
+  function leaveArmory() {
+    if (state.armoryBack === "title") title();
+    else openMaps();
+  }
+
+  function buyKit(id) {
+    const kit = (B.kits || []).filter(function (k) { return k.id === id; })[0];
+    const save = root.BOTGSave;
+    if (!kit || !save) return;
+    if (save.owns(id)) {
+      save.equip(id);
+      audio.play("ui");
+      return;
+    }
+    if (!save.spend(kit.cost)) {
+      state.toast = { text: "Need " + kit.cost + " medals.", t: 0, life: 1.6 };
+      audio.play("deny");
+      return;
+    }
+    save.own(id);
+    save.equip(id);
+    audio.play("upgrade");
+  }
+
   function title() {
     const debug = state.debug;
     const motion = state.reducedMotion;
@@ -1507,6 +1547,9 @@
     pick,
     startGame,
     openMaps,
+    openArmory,
+    leaveArmory,
+    buyKit,
     title,
     cycleAim,
     setDifficulty,

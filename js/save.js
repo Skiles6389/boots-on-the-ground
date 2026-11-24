@@ -16,7 +16,10 @@
     load() {
       try {
         const raw = root.localStorage.getItem(KEY);
-        if (!raw) return;
+        if (!raw) {
+          this.ensure();
+          return;
+        }
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") this.data = parsed;
       } catch (err) {
@@ -25,6 +28,14 @@
       if (!this.data.maps) this.data.maps = {};
       if (!this.data.difficulty) this.data.difficulty = "medium";
       if (this.data.tutorial == null) this.data.tutorial = false;
+      this.ensure();
+    },
+
+    ensure() {
+      if (typeof this.data.medals !== "number" || this.data.medals < 0) this.data.medals = 0;
+      if (!Array.isArray(this.data.kits)) this.data.kits = ["field"];
+      if (this.data.kits.indexOf("field") < 0) this.data.kits.push("field");
+      if (!this.data.skin) this.data.skin = "field";
     },
 
     save() {
@@ -70,6 +81,44 @@
         const best = maps[id] && maps[id].best;
         return best && ((best.easy || 0) + (best.medium || 0) + (best.hard || 0) > 0);
       });
+    },
+
+    award(n) {
+      this.ensure();
+      this.data.medals += Math.max(0, n | 0);
+      this.save();
+      return this.data.medals;
+    },
+
+    spend(n) {
+      this.ensure();
+      const cost = Math.max(0, n | 0);
+      if (this.data.medals < cost) return false;
+      this.data.medals -= cost;
+      this.save();
+      return true;
+    },
+
+    owns(id) {
+      this.ensure();
+      return this.data.kits.indexOf(id) >= 0;
+    },
+
+    own(id) {
+      this.ensure();
+      if (this.data.kits.indexOf(id) < 0) this.data.kits.push(id);
+      this.save();
+    },
+
+    equip(id) {
+      if (!this.owns(id)) return;
+      this.data.skin = id;
+      this.save();
+    },
+
+    skin() {
+      this.ensure();
+      return this.data.skin || "field";
     },
 
     wonAny(mapId) {

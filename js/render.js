@@ -2205,7 +2205,7 @@
       ctx.textBaseline = "middle";
       label(ctx, "BOOTS ON", L.vw / 2, 86, 40, "#ffe56a", "#145214", 8);
       label(ctx, "THE GROUND", L.vw / 2, 132, 36, "#ffe56a", "#145214", 8);
-      label(ctx, "Thirty rounds. Two maps.", L.vw / 2, 168, 16, "#ffffff", INK, 3);
+      label(ctx, "Thirty rounds. Three maps.", L.vw / 2, 168, 16, "#ffffff", INK, 3);
       const feet = Math.min(L.vh * 0.46, 420);
       drawSoldier(ctx, L.vw * 0.28, feet, { team: "player", role: "trooper", aim: 0.35, phase: state.time * 2, scale: 1.7 });
       drawSoldier(ctx, L.vw * 0.74, feet, { team: "enemy", role: "grunt", aim: Math.PI - 0.35, phase: state.time * 2 + 1, scale: 1.65 });
@@ -2224,24 +2224,39 @@
       uiButton(ctx, state, {
         id: "play",
         x: L.vw / 2 - 120,
-        y: cardY + 168,
+        y: cardY + 158,
         w: 240,
-        h: 58,
+        h: 48,
         label: "PLAY",
-        labelSize: 26,
+        labelSize: 24,
         fillTop: "#b6f56a",
         fillBot: "#2fbe3c",
         lip: "#0e6a22",
         pulse: true,
         action: () => root.BOTG.openMaps(),
       });
-      drawAudioRow(ctx, state, 16, Math.min(cardY + 236, L.vh - 46), L.vw - 32, 36);
+      uiButton(ctx, state, {
+        id: "armory",
+        x: L.vw / 2 - 100,
+        y: cardY + 214,
+        w: 200,
+        h: 44,
+        label: "Armory",
+        labelSize: 16,
+        fillTop: "#ffe08a",
+        fillBot: "#f0b429",
+        lip: "#a86a08",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.openArmory(),
+      });
+      drawAudioRow(ctx, state, 16, Math.min(cardY + 268, L.vh - 46), L.vw - 32, 36);
     } else {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       label(ctx, "BOOTS ON", 28, 78, 36, "#ffe56a", "#145214", 7);
       label(ctx, "THE GROUND", 28, 118, 32, "#ffe56a", "#145214", 7);
-      label(ctx, "Thirty rounds. Two maps.", 28, 156, 16, "#ffffff", INK, 3);
+      label(ctx, "Thirty rounds. Three maps.", 28, 156, 16, "#ffffff", INK, 3);
       drawSoldier(ctx, L.vw * 0.42, L.vh * 0.62, { team: "player", role: "gatling", aim: 0.45, phase: state.time * 2, scale: 1.35 });
       drawSoldier(ctx, L.vw * 0.58, L.vh * 0.66, { team: "enemy", role: "heavy", aim: Math.PI, phase: state.time * 2, scale: 1.3 });
       uiButton(ctx, state, {
@@ -2262,7 +2277,22 @@
       ctx.fillStyle = INK;
       ctx.textAlign = "left";
       ["Plant on the grass.", "Longshots crack armor.", "Gatlings own a corner."].forEach((t, i) => {
-        ctx.fillText(t, L.vw - 250, L.vh * 0.38 + 88 + i * 22);
+        ctx.fillText(t, L.vw - 250, L.vh * 0.38 + 78 + i * 18);
+      });
+      uiButton(ctx, state, {
+        id: "armory",
+        x: L.vw - 250,
+        y: L.vh - 108,
+        w: 210,
+        h: 44,
+        label: "Armory",
+        labelSize: 16,
+        fillTop: "#ffe08a",
+        fillBot: "#f0b429",
+        lip: "#a86a08",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.openArmory(),
       });
       drawAudioRow(ctx, state, 16, L.vh - 48, Math.min(360, L.vw - 32), 36);
     }
@@ -2390,8 +2420,10 @@
     });
     const audioH = 36;
     const audioY = L.vh - audioH - 8;
+    const armoryH = 44;
+    const armoryY = audioY - armoryH - 6;
     const cardsTop = diffY + diffH + 8;
-    const cardsBottom = audioY - 8;
+    const cardsBottom = armoryY - 8;
     const maps = [B.maps.maple, B.maps.cactus, B.maps.frost];
     function card(map, x, y, w, h) {
       const locked = (map.id === "cactus" && !openCactus) || (map.id === "frost" && !openFrost);
@@ -2443,6 +2475,22 @@
       const h = cardsBottom - cardsTop;
       maps.forEach((map, i) => card(map, 14 + i * (w + gap), cardsTop, w, h));
     }
+    const purse = Save ? Save.data.medals || 0 : 0;
+    uiButton(ctx, state, {
+      id: "armory",
+      x: 10,
+      y: armoryY,
+      w: L.vw - 20,
+      h: armoryH,
+      label: "Armory · " + purse + (purse === 1 ? " medal" : " medals"),
+      labelSize: 16,
+      fillTop: "#ffe08a",
+      fillBot: "#f0b429",
+      lip: "#a86a08",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.openArmory(),
+    });
     uiButton(ctx, state, {
       id: "maps-back",
       x: 10,
@@ -2533,13 +2581,23 @@
       round: Math.max(1, state.started),
       rounds: B.waves.length,
       lives: state.lives,
-      popped: state.popped || 0,
+      takedowns: state.takedowns || 0,
       leaked: state.leaked || 0,
       towers: state.towers.length,
       stars: 0,
+      medals: 0,
+      purse: 0,
     };
     const w = Math.min(380, L.vw - 20);
-    const h = Math.min(332, L.vh - 16);
+    const cellH = 38;
+    const statsTop = 82;
+    const statsEnd = statsTop + cellH * 2 + 6;
+    const medalH = win ? 32 : 0;
+    const retryH = 44;
+    const mapsH = 40;
+    const retryTop = statsEnd + 12 + medalH + (win ? 10 : 0);
+    const mapsTop = retryTop + retryH + 12;
+    const h = Math.min(L.vh - 16, mapsTop + mapsH + 14);
     const x = (L.vw - w) / 2;
     const y = (L.vh - h) / 2;
     fillRound(ctx, x, y + 5, w, h, 18, "rgba(0,0,0,0.25)");
@@ -2565,33 +2623,41 @@
     ctx.fillText(diffName + " · " + r.map, x + w / 2, y + 70);
     const stats = [
       ["Round", r.round + "/" + r.rounds],
-      ["Popped", String(r.popped)],
+      ["Takedowns", String(r.takedowns || 0)],
       ["Lives", String(r.lives)],
       ["Leaked", String(r.leaked)],
     ];
     const gap = 6;
     const cellW = (w - 28 - gap) / 2;
-    const cellH = 36;
     stats.forEach((pair, i) => {
       const cx = x + 14 + (i % 2) * (cellW + gap);
-      const cy = y + 84 + Math.floor(i / 2) * (cellH + gap);
+      const cy = y + statsTop + Math.floor(i / 2) * (cellH + gap);
       fillRound(ctx, cx, cy, cellW, cellH, 10, "#fff");
       ctx.lineWidth = 2;
       ctx.strokeStyle = INK;
       strokeRound(ctx, cx, cy, cellW, cellH, 10);
       ctx.textAlign = "center";
-      label(ctx, pair[1], cx + cellW / 2, cy + 13, 16, INK, null, 0);
+      label(ctx, pair[1], cx + cellW / 2, cy + 14, 16, INK, null, 0);
       font(ctx, 11);
       ctx.fillStyle = "#8a6840";
-      ctx.fillText(pair[0], cx + cellW / 2, cy + 27);
+      ctx.fillText(pair[0], cx + cellW / 2, cy + 28);
     });
-    const btnW = Math.min(200, w - 36);
+    if (win) {
+      const my = y + statsEnd + 10;
+      fillRound(ctx, x + 14, my, w - 28, medalH, 10, "#ffe9a0");
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, x + 14, my, w - 28, medalH, 10);
+      ctx.textAlign = "center";
+      label(ctx, "+" + (r.medals || 0) + " medals  ·  purse " + (r.purse || 0), x + w / 2, my + medalH / 2, 14, "#3a2208", null, 0);
+    }
+    const btnW = Math.min(220, w - 36);
     uiButton(ctx, state, {
       id: "retry",
       x: x + (w - btnW) / 2,
-      y: y + h - 96,
+      y: y + retryTop,
       w: btnW,
-      h: 44,
+      h: retryH,
       label: win ? "Defend again" : "Try again",
       labelSize: 16,
       fillTop: "#b6f56a",
@@ -2601,12 +2667,12 @@
     });
     uiButton(ctx, state, {
       id: "titlescreen",
-      x: x + (w - 140) / 2,
-      y: y + h - 50,
-      w: 140,
-      h: 40,
+      x: x + (w - 160) / 2,
+      y: y + mapsTop,
+      w: 160,
+      h: mapsH,
       label: "Maps",
-      labelSize: 15,
+      labelSize: 16,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
@@ -2614,6 +2680,90 @@
       stroke: false,
       action: () => root.BOTG.openMaps(),
     });
+  }
+
+  function drawArmory(ctx, state, L) {
+    const g = ctx.createLinearGradient(0, 0, 0, L.vh);
+    g.addColorStop(0, "#8fd8ff");
+    g.addColorStop(0.35, "#d7f4ff");
+    g.addColorStop(1, "#2f9a2a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, L.vw, L.vh);
+    const Save = root.BOTGSave;
+    const purse = Save ? Save.data.medals || 0 : 0;
+    const wearing = Save ? Save.skin() : "field";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    label(ctx, "ARMORY", L.vw / 2, L.portrait ? 28 : 20, L.portrait ? 28 : 22, "#ffe56a", "#145214", 6);
+    label(ctx, purse + (purse === 1 ? " medal" : " medals"), L.vw / 2, L.portrait ? 56 : 44, 16, "#3a2208", "#fff6d0", 3);
+    const kits = B.kits || [];
+    const top = L.portrait ? 78 : 62;
+    const backH = 44;
+    const backY = L.vh - backH - 8;
+    const gap = 6;
+    const rowH = Math.max(48, Math.floor((backY - 8 - top - gap * (kits.length - 1)) / Math.max(1, kits.length)));
+    kits.forEach((kit, i) => {
+      const y = top + i * (rowH + gap);
+      const owned = Save ? Save.owns(kit.id) : kit.cost === 0;
+      const on = wearing === kit.id;
+      fillRound(ctx, 12, y, L.vw - 24, rowH, 14, on ? "#fff4c8" : "#fff6df");
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, 12, y, L.vw - 24, rowH, 14);
+      const preview = Math.min(rowH - 8, 46);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(14, y + 2, preview + 16, rowH - 4);
+      ctx.clip();
+      drawSoldier(ctx, 30, y + rowH - 4, { team: "player", role: "trooper", aim: 0.15, phase: state.time * 2 + i, scale: Math.min(1, preview / 40), skin: kit.id });
+      ctx.restore();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const textX = 36 + preview;
+      label(ctx, kit.name, textX, y + rowH * 0.36, rowH < 64 ? 14 : 16, INK, null, 0);
+      font(ctx, 12);
+      ctx.fillStyle = "#5c4630";
+      const bw = 88;
+      const note = on ? "Wearing this kit" : owned ? "Owned" : kit.blurb;
+      const maxW = L.vw - 12 - bw - 20 - textX;
+      let shown = note;
+      while (shown.length > 4 && ctx.measureText(shown).width > maxW) shown = shown.slice(0, -2);
+      if (shown !== note) shown = shown.replace(/\s+\S*$/, "") + "…";
+      ctx.fillText(shown, textX, y + rowH * 0.7);
+      const bh = Math.min(44, rowH - 8);
+      uiButton(ctx, state, {
+        id: "kit-" + kit.id,
+        x: L.vw - 12 - bw - 8,
+        y: y + (rowH - bh) / 2,
+        w: bw,
+        h: bh,
+        label: on ? "Wearing" : owned ? "Wear" : ("Buy " + kit.cost),
+        labelSize: 14,
+        fillTop: on ? "#d9d3c8" : owned ? "#c8f8a4" : purse >= kit.cost ? "#ffe08a" : "#e7e2d8",
+        fillBot: on ? "#c9c2b6" : owned ? "#46c85a" : purse >= kit.cost ? "#f0b429" : "#c9c3b6",
+        lip: on ? "#8d867c" : owned ? "#0e6a22" : "#a86a08",
+        ink: INK,
+        stroke: false,
+        disabled: on,
+        action: () => root.BOTG.buyKit(kit.id),
+      });
+    });
+    uiButton(ctx, state, {
+      id: "armory-back",
+      x: 12,
+      y: backY,
+      w: L.vw - 24,
+      h: backH,
+      label: "Back",
+      labelSize: 16,
+      fillTop: "#fff8e4",
+      fillBot: "#f0ddb0",
+      lip: "#8a6840",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.leaveArmory(),
+    });
+    if (state.toast) drawToast(ctx, state, L);
   }
 
   function drawMargin(ctx, L) {
@@ -2675,7 +2825,7 @@
     const tw = ctx.measureText(text).width + 14;
     let x;
     let y;
-    if (state.screen === "title" || state.screen === "maps" || state.screen === "win" || state.screen === "lose") {
+    if (state.screen === "title" || state.screen === "maps" || state.screen === "armory" || state.screen === "win" || state.screen === "lose") {
       x = L.vw - tw - 8;
       y = 6;
     } else {
@@ -2941,6 +3091,9 @@
       drawBuild(ctx, state, L);
     } else if (state.screen === "maps") {
       drawMaps(ctx, state, L);
+      drawBuild(ctx, state, L);
+    } else if (state.screen === "armory") {
+      drawArmory(ctx, state, L);
       drawBuild(ctx, state, L);
     } else {
       drawMargin(ctx, L);
