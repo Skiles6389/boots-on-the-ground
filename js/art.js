@@ -351,6 +351,32 @@
     return true;
   }
 
+  const BUST_X = {
+    trooper: 0.42,
+    longshot: 0.5,
+    gatling: 0.4,
+    mortar: 0.46,
+    tread: 0.46,
+    engineer: 0.4,
+    sky: 0.4,
+    chopper: 0.5,
+  };
+
+  function drawBust(ctx, key, x, y, w, h) {
+    const meta = SPRITES[key];
+    const img = frames[key];
+    if (!meta || !alive(img) || w < 4 || h < 4) return false;
+    const headFrac = meta.center ? 0.88 : (key === "longshot" ? 0.9 : 0.76);
+    const scale = (h * 0.9) / (img.height * headFrac);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const focus = BUST_X[key] == null ? 0.45 : BUST_X[key];
+    const dx = x + w / 2 - dw * focus;
+    const dy = y + 1;
+    ctx.drawImage(img, dx, dy, dw, dh);
+    return true;
+  }
+
   function drawCameo(ctx, key, x, y, w, h) {
     const meta = SPRITES[key];
     const img = frames[key];
@@ -379,5 +405,6 @@
     },
     drawUnit: drawUnit,
     drawCameo: drawCameo,
+    drawBust: drawBust,
   };
 })(typeof window !== "undefined" ? window : globalThis);

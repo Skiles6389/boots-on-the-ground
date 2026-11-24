@@ -117,6 +117,106 @@
     lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
   }
 
+  const SHOP_BADGE = {
+    trooper: "#f3e2a8",
+    longshot: "#d7e2ee",
+    gatling: "#e4efb0",
+    mortar: "#f6d48a",
+    tread: "#d5e4b4",
+    engineer: "#f3d7b0",
+    sky: "#d4ebf6",
+    chopper: "#efe0a8",
+  };
+
+  function drawLock(ctx, x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = "#6a2424";
+    ctx.fillStyle = "#d24a4a";
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.15, s * 0.32, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(-s * 0.42, -s * 0.05, s * 0.84, s * 0.62, 2) : ctx.rect(-s * 0.42, -s * 0.05, s * 0.84, s * 0.62);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawShopTile(ctx, state, spec, x, py, w, h) {
+    const affordable = spec.affordable !== false;
+    const selected = !!spec.active;
+    const motion = !state.reducedMotion;
+    const phase = spec.bob || 0;
+    const bob = motion && affordable && state.pressedId !== spec.id ? Math.sin(state.time * 2.2 + phase) * 1.2 : 0;
+    const tagH = Math.max(16, Math.min(18, Math.round(h * 0.26)));
+    const badgeX = x + 3;
+    const badgeW = w - 6;
+    const badgeH = Math.max(20, h - 6);
+    const badgeY = py + 3 + bob;
+    const tone = SHOP_BADGE[spec.portraitKey] || "#efe6c8";
+    ctx.save();
+    roundPath(ctx, badgeX, badgeY, badgeW, badgeH, 7);
+    ctx.clip();
+    ctx.fillStyle = affordable ? tone : "#e4dfd4";
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.strokeStyle = affordable ? "rgba(70, 52, 24, 0.16)" : "rgba(80, 76, 68, 0.2)";
+    ctx.lineWidth = 1.5;
+    for (let sx = badgeX + 5; sx < badgeX + badgeW; sx += 7) {
+      ctx.beginPath();
+      ctx.moveTo(sx, badgeY);
+      ctx.lineTo(sx, badgeY + badgeH);
+      ctx.stroke();
+    }
+    if (root.BOTGArt && root.BOTGArt.drawBust) {
+      if (!affordable) ctx.globalAlpha = 0.42;
+      root.BOTGArt.drawBust(ctx, spec.portraitKey, badgeX - 2, badgeY - 1, badgeW + 4, badgeH + 2);
+      ctx.globalAlpha = 1;
+    } else {
+      drawPortrait(ctx, spec.portraitKey, badgeX, badgeY, badgeW, badgeH);
+    }
+    if (motion && affordable) {
+      const sweep = (state.time * 0.28 + phase) % 1;
+      const sx = badgeX + sweep * (badgeW + 24) - 12;
+      const g = ctx.createLinearGradient(sx, badgeY, sx + 14, badgeY + badgeH);
+      g.addColorStop(0, "rgba(255,255,255,0)");
+      g.addColorStop(0.5, "rgba(255,255,255,0.42)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    }
+    ctx.restore();
+    ctx.lineWidth = selected ? 3.4 : 2.2;
+    ctx.strokeStyle = selected ? "#c6a45a" : INK;
+    strokeRound(ctx, badgeX, badgeY, badgeW, badgeH, 7);
+    if (selected) {
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "#fff4c8";
+      strokeRound(ctx, badgeX + 2, badgeY + 2, badgeW - 4, badgeH - 4, 5);
+    }
+    const cost = "$" + spec.cost;
+    const tagW = Math.min(w - 8, Math.max(36, w * 0.72));
+    const tagX = x + (w - tagW) / 2;
+    const tagY = py + h - tagH - 2;
+    fillRound(ctx, tagX, tagY + 1, tagW, tagH, 3, "#8a7040");
+    fillRound(ctx, tagX, tagY, tagW, tagH, 3, affordable ? "#e7c56a" : "#e07068");
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = affordable ? "#5c4018" : "#6a2424";
+    strokeRound(ctx, tagX, tagY, tagW, tagH, 3);
+    ctx.fillStyle = affordable ? "#f8e7b0" : "#f0b0aa";
+    ctx.beginPath();
+    ctx.arc(tagX + 5, tagY + tagH / 2, 1.6, 0, Math.PI * 2);
+    ctx.arc(tagX + tagW - 5, tagY + tagH / 2, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const ps = fitSize(ctx, cost, tagW - 16, Math.min(15, tagH - 1));
+    label(ctx, cost, x + w / 2 + (affordable ? 0 : 5), tagY + tagH / 2, ps, affordable ? "#3a2808" : "#4a1414", null, 0);
+    if (!affordable) drawLock(ctx, tagX + 9, tagY + tagH / 2 + 1, Math.min(11, tagH - 2));
+  }
+
   function uiButton(ctx, state, spec) {
     const x = spec.x;
     const y = spec.y;
@@ -167,37 +267,7 @@
       ctx.textAlign = "center";
       label(ctx, cost, cx + cw / 2, py + h / 2, 12, INK, null, 0);
     } else if (spec.shopTile) {
-      const affordable = spec.affordable !== false;
-      const chipH = 14;
-      const ph = Math.max(16, h - chipH - 8);
-      const pw = Math.min(w - 10, ph);
-      const ox = x + (w - pw) / 2;
-      const oy = py + 3;
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(ox + pw / 2, oy + ph / 2, pw / 2, ph / 2, 0, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.fillStyle = "#efe4c8";
-      ctx.fillRect(ox, oy, pw, ph);
-      if (!affordable) ctx.globalAlpha = 0.4;
-      drawPortrait(ctx, spec.portraitKey, ox, oy, pw, ph);
-      ctx.restore();
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.ellipse(ox + pw / 2, oy + ph / 2, pw / 2, ph / 2, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      const cost = "$" + spec.cost;
-      font(ctx, 11);
-      const cw = Math.min(w - 6, Math.max(28, ctx.measureText(cost).width + 8));
-      const chipY = py + h - chipH - 2;
-      fillRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 2, affordable ? "#f3e2b0" : "#d9d0c0");
-      ctx.lineWidth = 1.3;
-      ctx.strokeStyle = affordable ? INK : "#8a8680";
-      strokeRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 2);
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      label(ctx, cost, x + w / 2, chipY + chipH / 2, 11, affordable ? INK : "#6a6560", null, 0);
+      drawShopTile(ctx, state, spec, x, py, w, h);
     } else if (spec.portraitKey) {
       const priceSize = h < 130 ? 11 : 12;
       const nameSize = h < 130 ? 12 : 14;
@@ -1659,8 +1729,8 @@
       compactStart = true;
       pathsOnly = true;
     } else if (L.portrait) {
-      infoH = Math.min(48, Math.max(40, inner.h * 0.24));
-      startH = 42;
+      infoH = 34;
+      startH = 44;
     } else if (inspecting) {
       infoH = 64;
       startH = 44;
@@ -1943,24 +2013,28 @@
     const gap = 4;
     const tw = (area.w - gap * (cols - 1)) / cols;
     const th = (area.h - gap * (rows - 1)) / rows;
+    const age = state.shopIn == null ? 1 : (state.time || 0) - state.shopIn;
+    const slide = state.reducedMotion ? 0 : Math.max(0, 1 - age / 0.28);
     order.forEach(function (key, i) {
       const def = B.towers[key];
       const price = B.pay(def.cost);
       const afford = state.cash >= price;
       const on = state.placing === key;
+      const drop = slide * (10 + (i % cols) * 3);
       uiButton(ctx, state, {
         id: "buy-" + key,
         x: area.x + (i % cols) * (tw + gap),
-        y: area.y + Math.floor(i / cols) * (th + gap),
+        y: area.y + Math.floor(i / cols) * (th + gap) + drop,
         w: tw,
         h: th,
         cost: price,
         affordable: afford,
         portraitKey: key,
         shopTile: true,
-        fillTop: on ? "#fff3a0" : afford ? "#fff8e4" : "#e6e2d8",
-        fillBot: on ? "#ffe08a" : afford ? "#f3e2bc" : "#c8c4ba",
-        lip: on || afford ? "#a07840" : "#8d8980",
+        bob: i * 0.7,
+        fillTop: on ? "#f6e7b4" : afford ? "#efe0c4" : "#d9d4c8",
+        fillBot: on ? "#e7c878" : afford ? "#e4d2a4" : "#c8c2b6",
+        lip: on ? "#8a6828" : afford ? "#6a5430" : "#8a8680",
         active: on,
         action: () => root.BOTG.pick(key),
       });
@@ -3213,6 +3287,9 @@
       return;
     }
     state.hotspots = [];
+    const shopping = state.screen === "play" && !state.selectedId;
+    if (shopping && state._shopOn !== true) state.shopIn = state.time || 0;
+    state._shopOn = shopping;
     const mag = state.reducedMotion ? 0 : Math.min(6, state.shake || 0);
     const jx = mag ? (Math.random() - 0.5) * mag * (state.cssScaleX || 1) : 0;
     const jy = mag ? (Math.random() - 0.5) * mag * (state.cssScaleY || 1) : 0;
