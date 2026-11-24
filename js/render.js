@@ -2730,12 +2730,13 @@
   function drawAudioRow(ctx, state, x, y, w, h) {
     const A = root.BOTGAudio;
     const gap = 6;
-    const bw = Math.floor((w - gap * 2) / 3);
     const items = [
       { id: "mute", label: A.muted ? "Muted" : "Sound", on: !A.muted, go: () => A.toggle() },
       { id: "music", label: A.music ? "Music" : "No music", on: A.music && !A.muted, go: () => A.toggleMusic() },
       { id: "sfx", label: A.sfx ? "SFX" : "No SFX", on: A.sfx && !A.muted, go: () => A.toggleSfx() },
+      { id: "vol", label: "Vol " + Math.round((A.volume || 0.7) * 100), on: !A.muted && (A.volume || 0) > 0.5, go: () => A.cycleVolume() },
     ];
+    const bw = Math.floor((w - gap * (items.length - 1)) / items.length);
     items.forEach((item, i) => {
       uiButton(ctx, state, {
         id: "audio-" + item.id,
@@ -2744,7 +2745,7 @@
         w: bw,
         h: h,
         label: item.label,
-        labelSize: 13,
+        labelSize: 11,
         fillTop: item.on ? "#c8f8a4" : "#e7e2d8",
         fillBot: item.on ? "#46c85a" : "#c9c3b6",
         lip: item.on ? "#2c3c22" : "#8d867c",
