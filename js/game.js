@@ -767,7 +767,85 @@
       }
       audio.play(sound);
     }
-    tower.cooldown = 1 / stats.rate;
+    const haste = tower.buff > 0 ? 1.7 : 1;
+    tower.cooldown = 1 / (stats.rate * haste);
+  }
+
+  function useAbility() {
+    const tower = selectedTower();
+    if (!tower || !B.abilityFor) return;
+    const spec = B.abilityFor(tower.type, tower.ranks);
+    if (!spec) return;
+    if ((tower.abilityCd || 0) > 0) {
+      toast(Math.ceil(tower.abilityCd) + "s");
+      audio.play("deny");
+      return;
+    }
+    tower.abilityCd = spec.cd;
+    const stats = B.statsFor(tower.type, tower.ranks);
+    const enemies = liveEnemies();
+    function inReach(en, extra) {
+      return Math.hypot(en.x - tower.x, en.y - tower.y) <= stats.range + (extra || 0);
+    }
+    if (spec.id === "rally" || spec.id === "storm") {
+      const reach = spec.id === "rally" ? 150 : 1;
+      state.towers.forEach(function (t) {
+        if (spec.id === "storm" && t !== tower) return;
+        if (Math.hypot(t.x - tower.x, t.y - tower.y) <= reach) t.buff = spec.id === "rally" ? 6 : 5;
+      });
+      floater(tower.x, tower.y - 28, spec.name.toUpperCase(), "#ffe56a", 1);
+    } else if (spec.id === "deadeye") {
+      let best = null;
+      enemies.forEach(function (en) {
+        if (!inReach(en, 0)) return;
+        if (!best || en.hp > best.hp) best = en;
+      });
+      if (best) deal(best, 80, 1, { x: tower.x, y: tower.y });
+      state.shake = Math.max(state.shake, 3);
+    } else if (spec.id === "thunder") {
+      let best = null;
+      enemies.forEach(function (en) {
+        if (!inReach(en, 0)) return;
+        if (!best || en.hp > best.hp) best = en;
+      });
+      const x = best ? best.x : tower.x;
+      const y = best ? best.y : tower.y;
+      splashDamage(x, y, 48, 36, 1);
+      state.shake = Math.max(state.shake, 4);
+    } else if (spec.id === "blast") {
+      enemies.forEach(function (en) {
+        if (!inReach(en, 10)) return;
+        deal(en, 12, 0.4, { x: tower.x, y: tower.y });
+        en.hobble = Math.max(en.hobble || 0, 2.5);
+      });
+      spawnPoof(tower.x, tower.y, 1.4, true);
+    } else {
+      let n = 0;
+      for (let d = 0; d < B.route.total && n < 6; d += 70) {
+        const p = B.pointAt(d);
+        if (Math.hypot(p.x - tower.x, p.y - tower.y) > stats.range + 30) continue;
+        state.shots.push({
+          kind: "mortar",
+          x: tower.x,
+          y: tower.y - 18,
+          x0: tower.x,
+          y0: tower.y - 18,
+          tx: p.x,
+          ty: p.y,
+          t: n * 0.1,
+          flight: 0.5,
+          damage: spec.id === "strike" ? 16 : 12,
+          armorBite: 0.55,
+          splash: spec.id === "swarm" ? 22 : 34,
+          life: 1,
+        });
+        n += 1;
+      }
+      if (!n) splashDamage(tower.x, tower.y + 20, 30, 14, 0.4);
+    }
+    showBanner("Ability", spec.name, spec.blurb, "info");
+    audio.play(spec.id === "rally" || spec.id === "storm" ? "wave" : "cannon");
+    announce(spec.name + ". " + spec.blurb);
   }
 
   function step(dt) {
@@ -788,6 +866,8 @@
       tower.spin += dt * (8 + tower.rank * 4);
       tower.flash = Math.max(0, tower.flash - dt);
       tower.cooldown -= dt;
+      tower.abilityCd = Math.max(0, (tower.abilityCd || 0) - dt);
+      tower.buff = Math.max(0, (tower.buff || 0) - dt);
       if (tower.rocketCd) tower.rocketCd = Math.max(0, tower.rocketCd - dt);
       const stats = B.statsFor(tower.type, tower.ranks);
       if (stats.role === "engineer" && !(stats.rate > 0)) {
@@ -1322,6 +1402,7 @@
     cycleAim,
     setDifficulty,
     unlockAll,
+    useAbility,
   };
 
   const params = new URLSearchParams(root.location.search);

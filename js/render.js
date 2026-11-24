@@ -2465,6 +2465,24 @@
         draw: () => {
           const hot = state.selectedId === tower.id || state.hoverTowerId === tower.id;
           if (hot) drawSelect(ctx, state, tower.x, tower.y);
+          const ability = B.abilityFor && B.abilityFor(tower.type, tower.ranks);
+          if (ability) {
+            const left = Math.max(0, tower.abilityCd || 0);
+            const ready = left <= 0;
+            const frac = ready ? 1 : 1 - Math.min(1, left / ability.cd);
+            ctx.save();
+            ctx.translate(tower.x, tower.y + 18);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(40, 30, 10, 0.35)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = ready ? "#ffe08a" : "#f0a020";
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+            ctx.stroke();
+            ctx.restore();
+          }
           drawSoldier(ctx, tower.x, tower.y, {
             team: "player",
             role: tower.type,
@@ -2579,6 +2597,38 @@
     }
   }
 
+  function drawAbilityBar(ctx, state, L) {
+    const tower = state.towers.find((t) => t.id === state.selectedId);
+    if (!tower || state.placing || !B.abilityFor) return;
+    const spec = B.abilityFor(tower.type, tower.ranks);
+    if (!spec) return;
+    const cd = tower.abilityCd || 0;
+    const ready = cd <= 0;
+    const stamp = 148;
+    const w = Math.min(220, Math.max(156, L.mapBox.w - stamp - 16));
+    const h = 44;
+    const x = L.mapBox.x + 8;
+    const y = L.mapBox.y + L.mapBox.h - h - 8;
+    uiButton(ctx, state, {
+      id: "ability",
+      x: x,
+      y: y,
+      w: w,
+      h: h,
+      label: spec.name,
+      sub: ready ? "Tap to use" : Math.ceil(cd) + "s",
+      labelSize: 16,
+      subSize: 11,
+      ink: "#3a2208",
+      stroke: "#fff6d0",
+      fillTop: ready ? "#ffe08a" : "#d9d3c8",
+      fillBot: ready ? "#f0a020" : "#c9c2b6",
+      lip: ready ? "#a86a08" : "#8d867c",
+      pulse: ready,
+      action: () => root.BOTG.useAbility(),
+    });
+  }
+
   function draw(ctx, state) {
     const L = state.layout;
     if (!L) return;
@@ -2639,6 +2689,7 @@
           ctx.restore();
         }
         drawHeader(ctx, state, L);
+        drawAbilityBar(ctx, state, L);
         drawPanel(ctx, state, L);
         drawBanner(ctx, state, L);
         drawBossHud(ctx, state, L);
