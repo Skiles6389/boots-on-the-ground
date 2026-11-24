@@ -42,6 +42,7 @@
       pathClearance: 26,
       towerGap: 40,
       // A friendly first spot, in the grass between the first two bends.
+      // Trees, props, and the pond are the footprints painted into assets/art/maps.
       hint: { x: 188, y: 160 },
       trees: [
         { x: 358, y: 98, r: 26, style: "amber" },

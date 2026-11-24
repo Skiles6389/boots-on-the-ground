@@ -342,20 +342,27 @@
 
   function drawPortrait(ctx, key, x, y, w, h) {
     const foe = {
-      grunt: "grunt", scout: "scout", heavy: "heavy", moto: "scout", brute: "heavy",
-      riot: "riot", medic: "medic", sneak: "sneak", gnat: "gnat",
+      grunt: "grunt", scout: "scout", heavy: "heavy", moto: "scout", brute: "brute",
+      riot: "riot", medic: "medic", sneak: "sneak", camo: "camo", para: "para",
+      dash: "dash", bulwark: "bulwark", gnat: "gnat",
     };
     const vehicle = key === "jeep" || key === "tank" || key === "halftrack" || key === "ironjaw";
     const enemy = !!foe[key] || vehicle;
     const role = foe[key] || (key === "halftrack" ? "jeep" : key === "ironjaw" ? "tank" : key);
+    const painted = !!(root.BOTGArt && root.BOTGArt.has(role));
     ctx.save();
-    fillRound(ctx, x, y, w, h, 12, enemy || vehicle ? "#4a2040" : "#2f9a3c");
+    fillRound(ctx, x, y, w, h, 12, painted ? "#efe6c8" : (enemy || vehicle ? "#4a2040" : "#2f9a3c"));
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, w, h, 12);
     ctx.save();
     roundPath(ctx, x + 1, y + 1, w - 2, h - 2, 11);
     ctx.clip();
+    if (painted && root.BOTGArt.drawCameo(ctx, role, x, y, w, h)) {
+      ctx.restore();
+      ctx.restore();
+      return;
+    }
     if (vehicle) {
       fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" || key === "ironjaw" ? "#6e342c" : "#8d3a32");
     } else if (root.BOTGSoldier) {
@@ -378,8 +385,10 @@
   let terrainId = "";
   function ensureTerrain() {
     const id = (B.map && B.map.id) || "maple";
-    if (terrain && terrainId === id) return;
-    terrainId = id;
+    const painted = root.BOTGArt && root.BOTGArt.mapReady(id) ? "art" : "ink";
+    const key = id + ":" + painted;
+    if (terrain && terrainId === key) return;
+    terrainId = key;
     const S = 2;
     terrain = document.createElement("canvas");
     terrain.width = 400 * S;
@@ -517,6 +526,16 @@
   }
 
   function paintTerrain(ctx) {
+    const id = (B.map && B.map.id) || "maple";
+    const plate = root.BOTGArt && root.BOTGArt.mapImage(id);
+    if (plate) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(plate, 0, 0, 800, 1140);
+      ctx.restore();
+      return;
+    }
     const snow = B.map.theme === "snow";
     const desert = B.map.theme === "desert";
     const sky = ctx.createLinearGradient(0, 40, 0, 200);
@@ -1161,7 +1180,7 @@
   }
 
   function drawSoldier(ctx, x, y, opt) {
-    if (root.BOTGSoldier) root.BOTGSoldier.draw(ctx, x, y, opt);
+    const usedArt = !!(root.BOTGSoldier && root.BOTGSoldier.draw(ctx, x, y, opt));
     const role = opt.role || "trooper";
     const sc = opt.scale || 1;
     if (!opt.team || opt.team === "player") {
@@ -1170,7 +1189,7 @@
         drawMuzzle(ctx, tip.x, tip.y, opt.aim || 0, opt.flash);
       }
     }
-    if (opt.rank) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
+    if (opt.rank && !usedArt) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
   }
 
   function drawGnat(ctx, e) {
@@ -2812,6 +2831,29 @@
     ctx.beginPath();
     ctx.rect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     ctx.clip();
+    const painted = root.BOTGArt && B.map && root.BOTGArt.mapReady(B.map.id);
+    if (painted) {
+      ensureTerrain();
+      const scale = L.scale || 1;
+      const top = L.oy;
+      const h = L.worldH * scale;
+      const left = L.ox;
+      const right = L.ox + L.worldW * scale;
+      const sy = 96;
+      const sh = 1008;
+      ctx.fillStyle = B.map.theme === "desert" ? "#e2b15a" : B.map.theme === "snow" ? "#d5e6f4" : GRASS;
+      ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
+      ctx.filter = "blur(18px)";
+      if (terrain && left > L.mapBox.x) {
+        ctx.drawImage(terrain, 0, sy, 36, sh, L.mapBox.x - 10, top - 12, left - L.mapBox.x + 18, h + 24);
+      }
+      if (terrain && right < L.mapBox.x + L.mapBox.w) {
+        ctx.drawImage(terrain, 764, sy, 36, sh, right - 8, top - 12, L.mapBox.x + L.mapBox.w - right + 18, h + 24);
+      }
+      ctx.filter = "none";
+      ctx.restore();
+      return;
+    }
     ctx.fillStyle = B.map.theme === "desert" ? "#e2b15a" : B.map.theme === "snow" ? "#d5e6f4" : GRASS;
     ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     const scale = L.scale || 1;
@@ -2884,7 +2926,8 @@
   function drawWorld(ctx, state) {
     ensureTerrain();
     ctx.drawImage(terrain, 0, 0, 400, 570);
-    if (!state.reducedMotion) {
+    const painted = !!(root.BOTGArt && B.map && root.BOTGArt.mapReady(B.map.id));
+    if (!painted && !state.reducedMotion) {
       if (B.map.theme === "snow") {
         drawSnowCap(ctx, 80 + Math.sin(state.time) * 6, 120 + (state.time * 18) % 200, 3);
         drawSnowCap(ctx, 260, 80 + (state.time * 14) % 240, 2.4);
@@ -2911,25 +2954,27 @@
     }
 
     const items = [];
-    mapProps().forEach((p) => {
-      items.push({
-        y: p.y,
-        draw: () => {
-          if (p.kind === "fence") drawFence(ctx, p.x, p.y, p.w);
-          else if (p.kind === "bush") drawBush(ctx, p.x, p.y, 1);
-          else if (p.kind === "rock") drawRock(ctx, p.x, p.y, 11);
-          else if (p.kind === "bags") drawBags(ctx, p.x, p.y);
-          else if (p.kind === "crate") drawCrate(ctx, p.x, p.y);
-          else if (p.kind === "snowman") drawSnowman(ctx, p.x, p.y);
-        },
+    if (!painted) {
+      mapProps().forEach((p) => {
+        items.push({
+          y: p.y,
+          draw: () => {
+            if (p.kind === "fence") drawFence(ctx, p.x, p.y, p.w);
+            else if (p.kind === "bush") drawBush(ctx, p.x, p.y, 1);
+            else if (p.kind === "rock") drawRock(ctx, p.x, p.y, 11);
+            else if (p.kind === "bags") drawBags(ctx, p.x, p.y);
+            else if (p.kind === "crate") drawCrate(ctx, p.x, p.y);
+            else if (p.kind === "snowman") drawSnowman(ctx, p.x, p.y);
+          },
+        });
       });
-    });
-    B.map.trees.forEach((tree) => {
-      items.push({
-        y: tree.y,
-        draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : tree.style === "pine" ? drawPine(ctx, tree) : drawTree(ctx, tree, state.time)),
+      B.map.trees.forEach((tree) => {
+        items.push({
+          y: tree.y,
+          draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : tree.style === "pine" ? drawPine(ctx, tree) : drawTree(ctx, tree, state.time)),
+        });
       });
-    });
+    }
     state.towers.forEach((tower) => {
       items.push({
         y: tower.y,
@@ -2991,14 +3036,16 @@
           else if (e.type === "tank" || e.type === "ironjaw") drawTank(ctx, e, state.time);
           else if (e.type === "gnat") drawGnat(ctx, e);
           else {
-            const role = e.type === "brute" ? "heavy" : e.type === "moto" ? "scout" : e.type;
+            const role = e.type === "moto" ? "scout" : e.type;
+            const illustrated = !!(root.BOTGArt && root.BOTGArt.has(role));
             drawSoldier(ctx, e.x, e.y, {
               team: "enemy",
               role: role,
               aim: e.angle,
               phase: e.phase,
-              scale: B.enemies[e.type].scale,
+              scale: illustrated ? 1 : B.enemies[e.type].scale,
               flash: e.flash,
+              slow: e.slow,
               revealed: e.revealed,
               shield: e.shieldMax ? e.shieldHp / e.shieldMax : null,
             });
@@ -3115,7 +3162,7 @@
     const rand = mulberry32(7);
     ctx.save();
     ctx.globalCompositeOperation = "multiply";
-    ctx.fillStyle = "rgba(168, 136, 92, 0.34)";
+    ctx.fillStyle = "rgba(168, 136, 92, 0.12)";
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.globalCompositeOperation = "source-over";
     for (let i = 0; i < 420; i++) {
@@ -3126,7 +3173,7 @@
     }
     const vg = ctx.createRadialGradient(L.vw / 2, L.vh / 2, L.vh * 0.28, L.vw / 2, L.vh / 2, L.vh * 0.72);
     vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(40, 24, 12, 0.38)");
+    vg.addColorStop(1, "rgba(40, 24, 12, 0.2)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.strokeStyle = "#3a2a1c";
@@ -3143,9 +3190,34 @@
     ctx.restore();
   }
 
+  function drawLoading(ctx, L) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#c6b48a";
+    ctx.fillRect(0, 0, L.vw, L.vh);
+    const w = Math.min(300, L.vw - 28);
+    const h = 128;
+    const x = (L.vw - w) / 2;
+    const y = (L.vh - h) / 2;
+    fillRound(ctx, x, y, w, h, 16, "#f3ead4");
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#3a2a1c";
+    strokeRound(ctx, x, y, w, h, 16);
+    ctx.lineWidth = 1.4;
+    strokeRound(ctx, x + 6, y + 6, w - 12, h - 12, 12);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    label(ctx, "BOOTS ON THE GROUND", L.vw / 2, y + 46, 15, "#2a2118", null, 0);
+    label(ctx, "Painting the maps…", L.vw / 2, y + 82, 13, "#6a5030", null, 0);
+  }
+
   function draw(ctx, state) {
     const L = state.layout;
     if (!L) return;
+    if (root.BOTGArt && !root.BOTGArt.ready()) {
+      state.hotspots = [];
+      drawLoading(ctx, L);
+      return;
+    }
     state.hotspots = [];
     const mag = state.reducedMotion ? 0 : Math.min(6, state.shake || 0);
     const jx = mag ? (Math.random() - 0.5) * mag * (state.cssScaleX || 1) : 0;
@@ -3187,7 +3259,7 @@
       const cy = L.mapBox.y + L.mapBox.h / 2;
       const vg = ctx.createRadialGradient(cx, cy, L.mapBox.w * 0.2, cx, cy, L.mapBox.w * 0.75);
       vg.addColorStop(0, "rgba(0,0,0,0)");
-      vg.addColorStop(1, "rgba(10, 28, 8, 0.28)");
+      vg.addColorStop(1, "rgba(40, 24, 12, 0.12)");
       ctx.fillStyle = vg;
       ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
       ctx.restore();

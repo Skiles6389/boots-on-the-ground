@@ -295,6 +295,7 @@
   }
 
   function draw(ctx, x, y, opt) {
+    if (root.BOTGArt && root.BOTGArt.drawUnit(ctx, x, y, opt)) return true;
     const role = opt.role || (opt.team === "enemy" ? "grunt" : "trooper");
     const team = opt.team || "player";
     const enemy = team === "enemy";
@@ -441,6 +442,14 @@
   };
 
   root.BOTGMuzzle = function (x, y, role, aim) {
+    const meta = root.BOTGArt && root.BOTGArt.meta && root.BOTGArt.meta(role);
+    if (meta && root.BOTGArt.has(role)) {
+      const face = Math.cos(aim || 0) >= 0 ? 1 : -1;
+      return {
+        x: x + face * meta.w * Math.max(0.2, 1 - meta.ax) * 0.82,
+        y: y - meta.h * meta.ay * (role === "chopper" ? 0.15 : 0.42),
+      };
+    }
     const len = role === "longshot" ? 28 : role === "gatling" ? 16 : role === "mortar" ? 10 : 16;
     const o = root.BOTGAimOrigin(x, y, role);
     return { x: o.x + Math.cos(aim) * len, y: o.y + Math.sin(aim) * len * 0.35 };
