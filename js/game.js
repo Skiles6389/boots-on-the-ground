@@ -94,6 +94,7 @@
       hotspots: [],
       nextId: 1,
       placedCount: 0,
+      laneCursor: 0,
       suppressGhost: false,
       auto: false,
       autoTimer: 0,
@@ -201,9 +202,11 @@
   }
 
   function mapOpen(id) {
-    if (id !== "cactus") return true;
+    if (!id || id === "maple") return true;
     if (unlockAll()) return true;
-    return !!(root.BOTGSave && root.BOTGSave.wonAny("maple"));
+    if (id === "cactus") return !!(root.BOTGSave && root.BOTGSave.wonAny("maple"));
+    if (id === "frost") return !!(root.BOTGSave && root.BOTGSave.wonAny("cactus"));
+    return true;
   }
 
   function remember(won) {
@@ -440,14 +443,22 @@
 
   function spawnEnemy(type, opt) {
     const def = B.enemies[type];
+    const lanes = (B.routes && B.routes.length) || 1;
+    let lane = 0;
+    if (lanes > 1 && !def.boss) {
+      lane = state.laneCursor || 0;
+      state.laneCursor = (lane + 1) % lanes;
+    }
+    const route = B.routeFor(lane);
     const dropping = !!(def.drop || (opt && opt.drop));
     const frac = dropping ? (typeof def.drop === "number" ? def.drop : 0.46) : 0;
-    const p = B.pointAt(dropping ? B.route.total * frac : 0);
+    const p = B.pointAt(dropping ? route.total * frac : 0, lane);
     const fall = dropping ? def.dropTime || 1.25 : 0;
     const enemy = {
       id: state.nextId++,
       type,
-      dist: dropping ? B.route.total * frac : 0,
+      lane,
+      dist: dropping ? route.total * frac : 0,
       x: p.x,
       y: p.y - (dropping ? 78 : 0),
       angle: p.angle,
@@ -661,7 +672,8 @@
     const my = tip.y;
     if (stats.role === "mortar") {
       const travel = 0.55;
-      const dest = B.pointAt(Math.min(B.route.total - 1, target.dist + target.speed * travel));
+      const laneRoute = B.routeFor(target.lane);
+      const dest = B.pointAt(Math.min(laneRoute.total - 1, target.dist + target.speed * travel), target.lane);
       state.shots.push({
         kind: "mortar",
         x: tower.x,
@@ -728,7 +740,8 @@
       audio.play("sniper");
     } else {
       const travel = Math.hypot(target.x - mx, target.y - my) / stats.projectileSpeed;
-      const dest = B.pointAt(Math.min(B.route.total - 1, target.dist + target.speed * travel * 0.9));
+      const laneRoute = B.routeFor(target.lane);
+      const dest = B.pointAt(Math.min(laneRoute.total - 1, target.dist + target.speed * travel * 0.9), target.lane);
       const dx = dest.x - mx;
       const dy = dest.y - my;
       const mag = Math.hypot(dx, dy) || 1;
@@ -844,8 +857,10 @@
       spawnPoof(tower.x, tower.y, 1.4, true);
     } else {
       let n = 0;
-      for (let d = 0; d < B.route.total && n < 6; d += 70) {
-        const p = B.pointAt(d);
+      const routes = B.routes && B.routes.length ? B.routes : [B.route];
+      for (let li = 0; li < routes.length && n < 6; li++) {
+        for (let d = 0; d < routes[li].total && n < 6; d += routes.length > 1 ? 120 : 70) {
+        const p = B.pointAt(d, li);
         if (Math.hypot(p.x - tower.x, p.y - tower.y) > stats.range + 30) continue;
         state.shots.push({
           kind: "mortar",
@@ -863,6 +878,7 @@
           life: 1,
         });
         n += 1;
+        }
       }
       if (!n) splashDamage(tower.x, tower.y + 20, 30, 14, 0.4);
     }
@@ -966,7 +982,7 @@
         enemy.falling -= dt;
         enemy.airborne = true;
         enemy.air = true;
-        const p = B.pointAt(enemy.dist);
+        const p = B.pointAt(enemy.dist, enemy.lane);
         const u = 1 - Math.max(0, enemy.falling) / (enemy.fall || 1);
         enemy.x = p.x;
         enemy.y = p.y - (1 - u) * 78;
@@ -1017,11 +1033,12 @@
           audio.play("cannon");
         }
       }
-      if (enemy.dist >= B.route.total) {
+      const laneRoute = B.routeFor(enemy.lane);
+      if (enemy.dist >= laneRoute.total) {
         leak(enemy);
         continue;
       }
-      const p = B.pointAt(enemy.dist);
+      const p = B.pointAt(enemy.dist, enemy.lane);
       enemy.x = p.x;
       enemy.y = p.y;
       enemy.angle = p.angle;
@@ -1320,6 +1337,9 @@
       } else if (e.key === "2") {
         e.preventDefault();
         startGame("cactus");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        startGame("frost");
       } else if (e.key === "Escape") {
         title();
       }
@@ -1363,7 +1383,10 @@
   function startGame(mapId) {
     const id = mapId || state.mapId || "maple";
     if (!mapOpen(id)) {
-      state.toast = { text: "Beat Maple Grove to unlock Cactus Junction.", t: 0, life: 1.8 };
+      const text = id === "frost"
+        ? "Beat Cactus Junction to unlock Frostbite Pass."
+        : "Beat Maple Grove to unlock Cactus Junction.";
+      state.toast = { text: text, t: 0, life: 1.8 };
       audio.play("deny");
       return;
     }
@@ -1383,7 +1406,7 @@
     state.screen = "play";
     audio.ensure();
     audio.play("wave");
-    const ground = map.theme === "desert" ? "sand" : "grass";
+    const ground = map.theme === "desert" ? "sand" : map.theme === "snow" ? "snow" : "grass";
     announce(map.name + ", " + diff.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
     resize();
   }

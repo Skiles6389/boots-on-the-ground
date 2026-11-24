@@ -398,20 +398,22 @@
     paintTerrain(g);
   }
 
-  function tracePath(ctx) {
-    const pts = B.map.path;
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  function mapLines() {
+    if (B.map && B.map.paths && B.map.paths.length) return B.map.paths;
+    return [B.map.path];
   }
 
   function strokePath(ctx, width, color) {
-    tracePath(ctx);
     ctx.lineWidth = width;
     ctx.strokeStyle = color;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.stroke();
+    mapLines().forEach((pts) => {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.stroke();
+    });
   }
 
   function nearBlock(x, y, pad) {
@@ -420,9 +422,14 @@
   }
 
   function paintTerrain(ctx) {
+    const snow = B.map.theme === "snow";
     const desert = B.map.theme === "desert";
     const sky = ctx.createLinearGradient(0, 0, 0, 570);
-    if (desert) {
+    if (snow) {
+      sky.addColorStop(0, "#f7fbff");
+      sky.addColorStop(0.42, "#d5e6f4");
+      sky.addColorStop(1, "#8fb4d0");
+    } else if (desert) {
       sky.addColorStop(0, "#f6d48a");
       sky.addColorStop(0.45, "#e2b15a");
       sky.addColorStop(1, "#c4843a");
@@ -438,7 +445,16 @@
     sun.addColorStop(1, "rgba(255,255,220,0)");
     ctx.fillStyle = sun;
     ctx.fillRect(0, 0, 400, 280);
-    const blobs = desert
+    const blobs = snow
+      ? [
+          [80, 200, 120, 50, "#ffffff"],
+          [300, 80, 100, 36, "#e7f2fb"],
+          [210, 300, 140, 46, "#f4fbff"],
+          [90, 470, 110, 40, "#d7e6f2"],
+          [300, 360, 90, 34, "#ffffff"],
+          [40, 80, 70, 24, "#e4eef6"],
+        ]
+      : desert
       ? [
           [70, 180, 130, 70, "#efc56e"],
           [300, 150, 120, 60, "#c98a3a"],
@@ -466,13 +482,14 @@
       ctx.fill();
     });
 
-    const rand = mulberry32(desert ? 29 : 11);
+    const rand = mulberry32(snow ? 41 : desert ? 29 : 11);
     for (let i = 0; i < 70; i++) {
       const x = 8 + rand() * 384;
       const y = 60 + rand() * 490;
       if (B.distToRoute(x, y) < 32) continue;
       if (nearBlock(x, y, 6)) continue;
-      if (desert) drawPebble(ctx, x, y, 2 + rand() * 2.4);
+      if (snow) drawSnowCap(ctx, x, y, 4 + rand() * 5);
+      else if (desert) drawPebble(ctx, x, y, 2 + rand() * 2.4);
       else drawTuft(ctx, x, y, 5 + rand() * 6);
     }
     const colors = desert
@@ -483,15 +500,22 @@
       const y = 70 + rand() * 470;
       if (B.distToRoute(x, y) < 30) continue;
       if (nearBlock(x, y, 8)) continue;
-      if (desert && i % 2 === 0) drawPebble(ctx, x, y, 3 + rand() * 2);
+      if (snow) drawSnowCap(ctx, x, y, 2 + rand() * 2);
+      else if (desert && i % 2 === 0) drawPebble(ctx, x, y, 3 + rand() * 2);
       else drawFlower(ctx, x, y, 2.4 + rand() * 1.6, colors[i % colors.length]);
     }
 
     ctx.save();
     ctx.translate(2, 5);
-    strokePath(ctx, 58, desert ? "rgba(90, 48, 16, 0.35)" : "rgba(20, 50, 12, 0.28)");
+    strokePath(ctx, 58, snow ? "rgba(40, 70, 100, 0.28)" : desert ? "rgba(90, 48, 16, 0.35)" : "rgba(20, 50, 12, 0.28)");
     ctx.restore();
-    if (desert) {
+    if (snow) {
+      strokePath(ctx, 64, "rgba(90, 120, 150, 0.35)");
+      strokePath(ctx, 56, "#f7fbff");
+      strokePath(ctx, 46, "#d5e2ee");
+      strokePath(ctx, 34, "#8ea0b0");
+      strokePath(ctx, 14, "rgba(255,255,255,0.8)");
+    } else if (desert) {
       strokePath(ctx, 64, "rgba(120, 64, 18, 0.35)");
       strokePath(ctx, 56, "#6a3a18");
       strokePath(ctx, 48, "#e2b56a");
@@ -507,7 +531,7 @@
 
     ctx.save();
     ctx.translate(0, -3);
-    strokePath(ctx, 18, desert ? "rgba(255,236,196,0.35)" : "rgba(255,250,230,0.4)");
+    strokePath(ctx, 18, snow ? "rgba(255,255,255,0.55)" : desert ? "rgba(255,236,196,0.35)" : "rgba(255,250,230,0.4)");
     ctx.restore();
     ctx.save();
     ctx.translate(0, 2);
@@ -519,31 +543,46 @@
       const x = specks() * 400;
       const y = 50 + specks() * 510;
       if (B.distToRoute(x, y) < 28) continue;
-      ctx.fillStyle = desert ? "rgba(120,70,20," + (0.08 + specks() * 0.12) + ")" : "rgba(10,50,10," + (0.06 + specks() * 0.12) + ")";
+      ctx.fillStyle = snow
+        ? "rgba(255,255,255," + (0.25 + specks() * 0.35) + ")"
+        : desert
+          ? "rgba(120,70,20," + (0.08 + specks() * 0.12) + ")"
+          : "rgba(10,50,10," + (0.06 + specks() * 0.12) + ")";
       ctx.fillRect(x, y, 2, 2);
     }
 
-    ctx.fillStyle = "rgba(120, 78, 36, 0.35)";
-    for (let d = 0; d < B.route.total; d += 9) {
-      const p = B.pointAt(d);
-      const nx = -Math.sin(p.angle);
-      const ny = Math.cos(p.angle);
-      ctx.fillRect(p.x + nx * 8 - 1, p.y + ny * 8 - 1, 2, 2);
-      ctx.fillRect(p.x - nx * 10 - 1, p.y - ny * 10 - 1, 2, 2);
+    ctx.fillStyle = snow ? "rgba(255,255,255,0.65)" : "rgba(120, 78, 36, 0.35)";
+    const routes = B.routes && B.routes.length ? B.routes : [B.route];
+    for (let li = 0; li < routes.length; li++) {
+      for (let d = 0; d < routes[li].total; d += 9) {
+        const p = B.pointAt(d, li);
+        const nx = -Math.sin(p.angle);
+        const ny = Math.cos(p.angle);
+        ctx.fillRect(p.x + nx * 8 - 1, p.y + ny * 8 - 1, 2, 2);
+        ctx.fillRect(p.x - nx * 10 - 1, p.y - ny * 10 - 1, 2, 2);
+      }
     }
 
     const pond = B.map.pond;
     if (pond && pond.kind === "well") drawWell(ctx, pond);
+    else if (pond && pond.kind === "ice") drawIce(ctx, pond);
     else if (pond) drawPond(ctx, pond);
 
-    const exit = B.pointAt(B.route.total - 16);
+    const exit = B.pointAt(B.route.total - 16, 0);
     drawFort(ctx, exit.x, exit.y);
     const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Maple Grove" };
     drawSign(ctx, sign.x, sign.y, sign.label);
 
     ctx.fillStyle = "rgba(90, 40, 120, 0.0)";
-    drawBannerPost(ctx, 26, 96);
-    drawCamp(ctx);
+    if (mapLines().length > 1) {
+      mapLines().forEach((pts) => {
+        const a = pts[0];
+        const b = pts[1];
+        const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+        drawBannerPost(ctx, a[0] + Math.cos(ang) * 36 - Math.sin(ang) * 36, a[1] + Math.sin(ang) * 36 + Math.cos(ang) * 36);
+      });
+    } else drawBannerPost(ctx, 26, 96);
+    if (!snow) drawCamp(ctx);
   }
 
   function drawCamp(ctx) {
@@ -718,6 +757,85 @@
     ctx.lineTo(pond.x + pond.r, pond.y - 16);
     ctx.lineTo(pond.x + pond.r, pond.y - 4);
     ctx.stroke();
+  }
+
+  function drawSnowCap(ctx, x, y, r) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(180, 210, 230, 0.45)";
+    ctx.beginPath();
+    ctx.ellipse(x + r * 0.2, y + r * 0.12, r * 0.45, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawIce(ctx, pond) {
+    shadow(ctx, pond.x, pond.y + 4, pond.r, pond.r * 0.4);
+    ctx.fillStyle = "#7eb6d6";
+    ctx.beginPath();
+    ctx.ellipse(pond.x, pond.y, pond.r, pond.r * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.8)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(pond.x - pond.r * 0.6, pond.y);
+    ctx.lineTo(pond.x + pond.r * 0.2, pond.y - pond.r * 0.2);
+    ctx.lineTo(pond.x + pond.r * 0.5, pond.y + pond.r * 0.15);
+    ctx.stroke();
+  }
+
+  function drawPine(ctx, tree) {
+    const r = tree.r;
+    shadow(ctx, tree.x, tree.y + 4, r * 0.7, r * 0.28);
+    ctx.fillStyle = "#6a4328";
+    ctx.fillRect(tree.x - 3, tree.y - 4, 6, 12);
+    function tier(y, w, h, fill) {
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(tree.x, tree.y - y - h);
+      ctx.lineTo(tree.x - w, tree.y - y);
+      ctx.lineTo(tree.x + w, tree.y - y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.82)";
+      ctx.beginPath();
+      ctx.moveTo(tree.x, tree.y - y - h);
+      ctx.lineTo(tree.x - w * 0.45, tree.y - y - h * 0.35);
+      ctx.lineTo(tree.x + w * 0.15, tree.y - y - h * 0.45);
+      ctx.closePath();
+      ctx.fill();
+    }
+    tier(r * 0.15, r * 0.95, r * 0.7, "#1f6a34");
+    tier(r * 0.7, r * 0.75, r * 0.62, "#2f8a44");
+    tier(r * 1.15, r * 0.5, r * 0.5, "#3caf4c");
+  }
+
+  function drawSnowman(ctx, x, y) {
+    shadow(ctx, x, y + 6, 14, 5);
+    ctx.fillStyle = "#f7fbff";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(x, y, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y - 16, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#e23a3a";
+    ctx.fillRect(x - 8, y - 28, 16, 4);
+    ctx.fillRect(x - 2, y - 32, 4, 6);
+    ctx.fillStyle = INK;
+    ctx.fillRect(x - 3, y - 18, 2, 2);
+    ctx.fillRect(x + 2, y - 18, 2, 2);
   }
 
   function drawPebble(ctx, x, y, r) {
@@ -922,8 +1040,10 @@
   function drawChevrons(ctx, state) {
     const step = 52;
     const march = state.reducedMotion ? 18 : (state.time * 46) % step;
-    for (let d = march; d < B.route.total - 24; d += step) {
-      const p = B.pointAt(d);
+    const routes = B.routes && B.routes.length ? B.routes : [B.route];
+    for (let li = 0; li < routes.length; li++) {
+    for (let d = march; d < routes[li].total - 24; d += step) {
+      const p = B.pointAt(d, li);
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
@@ -940,6 +1060,7 @@
       ctx.lineWidth = 2.4;
       ctx.stroke();
       ctx.restore();
+    }
     }
   }
 
@@ -1643,7 +1764,7 @@
       const hint = !wave
         ? (B.map.name || "The lane") + " holds."
         : state.placedCount === 0
-          ? "Tap Trooper, then the glowing grass."
+          ? "Tap Trooper, then the glowing " + (B.map.theme === "snow" ? "snow" : B.map.theme === "desert" ? "sand" : "grass") + "."
           : state.started === 0
             ? "Tap Start Round. Arrows show the march."
             : wave.hint;
@@ -2112,22 +2233,23 @@
   }
 
   function drawMiniPath(ctx, map, x, y, w, h) {
+    const snow = map.theme === "snow";
     const desert = map.theme === "desert";
-    fillRound(ctx, x, y, w, h, 12, desert ? "#e2b15a" : "#4fb534");
+    fillRound(ctx, x, y, w, h, 12, snow ? "#d5e6f4" : desert ? "#e2b15a" : "#4fb534");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, w, h, 12);
-    const pts = map.path;
+    const lines = map.paths && map.paths.length ? map.paths : [map.path];
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    pts.forEach((p) => {
+    lines.forEach((pts) => pts.forEach((p) => {
       minX = Math.min(minX, p[0]);
       minY = Math.min(minY, p[1]);
       maxX = Math.max(maxX, p[0]);
       maxY = Math.max(maxY, p[1]);
-    });
+    }));
     const s = Math.min((w - 22) / (maxX - minX || 1), (h - 22) / (maxY - minY || 1));
     ctx.save();
     ctx.beginPath();
@@ -2135,19 +2257,21 @@
     ctx.clip();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = desert ? "#8a4e22" : "#5c3b22";
-    ctx.lineWidth = 12;
-    ctx.beginPath();
-    pts.forEach((p, i) => {
-      const px = x + 12 + (p[0] - minX) * s;
-      const py = y + 12 + (p[1] - minY) * s;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+    lines.forEach((pts) => {
+      ctx.strokeStyle = snow ? "#6a8498" : desert ? "#8a4e22" : "#5c3b22";
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        const px = x + 12 + (p[0] - minX) * s;
+        const py = y + 12 + (p[1] - minY) * s;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+      ctx.strokeStyle = snow ? "#f7fbff" : desert ? "#f0d09a" : "#f0d7a4";
+      ctx.lineWidth = 6;
+      ctx.stroke();
     });
-    ctx.stroke();
-    ctx.strokeStyle = desert ? "#f0d09a" : "#f0d7a4";
-    ctx.lineWidth = 6;
-    ctx.stroke();
     ctx.restore();
   }
 
@@ -2201,7 +2325,9 @@
     ctx.textBaseline = "middle";
     const Save = root.BOTGSave;
     const diffId = state.difficulty || (Save && Save.data.difficulty) || "medium";
-    const openCactus = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll()) || (Save && Save.wonAny("maple"));
+    const unlocked = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll());
+    const openCactus = unlocked || (Save && Save.wonAny("maple"));
+    const openFrost = unlocked || (Save && Save.wonAny("cactus"));
     label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 28 : 22, L.portrait ? 28 : 22, "#ffe56a", "#145214", 6);
     const diffY = L.portrait ? 52 : 42;
     const diffH = 40;
@@ -2230,32 +2356,38 @@
     const audioY = L.vh - audioH - 8;
     const cardsTop = diffY + diffH + 8;
     const cardsBottom = audioY - 8;
-    const maps = [B.maps.maple, B.maps.cactus];
+    const maps = [B.maps.maple, B.maps.cactus, B.maps.frost];
     function card(map, x, y, w, h) {
-      const locked = map.id === "cactus" && !openCactus;
+      const locked = (map.id === "cactus" && !openCactus) || (map.id === "frost" && !openFrost);
       const stars = Save ? Save.stars(map.id) : 0;
       const best = Save ? Save.best(map.id, diffId) : 0;
+      const tight = h < 210;
       fillRound(ctx, x, y + 4, w, h, 16, "rgba(0,0,0,0.18)");
       fillRound(ctx, x, y, w, h, 16, locked ? "#efe8dc" : "#fff6df");
       ctx.lineWidth = 4;
       ctx.strokeStyle = INK;
       strokeRound(ctx, x, y, w, h, 16);
       ctx.textAlign = "center";
-      label(ctx, map.name, x + w / 2, y + 18, L.portrait ? 20 : 18, INK, null, 0);
-      drawStars(ctx, x + w / 2 - 26, y + 38, stars);
+      const nameSize = w < 200 ? 15 : tight ? 16 : (L.portrait ? 20 : 18);
+      label(ctx, map.name, x + w / 2, y + (tight ? 14 : 18), nameSize, INK, null, 0);
+      drawStars(ctx, x + w / 2 - 26, y + (tight ? 30 : 38), stars);
       font(ctx, 12);
       ctx.fillStyle = "#5c4630";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(best ? "Best round " + best : "No run yet", x + w / 2, y + 54);
-      const mapH = Math.max(36, h - 148);
-      drawMiniPath(ctx, map, x + 14, y + 66, w - 28, mapH);
+      const note = locked
+        ? (map.id === "frost" ? "Beat Cactus Junction" : "Beat Maple Grove")
+        : (best ? "Best round " + best : "No run yet");
+      ctx.fillText(note, x + w / 2, y + (tight ? 44 : 54));
+      const miniY = tight ? 52 : 66;
+      const mapH = Math.max(28, h - (tight ? 108 : 148));
+      drawMiniPath(ctx, map, x + 14, miniY + y, w - 28, mapH);
       uiButton(ctx, state, {
         id: "map-" + map.id,
         x: x + (w - Math.min(180, w - 24)) / 2,
-        y: y + h - 52,
+        y: y + h - (tight ? 46 : 52),
         w: Math.min(180, w - 24),
-        h: 42,
+        h: tight ? 40 : 42,
         label: locked ? "LOCKED" : "DEFEND",
         labelSize: 18,
         fillTop: locked ? "#d9d3c8" : "#b6f56a",
@@ -2267,13 +2399,13 @@
     }
     if (L.portrait) {
       const gap = 8;
-      const h = Math.floor((cardsBottom - cardsTop - gap) / 2);
+      const h = Math.floor((cardsBottom - cardsTop - gap * (maps.length - 1)) / maps.length);
       maps.forEach((map, i) => card(map, 14, cardsTop + i * (h + gap), L.vw - 28, h));
     } else {
-      const gap = 12;
-      const w = (L.vw - 36 - gap) / 2;
+      const gap = 10;
+      const w = (L.vw - 28 - gap * (maps.length - 1)) / maps.length;
       const h = cardsBottom - cardsTop;
-      maps.forEach((map, i) => card(map, 18 + i * (w + gap), cardsTop, w, h));
+      maps.forEach((map, i) => card(map, 14 + i * (w + gap), cardsTop, w, h));
     }
     uiButton(ctx, state, {
       id: "maps-back",
@@ -2377,7 +2509,7 @@
     ctx.beginPath();
     ctx.rect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     ctx.clip();
-    ctx.fillStyle = B.map.theme === "desert" ? "#e2b15a" : GRASS;
+    ctx.fillStyle = B.map.theme === "desert" ? "#e2b15a" : B.map.theme === "snow" ? "#d5e6f4" : GRASS;
     ctx.fillRect(L.mapBox.x, L.mapBox.y, L.mapBox.w, L.mapBox.h);
     const scale = L.scale || 1;
     const left = L.ox - L.mapBox.x;
@@ -2393,9 +2525,11 @@
       spots.push([L.ox + L.worldW * scale + right * 0.5, L.mapBox.y + L.mapBox.h * 0.62, "bush"]);
       spots.push([L.ox + L.worldW * scale + right * 0.4, L.mapBox.y + L.mapBox.h * 0.84, "bush"]);
     }
+    const snow = B.map.theme === "snow";
     const desert = B.map.theme === "desert";
     spots.forEach((s) => {
-      if (!desert && s[2] === "bush") drawBush(ctx, s[0], s[1], 1.15);
+      if (snow) drawSnowCap(ctx, s[0], s[1], 10);
+      else if (!desert && s[2] === "bush") drawBush(ctx, s[0], s[1], 1.15);
       else drawRock(ctx, s[0], s[1], 13);
     });
     const colors = ["#ff8ab4", "#ffe56a", "#ffffff", "#ff9a3c", "#8ad4ff"];
@@ -2404,7 +2538,10 @@
       for (let i = 0; i < n; i++) {
         const x = x0 + ((i * 47) % Math.max(1, x1 - x0));
         const y = y0 + ((i * 83) % Math.max(1, y1 - y0));
-        if (desert) {
+        if (snow) {
+          if (i % 2 === 0) drawSnowCap(ctx, x, y, 6);
+          else drawRock(ctx, x, y, 7);
+        } else if (desert) {
           if (i % 2 === 0) drawRock(ctx, x, y, 8);
           else drawPebble(ctx, x, y, 3.2);
         } else if (i % 4 === 0) drawBush(ctx, x, y, 0.72);
@@ -2445,7 +2582,10 @@
     ensureTerrain();
     ctx.drawImage(terrain, 0, 0, 400, 570);
     if (!state.reducedMotion) {
-      if (B.map.theme !== "desert") {
+      if (B.map.theme === "snow") {
+        drawSnowCap(ctx, 80 + Math.sin(state.time) * 6, 120 + (state.time * 18) % 200, 3);
+        drawSnowCap(ctx, 260, 80 + (state.time * 14) % 240, 2.4);
+      } else if (B.map.theme !== "desert") {
         drawButterfly(ctx, 48, 188, state.time, "#ff8ab4");
         drawButterfly(ctx, 250, 430, state.time + 2, "#ffe56a");
       }
@@ -2477,13 +2617,14 @@
           else if (p.kind === "rock") drawRock(ctx, p.x, p.y, 11);
           else if (p.kind === "bags") drawBags(ctx, p.x, p.y);
           else if (p.kind === "crate") drawCrate(ctx, p.x, p.y);
+          else if (p.kind === "snowman") drawSnowman(ctx, p.x, p.y);
         },
       });
     });
     B.map.trees.forEach((tree) => {
       items.push({
         y: tree.y,
-        draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : drawTree(ctx, tree, state.time)),
+        draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : tree.style === "pine" ? drawPine(ctx, tree) : drawTree(ctx, tree, state.time)),
       });
     });
     state.towers.forEach((tower) => {
@@ -2679,7 +2820,7 @@
     try { ctx.imageSmoothingQuality = "high"; } catch (err) { /* ignore */ }
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const ground = state.screen === "play" && B.map.theme === "desert" ? "#e2b15a" : GRASS;
+    const ground = state.screen === "play" && B.map.theme === "desert" ? "#e2b15a" : state.screen === "play" && B.map.theme === "snow" ? "#d5e6f4" : GRASS;
     ctx.fillStyle = ground;
     ctx.fillRect(-30, -30, L.vw + 60, L.vh + 60);
 

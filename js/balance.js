@@ -832,14 +832,81 @@
         { kind: "bush", x: 360, y: 400 },
       ],
     },
+    frost: {
+      id: "frost",
+      name: "Frostbite Pass",
+      theme: "snow",
+      blurb: "Two snowy lanes that meet at the gate.",
+      path: [
+        [-28, 110],
+        [300, 110],
+        [300, 190],
+        [50, 190],
+        [50, 250],
+        [340, 250],
+        [340, 500],
+        [430, 500],
+      ],
+      paths: [
+        [
+          [-28, 110],
+          [300, 110],
+          [300, 190],
+          [50, 190],
+          [50, 250],
+          [340, 250],
+          [340, 500],
+          [430, 500],
+        ],
+        [
+          [-28, 330],
+          [220, 330],
+          [220, 410],
+          [40, 410],
+          [40, 490],
+          [300, 490],
+          [300, 410],
+          [340, 410],
+          [340, 500],
+          [430, 500],
+        ],
+      ],
+      pathClearance: 24,
+      towerGap: 40,
+      hint: { x: 170, y: 292 },
+      trees: [
+        { x: 380, y: 150, r: 22, style: "pine" },
+        { x: 220, y: 150, r: 16, style: "pine" },
+        { x: 230, y: 292, r: 12, style: "pine" },
+        { x: 120, y: 450, r: 15, style: "pine" },
+        { x: 250, y: 530, r: 16, style: "pine" },
+        { x: 40, y: 530, r: 14, style: "pine" },
+      ],
+      pond: { x: 160, y: 150, r: 14, kind: "ice" },
+      sign: { x: 180, y: 536, label: "Frostbite" },
+      trunkBlock: 12,
+      props: [
+        { kind: "rock", x: 370, y: 230 },
+        { kind: "snowman", x: 120, y: 300 },
+        { kind: "crate", x: 230, y: 530 },
+        { kind: "rock", x: 20, y: 150 },
+      ],
+    },
   };
 
   B.setMap = function setMap(id) {
     const next = B.maps[id] || B.maps.maple;
     B.map = next;
     B.meta.mapName = next.name;
-    B.route = B.buildPath(next.path);
+    const lines = next.paths && next.paths.length ? next.paths : [next.path];
+    B.routes = lines.map(function (pts) { return B.buildPath(pts); });
+    B.route = B.routes[0];
     return next;
+  };
+
+  B.routeFor = function routeFor(lane) {
+    if (B.routes && B.routes[lane || 0]) return B.routes[lane || 0];
+    return B.route;
   };
 
   B.difficulties = {
@@ -854,8 +921,8 @@
 
   B.setMap("maple");
 
-  B.pointAt = function pointAt(dist) {
-    const route = B.route;
+  B.pointAt = function pointAt(dist, lane) {
+    const route = B.routeFor(lane);
     const d = Math.max(0, Math.min(route.total, dist));
     for (let i = 0; i < route.segs.length; i++) {
       const s = route.segs[i];
@@ -885,18 +952,24 @@
 
   B.distToRoute = function distToRoute(x, y) {
     let best = Infinity;
-    for (const s of B.route.segs) best = Math.min(best, distToSeg(x, y, s.a, s.b).d);
+    const routes = B.routes && B.routes.length ? B.routes : [B.route];
+    for (let r = 0; r < routes.length; r++) {
+      for (const s of routes[r].segs) best = Math.min(best, distToSeg(x, y, s.a, s.b).d);
+    }
     return best;
   };
 
   B.nearestAngle = function nearestAngle(x, y) {
     let best = Infinity;
     let angle = 0;
-    for (const s of B.route.segs) {
-      const hit = distToSeg(x, y, s.a, s.b);
-      if (hit.d < best) {
-        best = hit.d;
-        angle = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
+    const routes = B.routes && B.routes.length ? B.routes : [B.route];
+    for (let r = 0; r < routes.length; r++) {
+      for (const s of routes[r].segs) {
+        const hit = distToSeg(x, y, s.a, s.b);
+        if (hit.d < best) {
+          best = hit.d;
+          angle = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
+        }
       }
     }
     return angle;
