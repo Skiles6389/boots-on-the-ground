@@ -239,33 +239,26 @@
     return p.x >= 0 && p.x <= B.view.width && p.y >= B.view.headerH && p.y < B.view.footerY;
   }
 
+  function blockReason(kind) {
+    const name = kind || "";
+    if (name.indexOf("horizon") === 0) return "That's the horizon.";
+    if (name.indexOf("pond") >= 0) return "That's the ice.";
+    if (name.indexOf("fence") >= 0) return "The fence is in the way.";
+    if (name.indexOf("pine") >= 0 || name.indexOf("hedgerow") >= 0) return "The brush is in the way.";
+    return "That's in the way.";
+  }
+
   function canPlace(x, y, type) {
     const map = B.map;
-    if (y < 95) return { ok: false, reason: "That's the horizon." };
     if (y > B.view.footerY - 16 || x < 18 || x > B.view.width - 18) {
-      return { ok: false, reason: "Plant on the grass." };
+      return { ok: false, reason: "Plant beside the road." };
     }
     if (B.distToRoute(x, y) < map.pathClearance) {
       return { ok: false, reason: "The lane is for marching." };
     }
-    const pond = map.pond;
-    if (pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + 10) {
-      return { ok: false, reason: pond.kind === "well" ? "That's the well." : pond.kind === "ice" ? "That's the ice." : "That's the pond." };
-    }
-    for (const tree of map.trees || []) {
-      const rad = Math.min(20, Math.max(map.trunkBlock || 12, (tree.r || 14) * 0.75));
-      if (Math.hypot(x - tree.x, y - tree.y) < rad) {
-        return { ok: false, reason: "A tree is in the way." };
-      }
-    }
-    for (const prop of map.props || []) {
-      if (prop.kind === "fence") {
-        const half = (prop.w || 48) / 2;
-        if (Math.abs(x - prop.x) < half + 4 && Math.abs(y - prop.y) < 12) {
-          return { ok: false, reason: "The fence is in the way." };
-        }
-      } else if (Math.hypot(x - prop.x, y - prop.y) < (prop.kind === "bush" ? 14 : 16)) {
-        return { ok: false, reason: "That's in the way." };
+    for (const block of map.blocks || []) {
+      if (x >= block.x && x <= block.x + block.w && y >= block.y && y <= block.y + block.h) {
+        return { ok: false, reason: blockReason(block.kind) };
       }
     }
     for (const t of state.towers) {
@@ -518,10 +511,10 @@
       state.shake = Math.max(state.shake, 7);
       announce("Ironjaw is on the lane.");
     } else if (def.boss) {
-      showBanner("Scowl Corps", "General Grimstache", "His tank is on the lane. Stop it before the gate.", "boss");
+      showBanner("Scowl Corps", "Colonel Grim", "His tank is on the lane. Stop it before the gate.", "boss");
       audio.play("boss");
       state.shake = Math.max(state.shake, 5);
-      announce("General Grimstache is on the lane.");
+      announce("Colonel Grim is on the lane.");
     }
   }
 
@@ -1185,7 +1178,7 @@
     stampResult(true);
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
     audio.play("win");
-    announce((B.map.name || "The lane") + " holds. The Scowl Corps poofed into smoke.");
+    announce((B.map.name || "The lane") + " holds. The Scowl Corps fell back.");
   }
 
   const PLAN = [
@@ -1445,8 +1438,8 @@
     const id = mapId || state.mapId || "maple";
     if (!mapOpen(id)) {
       const text = id === "frost"
-        ? "Beat Cactus Junction to unlock Frostbite Pass."
-        : "Beat Maple Grove to unlock Cactus Junction.";
+        ? "Beat Desert Outpost to unlock Ardennes Woods."
+        : "Beat Normandy Shore to unlock Desert Outpost.";
       state.toast = { text: text, t: 0, life: 1.8 };
       audio.play("deny");
       return;
@@ -1467,9 +1460,8 @@
     state.screen = "play";
     audio.ensure();
     audio.play("wave");
-    const ground = map.theme === "desert" ? "sand" : map.theme === "snow" ? "snow" : "grass";
     state.coach = tutorialPending();
-    announce(map.name + ", " + diff.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
+    announce(map.name + ", " + diff.name + ". Plant a Trooper on the glowing mark, then start round 1.");
     resize();
   }
 
