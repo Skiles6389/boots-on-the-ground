@@ -241,19 +241,31 @@
 
   function canPlace(x, y, type) {
     const map = B.map;
-    if (y < B.view.headerH + 16 || y > B.view.footerY - 16 || x < 18 || x > B.view.width - 18) {
+    if (y < 95) return { ok: false, reason: "That's the horizon." };
+    if (y > B.view.footerY - 16 || x < 18 || x > B.view.width - 18) {
       return { ok: false, reason: "Plant on the grass." };
     }
     if (B.distToRoute(x, y) < map.pathClearance) {
       return { ok: false, reason: "The lane is for marching." };
     }
     const pond = map.pond;
-    if (pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + 8) {
-      return { ok: false, reason: pond.kind === "well" ? "That's the well." : "That's the pond." };
+    if (pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + 10) {
+      return { ok: false, reason: pond.kind === "well" ? "That's the well." : pond.kind === "ice" ? "That's the ice." : "That's the pond." };
     }
-    for (const tree of map.trees) {
-      if (Math.hypot(x - tree.x, y - tree.y) < map.trunkBlock) {
+    for (const tree of map.trees || []) {
+      const rad = Math.min(20, Math.max(map.trunkBlock || 12, (tree.r || 14) * 0.75));
+      if (Math.hypot(x - tree.x, y - tree.y) < rad) {
         return { ok: false, reason: "A tree is in the way." };
+      }
+    }
+    for (const prop of map.props || []) {
+      if (prop.kind === "fence") {
+        const half = (prop.w || 48) / 2;
+        if (Math.abs(x - prop.x) < half + 4 && Math.abs(y - prop.y) < 12) {
+          return { ok: false, reason: "The fence is in the way." };
+        }
+      } else if (Math.hypot(x - prop.x, y - prop.y) < (prop.kind === "bush" ? 14 : 16)) {
+        return { ok: false, reason: "That's in the way." };
       }
     }
     for (const t of state.towers) {

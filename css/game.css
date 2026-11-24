@@ -1,11 +1,31 @@
+/* Alfa Slab One, Copyright 2016 The Alfa Slab One Project Authors (JM Solé).
+   Libre Baskerville, Copyright 2012 The Libre Baskerville Project Authors (Impallari Type).
+   Both are used under the SIL Open Font License 1.1. See fonts/OFL-AlfaSlabOne.txt
+   and fonts/OFL-LibreBaskerville.txt. */
+@font-face {
+  font-family: "Alfa Slab One";
+  src: url("../fonts/AlfaSlabOne-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Libre Baskerville";
+  src: url("../fonts/LibreBaskerville.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   height: 100%;
-  background: #146b32;
-  color: #fff8e6;
-  font-family: "Nunito", "Trebuchet MS", Verdana, sans-serif;
+  background: #c6b48a;
+  color: #2a2118;
+  font-family: "Libre Baskerville", Palatino, "Palatino Linotype", serif;
   overflow: hidden;
   position: fixed;
   inset: 0;
@@ -34,7 +54,7 @@ canvas#game {
   height: 100%;
   display: block;
   touch-action: none;
-  background: #4fb534;
+  background: #c6b48a;
   cursor: pointer;
 }
 
