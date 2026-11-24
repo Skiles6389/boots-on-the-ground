@@ -95,6 +95,9 @@
       nextId: 1,
       placedCount: 0,
       laneCursor: 0,
+      popped: 0,
+      leaked: 0,
+      coach: false,
       suppressGhost: false,
       auto: false,
       autoTimer: 0,
@@ -126,9 +129,25 @@
     state.toast = { text, t: 0, life: 1.35 };
   }
 
-  function floater(x, y, text, color, life) {
-    state.floaters.push({ x, y, text, color: color || "#fff6d0", t: 0, life: life || 0.9 });
-    if (state.floaters.length > 24) state.floaters.splice(0, state.floaters.length - 24);
+  function floater(x, y, text, color, life, kind) {
+    state.floaters.push({ x, y, text, color: color || "#fff6d0", t: 0, life: life || 0.9, kind: kind || "text" });
+    if (state.floaters.length > 36) state.floaters.splice(0, state.floaters.length - 36);
+  }
+
+  function tutorialPending() {
+    const save = root.BOTGSave;
+    if (!save) return false;
+    if (save.data.tutorial) return false;
+    if (save.played && save.played()) return false;
+    return true;
+  }
+
+  function finishCoach() {
+    state.coach = false;
+    if (root.BOTGSave) {
+      root.BOTGSave.data.tutorial = true;
+      root.BOTGSave.save();
+    }
   }
 
   function spawnPoof(x, y, scale, withStars) {
@@ -500,10 +519,11 @@
     enemy.dying = 0.42;
     enemy.hp = 0;
     state.cash += enemy.cash;
+    state.popped = (state.popped || 0) + 1;
     const boss = !!B.enemies[enemy.type].boss;
     const scale = boss ? 2.15 : enemy.type === "jeep" ? 1.35 : enemy.type === "heavy" ? 1.15 : 1;
     spawnPoof(enemy.x, enemy.y, scale, true);
-    floater(enemy.x, enemy.y - 16, `+$${enemy.cash}`, "#fff6d0", 0.85);
+    floater(enemy.x, enemy.y - 22, "+$" + enemy.cash, "#ffe14a", 0.9, "coin");
     spawnSparks(enemy.x, enemy.y, "#ffe56a");
     audio.play(boss ? "bossPoof" : "poof");
     if (boss) state.shake = Math.max(state.shake, state.reducedMotion ? 0 : 8);
@@ -512,6 +532,7 @@
   function leak(enemy) {
     if (enemy.dead) return;
     enemy.dead = true;
+    state.leaked = (state.leaked || 0) + 1;
     state.lives -= enemy.leak;
     state.hurt = 1;
     if (!state.reducedMotion) state.shake = Math.max(state.shake, B.enemies[enemy.type].boss ? 7 : 3.5);
@@ -563,11 +584,10 @@
     enemy.hp -= dealt;
     enemy.flash = 0.18;
     const plink = dealt < damage * 0.6;
+    const shown = Math.max(1, Math.round(dealt));
     spawnSparks(enemy.x, enemy.y, plink ? "#d5e6ff" : "#ffe9a0");
-    if (plink && enemy.tinkCd <= 0) {
-      floater(enemy.x, enemy.y - 20, "tink", "#d7e7ff", 0.45);
-      enemy.tinkCd = 0.75;
-    }
+    state.effects.push({ kind: "hit", x: enemy.x, y: enemy.y - 10, t: 0, life: 0.2, r: (enemy.radius || 12) + 4 });
+    if (dealt >= 1) floater(enemy.x + ((enemy.id % 2) ? 6 : -6), enemy.y - 26, String(shown), plink ? "#d7e7ff" : "#fff6d0", 0.7);
     if (enemy.hp <= 0) defeat(enemy);
   }
 
@@ -1108,26 +1128,45 @@
     state.shake = Math.max(0, state.shake - dt * 16);
   }
 
+  function stampResult(won) {
+    remember(won);
+    const stars = root.BOTGSave ? root.BOTGSave.stars(state.mapId) : (won ? 1 : 0);
+    state.result = {
+      won: !!won,
+      map: (B.map && B.map.name) || "The lane",
+      diff: state.difficulty || "medium",
+      round: won ? B.waves.length : Math.max(1, state.started),
+      rounds: B.waves.length,
+      lives: state.lives,
+      popped: state.popped || 0,
+      leaked: state.leaked || 0,
+      towers: state.towers.length,
+      stars: stars,
+    };
+  }
+
   function lose() {
     if (state.screen !== "play") return;
-      state.screen = "lose";
-      state.auto = false;
-      state.speedOverride = 0;
-      state.shots = [];
+    state.screen = "lose";
+    state.auto = false;
+    state.speedOverride = 0;
+    state.shots = [];
+    state.coach = false;
+    stampResult(false);
     state.summary = `LOSE wave ${state.started} lives ${state.lives} cash ${state.cash}`;
-    remember(false);
     audio.play("lose");
     announce(`The Scowl Corps reached the gate on wave ${state.started}.`);
   }
 
   function win() {
     if (state.screen !== "play") return;
-      state.screen = "win";
-      state.auto = false;
-      state.speedOverride = 0;
-      state.shots = [];
+    state.screen = "win";
+    state.auto = false;
+    state.speedOverride = 0;
+    state.shots = [];
+    state.coach = false;
+    stampResult(true);
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
-    remember(true);
     audio.play("win");
     announce((B.map.name || "The lane") + " holds. The Scowl Corps poofed into smoke.");
   }
@@ -1179,6 +1218,7 @@
   function update(dt) {
     state.time += dt;
     tickFx(dt);
+    if (state.screen === "play" && state.coach && state.rewarded >= 1) finishCoach();
     if (state.screen !== "play") return;
     if (state.auto) {
       state.autoTimer -= dt;
@@ -1407,6 +1447,7 @@
     audio.ensure();
     audio.play("wave");
     const ground = map.theme === "desert" ? "sand" : map.theme === "snow" ? "snow" : "grass";
+    state.coach = tutorialPending();
     announce(map.name + ", " + diff.name + ". Plant a Trooper on the " + ground + ", then start round 1.");
     resize();
   }
@@ -1471,6 +1512,7 @@
     setDifficulty,
     unlockAll,
     useAbility,
+    finishCoach,
   };
 
   const params = new URLSearchParams(root.location.search);
