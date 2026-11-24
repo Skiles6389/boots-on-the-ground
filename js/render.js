@@ -1152,6 +1152,33 @@
     }
   }
 
+  function drawChute(ctx, e) {
+    const x = e.x;
+    const y = e.y - 40;
+    ctx.save();
+    ctx.fillStyle = "#e23b4a";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 18, 9, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#fff6e8";
+    ctx.fillRect(x - 2, y - 8, 4, 8);
+    ctx.strokeStyle = "rgba(255,246,232,0.9)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y);
+    ctx.lineTo(x, e.y - 8);
+    ctx.moveTo(x + 14, y);
+    ctx.lineTo(x, e.y - 8);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, e.y - 8);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawHp(ctx, e) {
     const def = B.enemies[e.type];
     if (!def.boss && e.hp > e.maxHp - 0.05) return;
@@ -1392,7 +1419,7 @@
   function composition(wave) {
     const counts = {};
     wave.groups.forEach((g) => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    const order = ["grunt", "scout", "moto", "heavy", "brute", "riot", "medic", "sneak", "jeep", "halftrack", "gnat", "tank", "ironjaw"];
+    const order = ["grunt", "scout", "dash", "moto", "heavy", "brute", "riot", "bulwark", "medic", "sneak", "camo", "para", "jeep", "halftrack", "gnat", "tank", "ironjaw"];
     return order.filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
   }
 
@@ -2514,7 +2541,8 @@
             ctx.globalAlpha = Math.max(0, 1 - k);
             ctx.translate(-e.x, -e.y);
           }
-          if (!dying && (e.type === "scout" || e.type === "moto" || e.type === "jeep" || e.type === "halftrack")) drawDust(ctx, e, state.time);
+          if (!dying && (e.type === "scout" || e.type === "dash" || e.type === "moto" || e.type === "jeep" || e.type === "halftrack")) drawDust(ctx, e, state.time);
+          if (!dying && e.falling > 0) drawChute(ctx, e);
           if (e.type === "jeep" || e.type === "halftrack") drawJeep(ctx, e);
           else if (e.type === "tank" || e.type === "ironjaw") drawTank(ctx, e, state.time);
           else if (e.type === "gnat") drawGnat(ctx, e);
@@ -2528,7 +2556,17 @@
               scale: B.enemies[e.type].scale,
               flash: e.flash,
               revealed: e.revealed,
+              shield: e.shieldMax ? e.shieldHp / e.shieldMax : null,
             });
+          }
+          if (!dying && e.shieldMax && e.shieldHp > 0) {
+            const bw = 16;
+            const bx = e.x - bw / 2;
+            const by = e.y - 46;
+            ctx.fillStyle = "rgba(20,16,12,0.45)";
+            ctx.fillRect(bx, by, bw, 3);
+            ctx.fillStyle = "#9ec4ff";
+            ctx.fillRect(bx, by, bw * (e.shieldHp / e.shieldMax), 3);
           }
           if (!dying && e.flash > 0.05) {
             ctx.strokeStyle = "rgba(255,255,255," + Math.min(0.9, e.flash * 4) + ")";
