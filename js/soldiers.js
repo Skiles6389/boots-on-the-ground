@@ -322,6 +322,30 @@
     ctx.restore();
   }
 
+  function tierKit(ctx, role, rank) {
+    if (!rank) return;
+    piece(ctx, -10, -14, 4.2, 5, 1.1, "#e0a04a", "#a87430");
+    if (rank >= 2) {
+      ctx.fillStyle = "#ffe56a";
+      ctx.fillRect(-5, -40, 10, 1.8);
+      if (role === "gatling" || role === "mortar" || role === "tread") {
+        disk(ctx, 12, role === "mortar" ? -24 : -16, 2.6, "#dfe6ee", null);
+      }
+      if (role === "engineer") piece(ctx, 8, -2, 9, 3.4, 1, "#e6c98a", "#b8924a");
+      if (role === "longshot") piece(ctx, 8, -6, 5, 2.2, 0.6, "#2a3038", null);
+    }
+    if (rank >= 3) {
+      ctx.fillStyle = "#ffe56a";
+      ctx.strokeStyle = "#1a120c";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, -42, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      if (role === "engineer" || role === "trooper") piece(ctx, -14, 0, 8, 3.2, 1, "#d7b56a", "#a8843e");
+    }
+  }
+
   function draw(ctx, x, y, opt) {
     const role = opt.role || (opt.team === "enemy" ? "grunt" : "trooper");
     const team = opt.team || "player";
@@ -330,7 +354,10 @@
     const aim = opt.aim || 0;
     const face = Math.cos(aim) >= 0 ? 1 : -1;
     const sc = opt.scale || 1;
-    const bob = enemy ? Math.abs(Math.sin(opt.phase || 0)) * 2.6 * sc : Math.sin((opt.phase || 0) * 0.7) * 0.8 * sc;
+    const ph = opt.phase || 0;
+    const bob = enemy ? Math.abs(Math.sin(ph)) * 2.6 * sc : Math.sin(ph * 0.55) * 1.3 * sc;
+    const breath = !enemy && opt.idle ? 1 + Math.sin(ph * 0.7) * 0.04 : 1;
+    const look = !enemy && opt.idle ? Math.sin(ph * 0.22) * 0.05 : 0;
     const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)))));
 
     if (!enemy && role === "longshot") {
@@ -339,13 +366,15 @@
       ctx.rotate(aim);
       ctx.scale(sc, sc);
       prone(ctx, pal);
+      if ((opt.rank || 0) >= 2) piece(ctx, 14, -4, 4, 2, 0.5, "#dfe6ee", null);
       ctx.restore();
       return;
     }
 
     ctx.save();
     ctx.translate(x, y - bob);
-    ctx.scale(face * sc, sc);
+    ctx.rotate(look);
+    ctx.scale(face * sc, sc * breath);
     if (role === "mortar") {
       kneel(ctx, pal, false, 1);
       ctx.save();
@@ -444,6 +473,7 @@
       rifle(ctx, 11, pal);
       ctx.restore();
     }
+    tierKit(ctx, role, opt.rank || 0, pal);
     if (opt.badge) {
       ctx.fillStyle = "#ffe56a";
       ctx.fillRect(-8, -25, 16, 2.4);

@@ -139,8 +139,15 @@
     ctx.save();
     roundPath(ctx, x, py, w, h, radius);
     ctx.clip();
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    ctx.fillRect(x, py, w, h * 0.42);
+    const sheen = ctx.createLinearGradient(x, py, x, py + h * 0.55);
+    sheen.addColorStop(0, "rgba(255,255,255,0.55)");
+    sheen.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(x, py, w, h * 0.5);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.32, py + h * 0.28, Math.max(4, w * 0.22), Math.max(2, h * 0.16), -0.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
     ctx.lineWidth = spec.active ? 4 : 3;
     ctx.strokeStyle = spec.active ? "#fff4b0" : INK;
@@ -465,18 +472,22 @@
       else drawFlower(ctx, x, y, 2.4 + rand() * 1.6, colors[i % colors.length]);
     }
 
+    ctx.save();
+    ctx.translate(2, 5);
+    strokePath(ctx, 58, desert ? "rgba(90, 48, 16, 0.35)" : "rgba(20, 50, 12, 0.28)");
+    ctx.restore();
     if (desert) {
       strokePath(ctx, 64, "rgba(120, 64, 18, 0.35)");
-      strokePath(ctx, 54, "#8a4e22");
-      strokePath(ctx, 46, "#e2b56a");
-      strokePath(ctx, 34, "#f0d09a");
-      strokePath(ctx, 14, "rgba(255, 236, 196, 0.45)");
+      strokePath(ctx, 56, "#6a3a18");
+      strokePath(ctx, 48, "#e2b56a");
+      strokePath(ctx, 36, "#f6d7a4");
+      strokePath(ctx, 16, "rgba(255, 244, 214, 0.7)");
     } else {
       strokePath(ctx, 64, "rgba(36, 70, 16, 0.35)");
-      strokePath(ctx, 54, "#5c3b22");
-      strokePath(ctx, 46, "#e6c98a");
-      strokePath(ctx, 34, "#f0d7a4");
-      strokePath(ctx, 14, "rgba(255, 244, 214, 0.55)");
+      strokePath(ctx, 56, "#3a2414");
+      strokePath(ctx, 48, "#e6c98a");
+      strokePath(ctx, 36, "#f7e2b4");
+      strokePath(ctx, 16, "rgba(255, 250, 230, 0.75)");
     }
 
     ctx.fillStyle = "rgba(120, 78, 36, 0.35)";
@@ -779,9 +790,13 @@
       ctx.strokeStyle = INK;
       ctx.stroke();
     });
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
     ctx.beginPath();
-    ctx.arc(tree.x - r * 0.2, tree.y - r * 1.1, r * 0.28, 0, Math.PI * 2);
+    ctx.ellipse(tree.x - r * 0.22, tree.y - r * 1.15, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.beginPath();
+    ctx.arc(tree.x + r * 0.15, tree.y - r * 0.7, r * 0.18, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -1808,6 +1823,15 @@
       ? { tl: 12, tr: 12, br: 0, bl: 0 }
       : { tl: 12, tr: 0, br: 0, bl: 12 };
     fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, "#fff6df");
+    ctx.save();
+    roundPath(ctx, p.x + inset, p.y + inset, p.w - inset * 2, Math.min(28, p.h * 0.2), ir);
+    ctx.clip();
+    const gloss = ctx.createLinearGradient(0, p.y, 0, p.y + 28);
+    gloss.addColorStop(0, "rgba(255,255,255,0.55)");
+    gloss.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gloss;
+    ctx.fillRect(p.x, p.y, p.w, 28);
+    ctx.restore();
     const selected = state.towers.find((t) => t.id === state.selectedId) || null;
     const show = selected && !state.placing;
     const m = metrics(L, show);
@@ -2355,6 +2379,7 @@
             spin: tower.spin,
             rank: Math.min(3, B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : tower.rank || 0),
             badge: B.statsFor(tower.type, tower.ranks).badge,
+            idle: !tower.targetId,
           });
         },
       });
