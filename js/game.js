@@ -347,6 +347,8 @@
     state.suppressGhost = true;
     spawnPoof(x, y + 2, 0.55, false);
     audio.play("place");
+    if (type === "engineer") audio.play("wrench");
+    if (type === "tent") audio.play("tent");
     floater(x, y - 26, `-$${paid}`, "#fff6d0", 0.7);
   }
 
@@ -558,7 +560,7 @@
     spawnPoof(enemy.x, enemy.y, scale, true);
     floater(enemy.x, enemy.y - 22, "+$" + enemy.cash, "#ffe14a", 0.9, "coin");
     spawnSparks(enemy.x, enemy.y, "#ffe56a");
-    audio.play(boss ? "bossPoof" : "poof");
+    audio.play(boss ? "bossPoof" : "down");
     if (boss) state.shake = Math.max(state.shake, state.reducedMotion ? 0 : 8);
   }
 
@@ -732,6 +734,7 @@
       }
     }
     spawnPoof(x, y, 1.15, true);
+    audio.play("boom");
     state.effects.push({ kind: "boom", x, y, t: 0, life: 0.38, r: radius });
     if (!state.reducedMotion) state.shake = Math.max(state.shake, radius > 30 ? 3.4 : 2.2);
   }

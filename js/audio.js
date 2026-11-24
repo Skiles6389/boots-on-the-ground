@@ -6,6 +6,8 @@
     muted: false,
     music: true,
     sfx: true,
+    volume: 0.7,
+    master: null,
     last: {},
     marching: false,
     step: 0,
@@ -19,8 +21,17 @@
         this.ctx = new AC();
       }
       if (this.ctx.state === "suspended") this.ctx.resume();
+      if (!this.master) {
+        this.master = this.ctx.createGain();
+        this.master.gain.value = this.volume;
+        this.master.connect(this.ctx.destination);
+      }
       this.maybeMarch();
       return this.ctx;
+    },
+
+    dest() {
+      return this.master || (this.ctx && this.ctx.destination);
     },
 
     loadSettings() {
@@ -30,10 +41,13 @@
         const sfx = root.localStorage.getItem("botg-sfx");
         this.music = music == null ? true : music === "1";
         this.sfx = sfx == null ? true : sfx === "1";
+        const vol = Number(root.localStorage.getItem("botg-volume"));
+        this.volume = Number.isFinite(vol) ? Math.max(0, Math.min(1, vol)) : 0.7;
       } catch (err) {
         this.muted = false;
         this.music = true;
         this.sfx = true;
+        this.volume = 0.7;
       }
     },
 
@@ -72,6 +86,17 @@
       return this.sfx;
     },
 
+    cycleVolume() {
+      const steps = [0.4, 0.7, 1];
+      let i = 0;
+      for (let s = 0; s < steps.length; s++) if (Math.abs(this.volume - steps[s]) < 0.08) i = s;
+      this.volume = steps[(i + 1) % steps.length];
+      if (this.master) this.master.gain.value = this.volume;
+      try { root.localStorage.setItem("botg-volume", String(this.volume)); } catch (err) { /* private mode */ }
+      if (!this.muted && this.sfx) this.play("ui");
+      return this.volume;
+    },
+
     tone(freq, dur, type, gain, delay, slideTo) {
       const ctx = this.ctx;
       if (!ctx || this.muted || !this.sfx) return;
@@ -84,7 +109,7 @@
       g.gain.setValueAtTime(gain, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g);
-      g.connect(ctx.destination);
+      g.connect(this.dest());
       o.start(t);
       o.stop(t + dur + 0.03);
     },
@@ -108,7 +133,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       src.connect(filter);
       filter.connect(g);
-      g.connect(ctx.destination);
+      g.connect(this.dest());
       src.start(t);
       src.stop(t + dur + 0.02);
     },
@@ -184,6 +209,20 @@
         case "wrench":
           this.tone(880, 0.05, "square", 0.03);
           this.tone(440, 0.08, "triangle", 0.03, 0.05);
+          break;
+        case "tent":
+          this.tone(330, 0.1, "triangle", 0.04);
+          this.tone(494, 0.12, "sine", 0.04, 0.08);
+          break;
+        case "down":
+          if (this.throttled("down", 45)) return;
+          this.noise(0.08, 0.04, 500);
+          this.tone(220, 0.08, "triangle", 0.04, 0, 90);
+          break;
+        case "boom":
+          if (this.throttled("boom", 70)) return;
+          this.noise(0.16, 0.07, 160);
+          this.tone(70, 0.2, "sine", 0.06, 0, 40);
           break;
         case "poof":
           this.noise(0.18, 0.05, 600);
@@ -261,7 +300,7 @@
       g.gain.setValueAtTime(gain, time);
       g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
       o.connect(g);
-      g.connect(this.ctx.destination);
+      g.connect(this.dest());
       o.start(time);
       o.stop(time + dur + 0.02);
     },
@@ -283,7 +322,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
       src.connect(filter);
       filter.connect(g);
-      g.connect(this.ctx.destination);
+      g.connect(this.dest());
       src.start(time);
       src.stop(time + dur + 0.02);
     },
