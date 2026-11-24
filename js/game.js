@@ -432,7 +432,10 @@
     let t = 0.4;
     for (const g of wave.groups) {
       for (let i = 0; i < g.count; i++) {
-        items.push({ type: g.type, at: t });
+        const item = { type: g.type, at: t };
+        if (typeof g.hp === "number") item.hp = g.hp;
+        if (typeof g.speed === "number") item.speed = g.speed;
+        items.push(item);
         t += g.interval;
       }
       t += 0.35;
@@ -490,9 +493,9 @@
       x: p.x,
       y: p.y - (dropping ? 78 : 0),
       angle: p.angle,
-      hp: def.hp,
-      maxHp: def.hp,
-      speed: def.speed,
+      hp: opt && typeof opt.hp === "number" ? opt.hp : def.hp,
+      maxHp: opt && typeof opt.hp === "number" ? opt.hp : def.hp,
+      speed: opt && typeof opt.speed === "number" ? opt.speed : def.speed,
       armor: def.armor,
       cash: def.cash,
       leak: def.leak,
