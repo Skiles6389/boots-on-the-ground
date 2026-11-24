@@ -1239,41 +1239,159 @@
     }
   }
 
-  function drawMuzzle(ctx, x, y, aim, amount) {
+  function drawMuzzle(ctx, x, y, aim, amount, scale) {
     const a = Math.min(1, amount * 8);
+    const s = scale || 1;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(aim || 0);
     ctx.globalAlpha = a;
-    const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, 12);
+    const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, 12 * s);
     glow.addColorStop(0, "#ffffff");
     glow.addColorStop(0.35, "#ffe56a");
     glow.addColorStop(0.7, "#ff9a1f");
     glow.addColorStop(1, "rgba(255,120,20,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.arc(0, 0, 12 * s, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#fff8d0";
-    star(ctx, 0, 0, 6, 0.2);
+    star(ctx, 0, 0, 6 * s, 0.2);
     ctx.fill();
     ctx.strokeStyle = INK;
     ctx.lineWidth = 1.4;
     ctx.stroke();
     ctx.fillStyle = "#ffd23a";
-    star(ctx, 5, 0, 3.4, 0.8);
+    star(ctx, 5 * s, 0, 3.4 * s, 0.8);
     ctx.fill();
     ctx.restore();
   }
 
+  function kitBox(ctx, x, y, w, h, fill) {
+    fillRound(ctx, x, y, w, h, 2, fill);
+    ctx.lineWidth = 1.7;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, x, y, w, h, 2);
+  }
+
+  function drawUpgradeLook(ctx, x, y, opt, phase) {
+    const n = opt.chevrons || 0;
+    if (n < 1 || opt.team === "enemy") return;
+    const role = opt.role || "trooper";
+    const face = Math.cos(opt.aim || 0) >= 0 ? 1 : -1;
+    const top = n >= 5;
+    if (phase === "back") {
+      if (!top) return;
+      ctx.save();
+      ctx.translate(x, y);
+      const g = ctx.createRadialGradient(0, -18, 4, 0, -18, 26);
+      g.addColorStop(0, "rgba(255, 214, 90, 0.45)");
+      g.addColorStop(1, "rgba(255, 170, 40, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, -18, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(face * (opt.scale || 1), opt.scale || 1);
+    if (n >= 4 && role !== "chopper") {
+      kitBox(ctx, -22, -4, 18, 9, "#8d7844");
+      kitBox(ctx, 4, -3, 18, 9, "#c4a15a");
+    }
+    if (role === "trooper" || role === "gatling" || role === "sky" || role === "gunner") {
+      if (n >= 1) kitBox(ctx, -14, -18, 8, 9, "#e2b15a");
+      if (n >= 2) kitBox(ctx, 10, role === "gunner" ? -16 : -22, n >= 3 ? 26 : 14, role === "gunner" ? 7 : 5, "#1a140e");
+      if (n >= 3) kitBox(ctx, -8, role === "longshot" ? -16 : -38, 16, 6, "#d8c27a");
+      if (n >= 2 && role === "gatling") kitBox(ctx, 10, -14, 16, 4, "#1a140e");
+    } else if (role === "longshot") {
+      if (n >= 1) {
+        ctx.fillStyle = "#1c1814";
+        ctx.beginPath();
+        ctx.arc(14, -8, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = INK;
+        ctx.stroke();
+      }
+      if (n >= 2) kitBox(ctx, 16, -10, 18, 3, "#2a241c");
+      if (n >= 3) kitBox(ctx, 6, -4, 10, 3, "#3a342c");
+    } else if (role === "flame") {
+      if (n >= 1) {
+        ctx.fillStyle = "#5c4030";
+        ctx.beginPath();
+        ctx.ellipse(-10, -14, 5, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+      if (n >= 2) kitBox(ctx, 8, -16, n >= 3 ? 18 : 12, 4, "#c4373a");
+    } else if (role === "mortar") {
+      if (n >= 1) kitBox(ctx, -14, -10, 8, 8, "#6a5434");
+      if (n >= 2) kitBox(ctx, 4, -22, 8, n >= 3 ? 16 : 10, "#3a342c");
+    } else if (role === "tread") {
+      if (n >= 1) kitBox(ctx, -16, -14, 8, 10, "#5c656c");
+      if (n >= 2) kitBox(ctx, 12, -12, n >= 3 ? 20 : 12, 5, "#2a241c");
+    } else if (role === "engineer") {
+      if (n >= 1) kitBox(ctx, 8, -8, 8, 7, "#c6a25c");
+      if (n >= 2) {
+        ctx.strokeStyle = "#6a2424";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(-12, -6, 5, 0, Math.PI * 1.6);
+        ctx.stroke();
+      }
+      if (n >= 3) {
+        ctx.strokeStyle = "#d7e7ff";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, -28, 7, Math.PI, 0);
+        ctx.stroke();
+      }
+    } else if (role === "tent") {
+      if (n >= 2) {
+        ctx.fillStyle = "#5e6c40";
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-8, -8);
+        ctx.lineTo(2, -26);
+        ctx.lineTo(14, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (n >= 1) kitBox(ctx, 12, -8, 7, 6, "#c6a25c");
+    } else if (role === "chopper") {
+      if (n >= 1) kitBox(ctx, 8, -8, 8, 5, "#6a5434");
+      if (n >= 2) kitBox(ctx, -16, -10, 8, 4, "#2a241c");
+      if (n >= 3) kitBox(ctx, -6, -16, 12, 4, "#6a7278");
+    }
+    if (top) {
+      ctx.strokeStyle = "#ffe08a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, role === "longshot" ? -8 : -18, role === "chopper" ? 18 : 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawSoldier(ctx, x, y, opt) {
+    const player = !opt.team || opt.team === "player";
+    if (player) drawUpgradeLook(ctx, x, y, opt, "back");
     const usedArt = !!(root.BOTGSoldier && root.BOTGSoldier.draw(ctx, x, y, opt));
     const role = opt.role || "trooper";
     const sc = opt.scale || 1;
-    if (!opt.team || opt.team === "player") {
+    if (player) {
+      drawUpgradeLook(ctx, x, y, opt, "front");
       if (opt.flash > 0 && root.BOTGMuzzle) {
         const tip = root.BOTGMuzzle(x, y, role, opt.aim || 0);
-        drawMuzzle(ctx, tip.x, tip.y, opt.aim || 0, opt.flash);
+        const hot = (opt.chevrons || 0) >= 5 ? 1.7 : 1;
+        drawMuzzle(ctx, tip.x, tip.y, opt.aim || 0, opt.flash, hot);
       }
     }
     if (opt.rank && !usedArt) drawRanks(ctx, x, y - (role === "longshot" ? 16 : 40) * sc, opt.rank);
@@ -3222,6 +3340,7 @@
             flash: tower.flash,
             spin: tower.spin,
             rank: Math.min(3, B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : tower.rank || 0),
+            chevrons: B.chevronsUsed ? B.chevronsUsed(tower.type, tower.ranks) : (tower.rank || 0),
             ranks: tower.ranks,
             badge: B.statsFor(tower.type, tower.ranks).badge,
             idle: !tower.targetId,
