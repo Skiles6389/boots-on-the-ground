@@ -2359,46 +2359,40 @@
   }
 
   function drawMiniPath(ctx, map, x, y, w, h) {
-    const snow = map.theme === "snow";
-    const desert = map.theme === "desert";
-    fillRound(ctx, x, y, w, h, 12, snow ? "#d5e6f4" : desert ? "#e2b15a" : "#7d8a5c");
+    const plate = root.BOTGArt && root.BOTGArt.mapImage(map.id);
+    ctx.save();
+    roundPath(ctx, x, y, w, h, 12);
+    ctx.clip();
+    if (plate) {
+      // Playfield only: header covers y<48 and the footer starts at 552. Source plates are 2x.
+      const sx = 0;
+      const sy = 96;
+      const sw = 800;
+      const sh = 1008;
+      const destAspect = w / Math.max(1, h);
+      const srcAspect = sw / sh;
+      let cropX = sx;
+      let cropY = sy;
+      let cropW = sw;
+      let cropH = sh;
+      if (srcAspect > destAspect) {
+        cropW = sh * destAspect;
+        cropX = sx + (sw - cropW) / 2;
+      } else {
+        cropH = sw / destAspect;
+        cropY = sy + (sh - cropH) / 2;
+      }
+      ctx.drawImage(plate, cropX, cropY, cropW, cropH, x, y, w, h);
+    } else {
+      const snow = map.theme === "snow";
+      const desert = map.theme === "desert";
+      ctx.fillStyle = snow ? "#d5e6f4" : desert ? "#e2b15a" : "#7d8a5c";
+      ctx.fillRect(x, y, w, h);
+    }
+    ctx.restore();
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, w, h, 12);
-    const lines = map.paths && map.paths.length ? map.paths : [map.path];
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    lines.forEach((pts) => pts.forEach((p) => {
-      minX = Math.min(minX, p[0]);
-      minY = Math.min(minY, p[1]);
-      maxX = Math.max(maxX, p[0]);
-      maxY = Math.max(maxY, p[1]);
-    }));
-    const s = Math.min((w - 22) / (maxX - minX || 1), (h - 22) / (maxY - minY || 1));
-    ctx.save();
-    ctx.beginPath();
-    roundPath(ctx, x + 2, y + 2, w - 4, h - 4, 10);
-    ctx.clip();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    lines.forEach((pts) => {
-      ctx.strokeStyle = snow ? "#6a8498" : desert ? "#8a4e22" : "#5c3b22";
-      ctx.lineWidth = 12;
-      ctx.beginPath();
-      pts.forEach((p, i) => {
-        const px = x + 12 + (p[0] - minX) * s;
-        const py = y + 12 + (p[1] - minY) * s;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      });
-      ctx.stroke();
-      ctx.strokeStyle = snow ? "#f7fbff" : desert ? "#f0d09a" : "#f0d7a4";
-      ctx.lineWidth = 6;
-      ctx.stroke();
-    });
-    ctx.restore();
   }
 
   function drawAudioRow(ctx, state, x, y, w, h) {
