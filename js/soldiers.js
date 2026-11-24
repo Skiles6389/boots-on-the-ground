@@ -1,439 +1,262 @@
-// Cartoon soldiers for Boots on the Ground.
-// Real people in a bright cel-shaded style. The toy-army flavor is the
-// green helmet and uniform, and the classic kneel / prone / gunner poses.
-// Nothing here is a plastic figure: no molded one-color body, no display base.
+// Rubber-hose soldiers for Boots on the Ground.
+// 1930s hand-inked cartoon: noodle limbs, pie-cut eyes, white gloves,
+// thick-thin outlines. No studio characters. Skins tint the friendly cloth.
 (function (root) {
-  const INK = "#1a120c";
+  const INK = "#2a2118";
+  const GLOVE = "#f4efe4";
+  const SKIN = "#f0c9a0";
 
   const FRIEND = {
-    skin: "#f3c59a",
-    skinHi: "#ffe6c8",
-    skinSh: "#d39662",
-    jacket: "#3caf4c",
-    jacketSh: "#1f7a34",
-    jacketHi: "#9aeb78",
-    pants: "#2c8640",
-    helmet: "#2f9e44",
-    helmetHi: "#c6f6a4",
-    helmetSh: "#176632",
-    boot: "#6a4324",
-    belt: "#f0c85a",
-    strap: "#c4964a",
-    gun: "#3a424a",
-    gunHi: "#aeb6be",
-    eye: "#241c14",
-    mouth: "#a85048",
-    brow: "#3a2818",
+    cloth: "#5d6b3a",
+    clothDk: "#3e4a28",
+    helm: "#4a5530",
+    belt: "#c4a15a",
+    boot: "#4a3424",
   };
-
   const FOE = {
-    skin: "#e8b48c",
-    skinHi: "#ffd8b4",
-    skinSh: "#c48860",
-    jacket: "#5a1838",
-    jacketSh: "#2c0c1c",
-    jacketHi: "#a04068",
-    pants: "#2a1020",
-    helmet: "#2a1428",
-    helmetHi: "#7a4868",
-    helmetSh: "#120810",
-    boot: "#1a1014",
-    belt: "#e23a3a",
-    strap: "#8a2030",
-    gun: "#24161c",
-    gunHi: "#8a7078",
-    eye: "#ff2e2e",
-    mouth: "#4a1020",
-    brow: "#14080c",
-    spike: "#d8d0dc",
+    cloth: "#8d3a32",
+    clothDk: "#5c241e",
+    helm: "#2c241c",
+    belt: "#c4a15a",
+    boot: "#2a1c16",
   };
 
   const KITS = {
-    parade: { jacket: "#3caf4c", jacketHi: "#e4ff8a", helmet: "#2f9e44", helmetHi: "#fff0a0", belt: "#ffe14a", pants: "#217a32" },
-    night: { jacket: "#1c4a28", jacketHi: "#4e9a58", jacketSh: "#0e2a16", helmet: "#143820", helmetHi: "#8ec88a", pants: "#102818", belt: "#c4a06a" },
-    sand: { jacket: "#c4a06a", jacketHi: "#f3ddb0", jacketSh: "#8a6840", helmet: "#a88448", helmetHi: "#ffe6b0", pants: "#6a5030", belt: "#5c4030" },
-    dress: { jacket: "#2a5a9a", jacketHi: "#b7dcff", jacketSh: "#16386a", helmet: "#1a3a68", helmetHi: "#e4f2ff", pants: "#142848", belt: "#ffe14a" },
+    parade: { cloth: "#6e7a3a", clothDk: "#4a5428", helm: "#5a6230", belt: "#e2c56a" },
+    night: { cloth: "#2e4030", clothDk: "#1c2820", helm: "#243028", belt: "#8a7048" },
+    sand: { cloth: "#b59262", clothDk: "#7a6240", helm: "#8a6844", belt: "#5c4030" },
+    dress: { cloth: "#3a5278", clothDk: "#24344e", helm: "#2a3c58", belt: "#e2c56a" },
   };
 
   function palFor(team, role, skinId) {
-    if (team !== "enemy") {
-      const id = skinId || ((root.BOTGSave && root.BOTGSave.skin && root.BOTGSave.skin()) || "field");
-      const extra = KITS[id];
-      return extra ? Object.assign({}, FRIEND, extra) : FRIEND;
+    const base = team === "enemy" ? FOE : FRIEND;
+    const id = skinId || ((root.BOTGSave && root.BOTGSave.skin && root.BOTGSave.skin()) || "field");
+    const extra = team === "enemy" ? null : KITS[id];
+    const pal = Object.assign({}, base, extra || {});
+    if (team === "enemy" && (role === "heavy" || role === "brute" || role === "bulwark")) {
+      pal.cloth = "#6e2c28";
+      pal.clothDk = "#401816";
     }
-    const pal = Object.assign({}, FOE);
-    if (role === "scout" || role === "dash") {
-      pal.jacket = "#7a2850";
-      pal.jacketHi = "#c45a80";
-      pal.helmet = "#3a1834";
-    }
-    if (role === "dash") {
-      pal.belt = "#ffe14a";
-      pal.helmetHi = "#fff0a0";
-    }
-    if (role === "camo") {
-      pal.jacket = "#4a5a32";
-      pal.jacketSh = "#2a3818";
-      pal.jacketHi = "#8aaa58";
-      pal.helmet = "#3a4a28";
-      pal.helmetHi = "#b6d48a";
-      pal.pants = "#2c2418";
-    }
-    if (role === "bulwark") {
-      pal.jacket = "#3a1028";
-      pal.jacketHi = "#7a2848";
-      pal.helmet = "#1a1020";
-    }
-    if (role === "heavy") {
-      pal.jacket = "#3a1028";
-      pal.jacketSh = "#180810";
-      pal.jacketHi = "#7a2848";
-      pal.pants = "#1a0c14";
+    if (team === "enemy" && role === "camo") {
+      pal.cloth = "#5a6238";
+      pal.clothDk = "#3a4024";
     }
     return pal;
   }
 
-  function piece(ctx, x, y, w, h, r, fill, shade) {
+  function qPts(x0, y0, cx, cy, x1, y1, n) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const u = 1 - t;
+      pts.push({
+        x: u * u * x0 + 2 * u * t * cx + t * t * x1,
+        y: u * u * y0 + 2 * u * t * cy + t * t * y1,
+      });
+    }
+    return pts;
+  }
+
+  function hose(ctx, x0, y0, cx, cy, x1, y1, w, fill) {
+    const pts = qPts(x0, y0, cx, cy, x1, y1, 7);
+    const left = [];
+    const right = [];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      const q = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = q.x - p.x;
+      const dy = q.y - p.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const taper = 0.55 + 0.45 * Math.sin((i / (pts.length - 1)) * Math.PI);
+      const ww = w * taper;
+      left.push([p.x + nx * ww, p.y + ny * ww]);
+      right.push([p.x - nx * ww, p.y - ny * ww]);
+    }
     ctx.beginPath();
-    const rr = Math.max(0, Math.min(r, w / 2, h / 2));
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.moveTo(left[0][0], left[0][1]);
+    for (let i = 1; i < left.length; i++) ctx.lineTo(left[i][0], left[i][1]);
+    for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
     ctx.closePath();
     ctx.fillStyle = fill;
     ctx.fill();
-    if (shade) {
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = shade;
-      ctx.fillRect(x, y + h * 0.52, w, h * 0.55);
-      ctx.restore();
-    }
-    ctx.lineWidth = 2.6;
     ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.7;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     ctx.stroke();
-    ctx.save();
-    ctx.clip();
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.15, y + h * 0.22, w * 0.28, h * 0.16, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   }
 
-  function disk(ctx, x, y, r, fill, shade) {
+  function blob(ctx, x, y, rx, ry, fill, rot) {
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2);
     ctx.fillStyle = fill;
     ctx.fill();
-    if (shade) {
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = shade;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  function glove(ctx, x, y, s) {
+    blob(ctx, x, y, 3.2 * s, 2.6 * s, GLOVE, 0);
+    ctx.fillStyle = GLOVE;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.arc(x + r * 0.2, y + r * 0.35, r * 0.85, 0, Math.PI * 2);
+      ctx.ellipse(x - 1.6 * s + i * 1.5 * s, y - 2.4 * s, 0.7 * s, 1.3 * s, -0.2 + i * 0.15, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
+      ctx.stroke();
     }
-    ctx.lineWidth = 2.6;
-    ctx.strokeStyle = INK;
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
+  }
+
+  function boot(ctx, x, y, pal) {
+    blob(ctx, x, y, 3.4, 2.1, pal.boot, 0.2);
+  }
+
+  function pieEye(ctx, x, y, r, angry) {
+    ctx.fillStyle = INK;
     ctx.beginPath();
-    ctx.ellipse(x - r * 0.28, y - r * 0.32, r * 0.36, r * 0.2, -0.4, 0, Math.PI * 2);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f7f1e4";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    const a0 = angry ? -0.2 : 0.15;
+    const a1 = angry ? 1.15 : 1.35;
+    ctx.arc(x, y, r + 0.2, a0, a1);
+    ctx.closePath();
     ctx.fill();
   }
 
-  function limb(ctx, x1, y1, x2, y2, color, width) {
+  function brow(ctx, x, y, angry) {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.3;
     ctx.lineCap = "round";
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = width + 3.2;
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
+    if (angry) {
+      ctx.moveTo(x - 3.2, y - 1.2);
+      ctx.quadraticCurveTo(x, y + 1.4, x + 3.2, y - 0.4);
+    } else {
+      ctx.moveTo(x - 3, y);
+      ctx.quadraticCurveTo(x, y - 1.6, x + 3, y - 0.2);
+    }
     ctx.stroke();
   }
 
-  function paintFace(ctx, x, y, r, pal, enemy) {
-    disk(ctx, x, y, r, pal.skin, pal.skinSh);
-    ctx.fillStyle = pal.skinHi;
-    ctx.beginPath();
-    ctx.ellipse(x - r * 0.28, y - r * 0.32, r * 0.32, r * 0.2, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-    const ey = y + r * 0.22;
+  function head(ctx, x, y, r, pal, enemy) {
+    blob(ctx, x, y - r - 1.2, r + 1.6, r * 0.72, pal.helm, 0);
+    blob(ctx, x, y, r, r * 0.92, SKIN, 0);
     if (enemy) {
-      ctx.fillStyle = "#fff6f4";
-      ctx.beginPath();
-      ctx.ellipse(x - 2.4, ey, 2.05, 1.7, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + 2.5, ey, 2.05, 1.7, 0, 0, Math.PI * 2);
-      ctx.fill();
       ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-      ctx.fillStyle = pal.eye;
+      ctx.lineWidth = 1.3;
       ctx.beginPath();
-      ctx.arc(x - 2.1, ey + 0.25, 1.15, 0, Math.PI * 2);
-      ctx.arc(x + 2.8, ey + 0.25, 1.15, 0, Math.PI * 2);
+      ctx.moveTo(x - r * 0.7, y + r * 0.15);
+      ctx.quadraticCurveTo(x, y + r * 0.55, x + r * 0.75, y + r * 0.1);
+      ctx.stroke();
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.ellipse(x - r * 0.15, y + r * 0.42, r * 0.55, r * 0.22, 0.1, 0, Math.PI);
       ctx.fill();
-      ctx.strokeStyle = pal.brow;
-      ctx.lineWidth = 1.8;
-      ctx.lineCap = "round";
+    } else {
+      ctx.strokeStyle = "#a85a48";
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(x - 4.6, ey - 2.5);
-      ctx.lineTo(x - 0.4, ey - 1.1);
-      ctx.moveTo(x + 4.7, ey - 2.5);
-      ctx.lineTo(x + 0.6, ey - 1.1);
+      ctx.arc(x, y + r * 0.35, r * 0.28, 0.15, Math.PI - 0.15);
       ctx.stroke();
-      ctx.strokeStyle = "#2a0810";
+    }
+    pieEye(ctx, x - r * 0.32, y - r * 0.08, r * 0.28, enemy);
+    pieEye(ctx, x + r * 0.32, y - r * 0.05, r * 0.26, enemy);
+    brow(ctx, x - r * 0.32, y - r * 0.42, enemy);
+    brow(ctx, x + r * 0.32, y - r * 0.4, enemy);
+  }
+
+  function shadow(ctx, rx) {
+    ctx.fillStyle = "rgba(60, 40, 20, 0.22)";
+    ctx.beginPath();
+    ctx.ellipse(0, 2, rx, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function body(ctx, pal, bulk) {
+    blob(ctx, 0, -14, 7.2 * bulk, 8.2, pal.cloth, 0);
+    ctx.fillStyle = pal.clothDk;
+    ctx.beginPath();
+    ctx.ellipse(-2.2, -16, 2.4, 3.2, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    blob(ctx, 0, -8.5, 6.2 * bulk, 1.5, pal.belt, 0);
+  }
+
+  function legs(ctx, pal, phase, enemy) {
+    const s = Math.sin(phase * (enemy ? 1.4 : 1));
+    hose(ctx, -2, -6, -6 - s * 3, -2, -4 - s * 4, 0, 2.1, pal.clothDk);
+    hose(ctx, 2, -6, 6 + s * 3, -2, 4 + s * 4, 0, 2.1, pal.cloth);
+    boot(ctx, -4 - s * 4, 1, pal);
+    boot(ctx, 4 + s * 4, 1, pal);
+  }
+
+  function arms(ctx, pal, phase, enemy) {
+    const s = Math.sin(phase);
+    hose(ctx, -4, -16, -10, -12 + s * 2, -8, -8, 1.8, pal.cloth);
+    glove(ctx, -8, -8, 0.85);
+    hose(ctx, 4, -16, 9, -14 - s, 11, -10, 1.8, pal.clothDk);
+    glove(ctx, 11, -10, 0.85);
+  }
+
+  function gun(ctx, len, up) {
+    ctx.save();
+    ctx.rotate(up || 0);
+    ctx.fillStyle = "#3a342c";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -1.3);
+    ctx.quadraticCurveTo(len * 0.5, -2.2, len, -0.6);
+    ctx.lineTo(len, 1.1);
+    ctx.quadraticCurveTo(len * 0.4, 1.6, 0, 1.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function gearMarks(ctx, ranks) {
+    if (!ranks) return;
+    const keys = Object.keys(ranks);
+    let total = 0;
+    keys.forEach(function (k) { total += ranks[k] || 0; });
+    if (!total) return;
+    if (total >= 1) blob(ctx, -6, -12, 2.2, 1.6, "#c4a15a", 0.4);
+    if (total >= 3) {
+      ctx.strokeStyle = "#e2c56a";
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(x - 2.2, y + r * 0.62);
-      ctx.quadraticCurveTo(x + 0.3, y + r * 0.28, x + 2.8, y + r * 0.64);
+      ctx.arc(0, -24, 6.2, Math.PI * 1.1, Math.PI * 1.9);
       ctx.stroke();
-    } else {
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.ellipse(x - 2.3, ey, 1.9, 2, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + 2.5, ey, 1.9, 2, 0, 0, Math.PI * 2);
-      ctx.fill();
+    }
+    if (total >= 5) {
+      ctx.fillStyle = "#e2c56a";
       ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.15;
-      ctx.stroke();
-      ctx.fillStyle = pal.eye;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(x - 1.7, ey + 0.25, 1, 0, Math.PI * 2);
-      ctx.arc(x + 3.1, ey + 0.25, 1, 0, Math.PI * 2);
+      ctx.moveTo(6, -20);
+      ctx.lineTo(7.2, -17.2);
+      ctx.lineTo(6, -17.8);
+      ctx.lineTo(4.8, -17.2);
+      ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(x - 2.2, ey - 0.45, 0.8, 0.8);
-      ctx.fillRect(x + 2.6, ey - 0.45, 0.8, 0.8);
-      ctx.strokeStyle = pal.brow;
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(x - 4.3, ey - 2.3);
-      ctx.lineTo(x - 0.6, ey - 2.8);
-      ctx.moveTo(x + 4.5, ey - 2.3);
-      ctx.lineTo(x + 0.8, ey - 2.8);
-      ctx.stroke();
-      ctx.strokeStyle = pal.mouth;
-      ctx.lineWidth = 1.45;
-      ctx.beginPath();
-      ctx.moveTo(x - 1.5, y + r * 0.5);
-      ctx.quadraticCurveTo(x + 0.6, y + r * 0.72, x + 2.6, y + r * 0.46);
       ctx.stroke();
     }
+    if (total >= 7) blob(ctx, -7, -18, 2.4, 3, "#6a5434", 0);
   }
 
-  function helmet(ctx, x, y, r, pal, spikes) {
-    const brow = y - r * 0.05;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x - r - 8, y - r - 10, r * 2 + 16, brow - (y - r - 10));
-    ctx.clip();
-    disk(ctx, x, y, r + 1.3, pal.helmet, pal.helmetSh);
-    ctx.fillStyle = pal.helmetHi;
-    ctx.beginPath();
-    ctx.ellipse(x - r * 0.28, y - r * 0.55, r * 0.42, r * 0.2, -0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    piece(ctx, x - r - 2, brow - 1.6, r * 2 + 4, 2.3, 1, pal.helmet, pal.helmetSh);
-    if (spikes) {
-      const n = spikes;
-      for (let i = 0; i < n; i++) {
-        const t = n === 1 ? 0.5 : i / (n - 1);
-        const a = Math.PI + t * Math.PI;
-        const sx = x + Math.cos(a) * (r + 0.2);
-        const sy = y - 0.4 + Math.sin(a) * (r + 0.2);
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(a - Math.PI / 2);
-        piece(ctx, -1.3, -5.2, 2.6, 5.2, 1.1, pal.spike || "#ddd6e4", "#9a92a4");
-        ctx.restore();
-      }
-    }
-  }
-
-  function boot(ctx, x, y, pal, w) {
-    piece(ctx, x, y, w || 7, 4.2, 1.6, pal.boot, "#00000055");
-  }
-
-  function rifle(ctx, len, pal) {
-    piece(ctx, -6, -2.2, 8, 4.4, 1.3, "#6b4a2c", "#4a3018");
-    piece(ctx, 1.5, -1.35, len, 2.7, 1, pal.gun, "#00000066");
-    ctx.fillStyle = pal.gunHi;
-    ctx.fillRect(3, -1.15, Math.max(2, len - 5), 0.9);
-    piece(ctx, len * 0.38, 0.8, 2.8, 3.6, 0.7, pal.gun, null);
-  }
-
-  function gatling(ctx, len, pal) {
-    piece(ctx, -3, -3.4, 9, 6.8, 1.6, pal.gun, "#00000066");
-    [-2.4, 0, 2.4].forEach((oy) => {
-      ctx.lineCap = "butt";
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 3.3;
-      ctx.beginPath();
-      ctx.moveTo(5, oy);
-      ctx.lineTo(len, oy);
-      ctx.stroke();
-      ctx.strokeStyle = pal.gunHi;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(6, oy - 0.45);
-      ctx.lineTo(len - 1, oy - 0.45);
-      ctx.stroke();
-    });
-    piece(ctx, 1, 3.2, 7, 2.1, 1, pal.strap, null);
-  }
-
-  function groundShadow(ctx, rx, ry) {
-    const g = ctx.createRadialGradient(1, 2, 1, 1, 3, Math.max(rx, 4));
-    g.addColorStop(0, "rgba(16, 28, 12, 0.38)");
-    g.addColorStop(1, "rgba(16, 28, 12, 0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.ellipse(1, 3, rx * 1.25, ry * 1.35, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function kneel(ctx, pal, enemy, bulk) {
-    const b = bulk || 1;
-    groundShadow(ctx, 11 * b, 4.2);
-    const hipY = -12;
-    limb(ctx, -1, hipY, -8, -3, pal.pants, 4.2 * b);
-    boot(ctx, -11, -4, pal);
-    limb(ctx, 1, hipY, 6, -2, pal.pants, 4.2 * b);
-    boot(ctx, 5, -3.2, pal, 7.5);
-    piece(ctx, -7 * b, -27, 14 * b, 16, 4, pal.jacket, pal.jacketSh);
-    ctx.fillStyle = pal.jacketHi;
-    ctx.fillRect(-5 * b, -26, 5, 4);
-    piece(ctx, -6 * b, -15, 12 * b, 3.2, 1.2, pal.belt, null);
-    piece(ctx, -2, -22, 3.2, 7, 1, pal.strap, null);
-    limb(ctx, -4, -22, -8, -16, pal.jacket, 3.4);
-    limb(ctx, 3, -22, 6, -17, pal.jacketSh, 3.6);
-    paintFace(ctx, 1.5, -32, 6.1, pal, enemy);
-    helmet(ctx, 1.5, -33, 6.4, pal, enemy ? (bulk > 1.05 ? 4 : 3) : 0);
-  }
-
-  function stand(ctx, pal, enemy, phase, bulk) {
-    const b = bulk || 1;
-    const ph = phase || 0;
-    const swing = Math.sin(ph) * (enemy ? 6.4 : 2.1);
-    const liftL = Math.max(0, Math.sin(ph)) * (enemy ? 2.6 : 1.1);
-    const liftR = Math.max(0, -Math.sin(ph)) * (enemy ? 2.6 : 1.1);
-    groundShadow(ctx, 9 * b, 3.6);
-    const hip = -13;
-    limb(ctx, -1, hip, -4 + swing, -1 - liftL * 0.3, pal.pants, 4 * b);
-    boot(ctx, -7 + swing, -3.4 - liftL, pal);
-    limb(ctx, 1, hip, 4 - swing, -1 - liftR * 0.3, pal.pants, 4 * b);
-    boot(ctx, 2 - swing * 0.35, -3.2 - liftR, pal);
-    piece(ctx, -6.5 * b, -28, 13 * b, 16, 4, pal.jacket, pal.jacketSh);
-    ctx.fillStyle = pal.jacketHi;
-    ctx.fillRect(-4.5 * b, -27, 4.5, 3.5);
-    piece(ctx, -5.5 * b, -15.5, 11 * b, 3, 1.2, pal.belt, null);
-    limb(ctx, -3, -22, -8 - swing * 0.45, -14, pal.jacket, 3.3);
-    limb(ctx, 3, -22, 7 + swing * 0.45, -15, pal.jacketSh, 3.4);
-    paintFace(ctx, 0.5, -33, enemy && bulk < 0.95 ? 5.4 : 6, pal, enemy);
-    helmet(ctx, 0.5, -34, enemy && bulk < 0.95 ? 5.6 : 6.3, pal, enemy ? 3 : 0);
-  }
-
-  function prone(ctx, pal) {
-    groundShadow(ctx, 18, 5.5);
-    boot(ctx, -20, -3.1, pal, 6.5);
-    boot(ctx, -20, 1.4, pal, 6.5);
-    limb(ctx, -14, 0, -6, 0, pal.pants, 4.6);
-    piece(ctx, -10, -4.6, 18, 9.2, 3.6, pal.jacket, pal.jacketSh);
-    ctx.fillStyle = pal.jacketHi;
-    ctx.fillRect(-8, -4, 7, 2.2);
-    piece(ctx, -4, 1.6, 8, 2.2, 1, pal.belt, null);
-    limb(ctx, 6, -0.4, 11, -0.8, pal.jacket, 3.2);
-    paintFace(ctx, 10, -0.6, 4.6, pal, false);
-    helmet(ctx, 9.4, -1.8, 4.8, pal, 0);
-    ctx.save();
-    ctx.translate(12, -0.8);
-    piece(ctx, -2, -1.3, 5, 2.6, 0.8, "#6b4a2c", "#4a3018");
-    piece(ctx, 2.5, -1.05, 16, 2.1, 0.8, pal.gun, "#00000066");
-    piece(ctx, 6, -2.8, 6.5, 1.8, 0.7, "#2c343c", null);
-    ctx.fillStyle = pal.gunHi;
-    ctx.fillRect(4, -0.85, 11, 0.7);
-    ctx.restore();
-  }
-
-  function pip(ctx, x, y, r, color) {
-    disk(ctx, x, y, r, color, "#00000066");
-  }
-
-  function gear(ctx, role, ranks) {
-    const g = function (id) { return (ranks && ranks[id]) || 0; };
-    if (role === "trooper") {
-      const m = g("marksman");
-      if (m >= 1) piece(ctx, 2, -23, 7, 2, 0.5, "#1c242c", null);
-      if (m >= 2) piece(ctx, 1, -25, 10, 2.2, 0.6, "#10161c", null);
-      if (m >= 3) { ctx.fillStyle = "#ffe56a"; ctx.fillRect(-5, -40, 10, 2); }
-      if (m >= 4) pip(ctx, 0, -43, 2.3, "#ffe56a");
-      const f = g("fireteam");
-      for (let i = 0; i < Math.min(4, f); i++) pip(ctx, -7 + i * 3.4, -6, 1.5, i === 3 ? "#ffd23a" : "#3aa0e8");
-      const n = g("grenadier");
-      if (n >= 1) pip(ctx, -10, -16, 2.1, "#3c9a32");
-      if (n >= 2) pip(ctx, -10, -11, 2.1, "#3c9a32");
-      if (n >= 3) piece(ctx, -12, -22, 3, 14, 1, "#6a3a18", null);
-      if (n >= 4) pip(ctx, 9, -18, 2.5, "#e23a2a");
-    } else if (role === "longshot") {
-      if (g("deadeye") >= 1) piece(ctx, 10, -3, 6, 1.6, 0.4, "#d0d6de", null);
-      if (g("deadeye") >= 3) piece(ctx, 8, -5, 8, 1.8, 0.4, "#ffe56a", null);
-      if (g("spotter") >= 1) pip(ctx, -6, -4, 2, "#3aa0e8");
-      if (g("spotter") >= 3) pip(ctx, -6, -8, 1.6, "#ffd23a");
-      if (g("antimateriel") >= 1) piece(ctx, 6, 1.2, 12, 2.4, 0.6, "#2a3038", null);
-      if (g("antimateriel") >= 4) pip(ctx, 16, 2, 2, "#ff5a3a");
-    } else if (role === "gatling") {
-      if (g("belt") >= 1) piece(ctx, -8, -8, 5, 7, 1, "#c9843a", "#8a5a28");
-      if (g("belt") >= 2) pip(ctx, 16, -18, 2.2, "#dfe6ee");
-      if (g("belt") >= 4) pip(ctx, 18, -14, 2.2, "#dfe6ee");
-      if (g("suppress") >= 1) piece(ctx, -12, 1, 8, 3, 1, "#d7b56a", null);
-      if (g("suppress") >= 4) piece(ctx, 6, 2, 10, 3, 1, "#e6c98a", null);
-      if (g("tracer") >= 1) { ctx.fillStyle = "#ff5a2a"; ctx.fillRect(8, -18, 6, 1.2); }
-      if (g("tracer") >= 3) piece(ctx, 6, -20, 10, 1.6, 0.4, "#222", null);
-    } else if (role === "mortar") {
-      if (g("heavy") >= 1) pip(ctx, 16, -18, 2.4, "#c8ccd4");
-      if (g("heavy") >= 3) pip(ctx, 18, -22, 3, "#ffd23a");
-      if (g("battery") >= 1) piece(ctx, -12, -18, 4, 8, 1, "#6a7278", null);
-      if (g("battery") >= 2) piece(ctx, -16, -16, 4, 8, 1, "#8a9298", null);
-      if (g("smoke") >= 1) pip(ctx, -8, -8, 2.2, "#d8d8d8");
-      if (g("smoke") >= 4) pip(ctx, -4, -6, 2.4, "#333");
-    } else if (role === "tread") {
-      if (g("bore") >= 1) piece(ctx, 8, -10, 8, 3, 1, "#2a3038", null);
-      if (g("bore") >= 3) piece(ctx, 10, -13, 8, 2.4, 0.8, "#3a424a", null);
-      if (g("patrol") >= 2) piece(ctx, -16, -2, 6, 4, 1, "#8a9298", null);
-      if (g("patrol") >= 4) pip(ctx, 0, -20, 2.2, "#ffe56a");
-      if (g("coax") >= 1) piece(ctx, -4, -12, 6, 1.6, 0.4, "#222", null);
-      if (g("coax") >= 3) pip(ctx, 12, -16, 1.8, "#7ec8ff");
-    } else if (role === "engineer") {
-      const bags = Math.min(4, g("fort"));
-      for (let i = 0; i < bags; i++) piece(ctx, -12 + (i % 2) * 8, -2 - Math.floor(i / 2) * 3, 7, 2.6, 1, i % 2 ? "#e6c98a" : "#d7b56a", null);
-      if (g("quarter") >= 1) piece(ctx, 8, -12, 6, 5, 1, "#c9843a", "#8a5a28");
-      if (g("quarter") >= 3) piece(ctx, 10, -18, 5, 5, 1, "#e0a04a", null);
-      if (g("radar") >= 1) pip(ctx, 0, -44, 2.4, "#7ec8ff");
-      if (g("radar") >= 3) piece(ctx, -2, -48, 8, 1.4, 0.4, "#d0d6de", null);
-    } else if (role === "sky") {
-      if (g("flak") >= 1) piece(ctx, 8, -28, 4, 6, 1, "#6a7278", null);
-      if (g("flak") >= 3) piece(ctx, 12, -30, 4, 8, 1, "#8a9298", null);
-      if (g("missile") >= 1) piece(ctx, -8, -22, 3, 7, 1,2, "#e23a2a", null);
-      if (g("missile") >= 2) piece(ctx, -12, -20, 3, 7, 1.2, "#ffd23a", null);
-      if (g("dual") >= 2) { ctx.fillStyle = "#ffe56a"; ctx.fillRect(-4, -40, 8, 1.8); }
-      if (g("dual") >= 4) pip(ctx, 0, -44, 2.2, "#ffe56a");
-    } else if (role === "chopper") {
-      if (g("gunship") >= 2) piece(ctx, 4, -14, 6, 2, 0.6, "#e23a2a", null);
-      if (g("gunship") >= 4) pip(ctx, -10, -18, 2, "#7ec8ff");
-      if (g("strike") >= 1) pip(ctx, 8, -10, 2, "#333");
-      if (g("strike") >= 3) pip(ctx, 11, -8, 2.2, "#ff5a2a");
-      if (g("recon") >= 1) pip(ctx, -2, -22, 1.8, "#ffe56a");
-      if (g("recon") >= 4) piece(ctx, -6, -8, 5, 3, 0.8, "#c9843a", null);
-    }
+  function standFigure(ctx, pal, enemy, phase, bulk) {
+    shadow(ctx, 8 * (bulk || 1));
+    legs(ctx, pal, phase, enemy);
+    body(ctx, pal, bulk || 1);
+    arms(ctx, pal, phase, enemy);
+    head(ctx, 0.4, -24, enemy ? 6.4 : 6.1, pal, enemy);
   }
 
   function draw(ctx, x, y, opt) {
@@ -445,196 +268,166 @@
     const face = Math.cos(aim) >= 0 ? 1 : -1;
     const sc = opt.scale || 1;
     const ph = opt.phase || 0;
-    const bob = enemy ? Math.abs(Math.sin(ph)) * 2.6 * sc : Math.sin(ph * 0.55) * 1.3 * sc;
-    const breath = !enemy ? 1 + Math.sin(ph * 0.8) * 0.06 : 1;
-    const look = !enemy && opt.idle ? Math.sin(ph * 0.28) * 0.14 : 0;
-    const kick = opt.idle ? Math.max(0, Math.sin(ph * 1.4)) * 0.22 : 0;
-    const gunAngle = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim))))) - kick;
-
-    if (!enemy && role === "longshot") {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(aim);
-      ctx.scale(sc, sc);
-      prone(ctx, pal);
-      gear(ctx, "longshot", opt.ranks);
-      ctx.restore();
-      return;
-    }
+    const beat = Math.sin(ph * 1.2);
+    const squash = 1 + beat * (enemy ? 0.07 : 0.1);
+    const stretch = 1 - beat * (enemy ? 0.05 : 0.08);
+    const recoil = opt.flash > 0.02 ? 1 - opt.flash * 0.35 : 1;
+    const hidden = (role === "sneak" || role === "camo") && !opt.revealed;
 
     ctx.save();
-    ctx.translate(x, y - bob);
-    ctx.rotate(look);
-    ctx.scale(face * sc, sc * breath);
-    if (role === "mortar") {
-      kneel(ctx, pal, false, 1);
+    ctx.translate(x, y);
+    ctx.scale(face * sc * squash * recoil, sc * stretch * (1 + (opt.flash || 0) * 0.2));
+    if (hidden) ctx.globalAlpha = role === "camo" ? 0.28 : 0.4;
+
+    if (!enemy && role === "longshot") {
+      shadow(ctx, 16);
+      hose(ctx, -8, -4, -2, -2, 8, -3, 2.4, pal.cloth);
+      blob(ctx, -2, -6, 8, 3.2, pal.cloth, 0.05);
+      head(ctx, 6, -8, 4.6, pal, false);
       ctx.save();
-      ctx.translate(5, -20);
-      ctx.rotate(-0.85);
-      piece(ctx, -2, -2.2, 16, 4.4, 1.4, pal.gun, "#00000066");
-      disk(ctx, 14, 0, 2.2, pal.gunHi, null);
+      ctx.translate(4, -6);
+      gun(ctx, 22, -0.05);
       ctx.restore();
-    } else if (role === "tread") {
-      groundShadow(ctx, 14, 5);
-      piece(ctx, -14, -6, 26, 8, 2, "#2f8a3c", "#1c5c28");
-      piece(ctx, -16, -8, 8, 12, 2, "#245c30", null);
-      piece(ctx, 6, -8, 8, 12, 2, "#245c30", null);
-      disk(ctx, -2, -8, 5, "#3caf4c", "#1f7a34");
+      glove(ctx, 8, -5, 0.7);
+    } else if (!enemy && role === "gatling") {
+      shadow(ctx, 11);
+      legs(ctx, pal, ph * 0.4, false);
+      blob(ctx, 0, -12, 8, 6, pal.cloth, 0);
+      head(ctx, -1, -20, 5.4, pal, false);
       ctx.save();
-      ctx.translate(-2, -8);
-      ctx.rotate(gunAngle);
-      piece(ctx, 2, -1.6, 14, 3.2, 1, pal.gun, null);
+      ctx.translate(4, -14);
+      for (let i = -1; i <= 1; i++) {
+        ctx.save();
+        ctx.rotate(i * 0.18);
+        gun(ctx, 14, 0);
+        ctx.restore();
+      }
       ctx.restore();
-      paintFace(ctx, -2, -16, 4.2, pal, false);
-      helmet(ctx, -2, -17, 4.4, pal, 0);
-    } else if (role === "engineer") {
-      stand(ctx, pal, false, opt.phase || 0, 1);
-      piece(ctx, -12, -3, 8, 4, 1.2, "#d7b56a", "#a8843e");
-      piece(ctx, 6, -3, 8, 4, 1.2, "#e6c98a", "#b8924a");
+      glove(ctx, 6, -12, 0.8);
+    } else if (!enemy && role === "mortar") {
+      shadow(ctx, 10);
+      legs(ctx, pal, ph * 0.3, false);
+      blob(ctx, -1, -11, 7, 5.5, pal.cloth, 0.2);
+      head(ctx, -2, -18, 5.2, pal, false);
       ctx.save();
-      ctx.translate(8, -18);
-      ctx.rotate(-0.4);
-      piece(ctx, 0, -1.2, 8, 2.4, 0.8, "#c0c6cc", null);
+      ctx.translate(2, -14);
+      gun(ctx, 12, -1.05);
+      blob(ctx, 4, -10, 3.2, 2.2, "#6a5434", 0);
       ctx.restore();
-    } else if (role === "sky") {
-      stand(ctx, pal, false, 0, 1);
+    } else if (!enemy && role === "tread") {
+      shadow(ctx, 14);
+      blob(ctx, -8, -2, 5, 3.2, "#3a342c", 0);
+      blob(ctx, 8, -2, 5, 3.2, "#3a342c", 0);
+      blob(ctx, 0, -8, 12, 5.5, pal.cloth, 0);
+      head(ctx, -4, -14, 4.4, pal, false);
       ctx.save();
-      ctx.translate(4, -24);
-      ctx.rotate(-1.05);
-      piece(ctx, 0, -2.4, 14, 4.8, 1.2, pal.gun, "#00000066");
-      piece(ctx, 10, -4.2, 4, 8.4, 1, pal.gunHi, null);
+      ctx.translate(2, -9);
+      gun(ctx, 14, -0.15);
       ctx.restore();
-    } else if (role === "chopper") {
-      groundShadow(ctx, 10, 4);
-      piece(ctx, -10, -3, 20, 5, 2, "#6a5430", "#3e3018");
-      const ang = (opt.spin || 0) * 0.15;
+    } else if (!enemy && role === "engineer") {
+      standFigure(ctx, pal, false, ph, 0.95);
+      blob(ctx, -9, -4, 3.4, 2.2, "#c4a15a", 0.3);
+      blob(ctx, 8, -4, 3.2, 2, "#d2b48a", -0.2);
+      hose(ctx, 4, -16, 10, -18, 12, -14, 1.5, pal.cloth);
+      blob(ctx, 13, -14, 2.4, 1.2, "#8a8680", 0.6);
+    } else if (!enemy && role === "sky") {
+      standFigure(ctx, pal, false, ph * 0.5, 1);
       ctx.save();
-      ctx.translate(Math.cos(ang) * 12, -16 + Math.sin(ang) * 5);
-      piece(ctx, -7, -3, 14, 6, 2, pal.jacket, pal.jacketSh);
-      piece(ctx, 6, -1.2, 7, 2.4, 1, pal.jacketSh, null);
-      limb(ctx, -8, -3, 8, -3, "#1a120c", 1.4);
-      paintFace(ctx, -1, -6, 3.4, pal, false);
-      helmet(ctx, -1, -6.6, 3.5, pal, 0);
+      ctx.translate(2, -22);
+      gun(ctx, 11, -1.2);
+      gun(ctx, 9, -0.85);
       ctx.restore();
-    } else if (role === "gatling") {
-      kneel(ctx, pal, false, 1.08);
+    } else if (!enemy && role === "chopper") {
+      shadow(ctx, 10);
+      blob(ctx, 0, -3, 9, 2.4, "#6a5434", 0);
+      const spin = opt.spin || ph;
+      const bx = Math.cos(spin) * 4;
+      blob(ctx, bx, -18, 8, 4.2, pal.cloth, 0);
+      head(ctx, bx, -24, 4.4, pal, false);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(bx - 16, -30);
+      ctx.quadraticCurveTo(bx, -34, bx + 16, -28);
+      ctx.moveTo(bx - 14, -26);
+      ctx.quadraticCurveTo(bx, -22, bx + 14, -27);
+      ctx.stroke();
+    } else if (!enemy && role === "trooper") {
+      standFigure(ctx, pal, false, ph, 1);
       ctx.save();
       ctx.translate(6, -16);
-      ctx.rotate(gunAngle);
-      gatling(ctx, 18, pal);
+      gun(ctx, 12, -0.15);
       ctx.restore();
-    } else if (role === "heavy") {
-      kneel(ctx, pal, true, 1.18);
-      ctx.save();
-      ctx.translate(7, -15);
-      ctx.rotate(gunAngle);
-      rifle(ctx, 13, pal);
-      ctx.restore();
-    } else if (role === "trooper") {
-      kneel(ctx, pal, false, 1);
-      ctx.save();
-      ctx.translate(6, -18);
-      ctx.rotate(gunAngle);
-      rifle(ctx, 12, pal);
-      ctx.restore();
-    } else if (role === "sneak" && !opt.revealed) {
-      ctx.globalAlpha = 0.38;
-      stand(ctx, pal, true, opt.phase || 0, 0.95);
-      ctx.globalAlpha = 1;
-    } else if (role === "medic") {
-      stand(ctx, pal, true, opt.phase || 0, 1);
-      ctx.fillStyle = "#7dff6a";
-      ctx.fillRect(-1.2, -24, 2.4, 7);
-      ctx.fillRect(-3.4, -21.6, 7, 2.4);
     } else if (role === "riot" || role === "bulwark") {
-      const bulk = role === "bulwark" ? 1.16 : 1.05;
-      stand(ctx, pal, true, opt.phase || 0, bulk);
+      standFigure(ctx, pal, true, ph, role === "bulwark" ? 1.15 : 1.02);
       const frac = opt.shield == null ? 1 : opt.shield;
       if (frac > 0.02) {
-        const w = role === "bulwark" ? 8 : 5.2;
-        const h = role === "bulwark" ? 20 : 16;
-        piece(ctx, 7, -28, w, h, 2.2, "#c5ced8", "#5c6672");
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.fillRect(8, -26, Math.max(1.2, w * 0.28), h * 0.35);
-        if (frac < 0.7) {
-          ctx.strokeStyle = "#2a241c";
+        blob(ctx, 8, -16, role === "bulwark" ? 4.2 : 3, role === "bulwark" ? 9 : 7, "#d7d2c6", 0.1);
+        if (frac < 0.66) {
+          ctx.strokeStyle = INK;
           ctx.lineWidth = 1.1;
           ctx.beginPath();
-          ctx.moveTo(8, -24);
-          ctx.lineTo(7 + w * 0.7, -16);
-          if (frac < 0.35) {
-            ctx.moveTo(7 + w, -22);
-            ctx.lineTo(9, -12);
-          }
+          ctx.moveTo(6, -20);
+          ctx.quadraticCurveTo(9, -16, 7, -11);
           ctx.stroke();
         }
       }
-    } else if (role === "dash") {
-      stand(ctx, pal, true, (opt.phase || 0) * 1.7, 0.8);
-      ctx.fillStyle = "#ffe14a";
-      ctx.fillRect(-5, -16.5, 10, 2.2);
-      ctx.strokeStyle = "rgba(255, 246, 192, 0.9)";
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(-12, -22);
-      ctx.lineTo(-20, -23);
-      ctx.moveTo(-11, -17);
-      ctx.lineTo(-18, -16);
-      ctx.stroke();
-    } else if (role === "camo") {
-      const seen = !!opt.revealed;
-      ctx.save();
-      ctx.globalAlpha = seen ? 1 : 0.3;
-      stand(ctx, pal, true, opt.phase || 0, 0.98);
-      ctx.fillStyle = seen ? "#6f8f3e" : "#314020";
-      ctx.beginPath();
-      ctx.ellipse(-2, -22, 4.2, 2.6, 0.4, 0, Math.PI * 2);
-      ctx.ellipse(3.2, -17, 3, 2, -0.4, 0, Math.PI * 2);
-      ctx.ellipse(-1, -12, 3.4, 1.8, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    } else if (role === "para") {
-      stand(ctx, pal, true, opt.phase || 0, 1);
+    } else if (role === "medic") {
+      standFigure(ctx, pal, true, ph, 1);
       ctx.strokeStyle = "#f4efe4";
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.moveTo(-3, -26);
-      ctx.lineTo(0, -38);
-      ctx.moveTo(3, -26);
-      ctx.lineTo(0, -38);
+      ctx.moveTo(-1, -18);
+      ctx.lineTo(-1, -12);
+      ctx.moveTo(-4, -15);
+      ctx.lineTo(2, -15);
       ctx.stroke();
-    } else if (role === "scout") {
-      stand(ctx, pal, true, (opt.phase || 0) * 1.4, 0.9);
-      ctx.save();
-      ctx.translate(5, -17);
-      ctx.rotate(gunAngle * 0.35);
-      rifle(ctx, 10, pal);
-      ctx.restore();
-    } else {
-      stand(ctx, pal, enemy, opt.phase || 0, 1);
-      ctx.save();
-      ctx.translate(5, -17);
-      ctx.rotate(enemy ? gunAngle * 0.45 : gunAngle);
-      rifle(ctx, 11, pal);
-      ctx.restore();
-    }
-    gear(ctx, role, opt.ranks);
-    if (opt.badge) {
-      ctx.fillStyle = "#ffe56a";
-      ctx.fillRect(-8, -25, 16, 2.4);
+    } else if (role === "dash") {
+      standFigure(ctx, pal, true, ph * 1.7, 0.86);
+      ctx.strokeStyle = "#e2c56a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-4, -12);
+      ctx.quadraticCurveTo(0, -14, 5, -11);
+      ctx.stroke();
       ctx.strokeStyle = INK;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(-8, -25, 16, 2.4);
-    }
-    if (opt.flash > 0.03) {
-      ctx.save();
-      ctx.globalAlpha = Math.min(0.8, opt.flash * 4.5);
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.4;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.arc(1, role === "scout" ? -33 : -32, 8, 0, Math.PI * 2);
+      ctx.moveTo(-12, -18);
+      ctx.lineTo(-18, -17);
+      ctx.moveTo(-11, -14);
+      ctx.lineTo(-17, -12);
       ctx.stroke();
-      ctx.restore();
+    } else if (role === "para") {
+      standFigure(ctx, pal, true, ph * 0.6, 1);
+      ctx.strokeStyle = "#f4efe4";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(-3, -28);
+      ctx.quadraticCurveTo(0, -34, 3, -28);
+      ctx.stroke();
+    } else if (role === "scout" || role === "moto") {
+      standFigure(ctx, pal, true, ph * 1.5, 0.82);
+    } else if (role === "heavy" || role === "brute") {
+      standFigure(ctx, pal, true, ph * 0.7, 1.2);
+    } else {
+      standFigure(ctx, pal, enemy, ph, enemy ? 1 : 1);
+      if (!enemy) {
+        ctx.save();
+        ctx.translate(6, -16);
+        gun(ctx, 11, -0.1);
+        ctx.restore();
+      }
+    }
+
+    if (!hidden) gearMarks(ctx, opt.ranks);
+    if (role === "camo" && opt.revealed) {
+      ctx.fillStyle = "#6a7048";
+      ctx.beginPath();
+      ctx.ellipse(-2, -14, 3, 2, 0.4, 0, Math.PI * 2);
+      ctx.ellipse(3, -10, 2.4, 1.6, -0.3, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -642,21 +435,18 @@
   root.BOTGSoldier = { draw: draw };
 
   root.BOTGAimOrigin = function (x, y, role) {
-    if (role === "longshot") return { x: x, y: y - 1 };
-    if (role === "gatling") return { x: x, y: y - 16 };
-    return { x: x, y: y - 17 };
+    if (role === "longshot") return { x: x + 8, y: y - 6 };
+    if (role === "gatling") return { x: x, y: y - 14 };
+    if (role === "mortar") return { x: x, y: y - 16 };
+    if (role === "tread") return { x: x, y: y - 9 };
+    if (role === "sky") return { x: x, y: y - 20 };
+    if (role === "chopper") return { x: x, y: y - 16 };
+    return { x: x, y: y - 16 };
   };
 
   root.BOTGMuzzle = function (x, y, role, aim) {
-    const len = role === "longshot" ? 24 : role === "gatling" ? 20 : 16;
+    const len = role === "longshot" ? 26 : role === "gatling" ? 16 : role === "mortar" ? 8 : 14;
     const o = root.BOTGAimOrigin(x, y, role);
-    const face = Math.cos(aim) >= 0 ? 1 : -1;
-    if (role === "longshot") {
-      return { x: o.x + Math.cos(aim) * len, y: o.y + Math.sin(aim) * len };
-    }
-    const handX = o.x + face * 6;
-    const gun = Math.max(-1.05, Math.min(1.05, Math.atan2(Math.sin(aim), Math.abs(Math.cos(aim)))));
-    const world = face === 1 ? gun : Math.PI - gun;
-    return { x: handX + Math.cos(world) * len, y: o.y + Math.sin(world) * len };
+    return { x: o.x + Math.cos(aim) * len, y: o.y + Math.sin(aim) * len * 0.35 };
   };
 })(typeof window !== "undefined" ? window : globalThis);

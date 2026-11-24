@@ -2,9 +2,10 @@
 // Bright flat colors and thick outlines. Soldiers are drawn in soldiers.js.
 (function (root) {
   const B = root.BOTG_BALANCE;
-  const FONT = '"Lilita One", "Trebuchet MS", Verdana, sans-serif';
-  const GRASS = "#4fb534";
-  const INK = "#1a120c";
+  const FONT = '"Alfa Slab One", "Libre Baskerville", "Palatino Linotype", Palatino, serif';
+  const GRASS = "#8ea56a";
+  const INK = "#2a2118";
+  const PAPER = "#f3ead4";
 
   function font(ctx, size) {
     ctx.font = size + "px " + FONT;
@@ -126,42 +127,22 @@
     const py = y + (pressed ? Math.min(4, h * 0.08) : 0);
     const hot = pointerHot(state, x, y, w, h);
     const radius = spec.radius || Math.min(14, h / 2);
-    const lip = spec.lip || "#8a5a18";
-    const lipDrop = h < 56 ? 2 : 3;
+    const paper = spec.disabled ? "#e4dcc8" : (hot ? "#fff6e4" : (spec.fillTop || PAPER));
+    const ticket = Math.min(10, h / 3);
     ctx.save();
-    fillRound(ctx, x, y + lipDrop, w, h, radius, spec.disabled ? "#b7b1a6" : lip);
-    const top = spec.disabled ? "#e4dfd6" : (hot ? spec.hotTop || spec.fillTop : spec.fillTop) || "#ffe56a";
-    const bot = spec.disabled ? "#d4cfc4" : (hot ? spec.hotBot || spec.fillBot : spec.fillBot) || top;
-    const g = ctx.createLinearGradient(x, py, x, py + h);
-    g.addColorStop(0, top);
-    g.addColorStop(1, bot);
-    fillRound(ctx, x, py, w, h, radius, g);
-    ctx.save();
-    roundPath(ctx, x, py, w, h, radius);
-    ctx.clip();
-    const sheen = ctx.createLinearGradient(x, py, x, py + h * 0.55);
-    sheen.addColorStop(0, "rgba(255,255,255,0.55)");
-    sheen.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = sheen;
-    ctx.fillRect(x, py, w, h * 0.5);
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.32, py + h * 0.28, Math.max(4, w * 0.22), Math.max(2, h * 0.16), -0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    ctx.lineWidth = spec.active ? 4 : 3;
-    ctx.strokeStyle = spec.active ? "#fff4b0" : INK;
-    strokeRound(ctx, x, py, w, h, radius);
-    if (spec.active) {
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#e09000";
-      strokeRound(ctx, x + 3, py + 3, w - 6, h - 6, Math.max(4, radius - 3));
-    }
+    fillRound(ctx, x, py + 2, w, h, ticket, "#c4b496");
+    fillRound(ctx, x, py, w, h, ticket, paper);
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, x, py, w, h, ticket);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#8a7048";
+    strokeRound(ctx, x + 3, py + 3, w - 6, h - 6, Math.max(2, ticket - 3));
     if (spec.pulse && !spec.disabled) {
-      const a = 0.35 + Math.sin(state.time * 5) * 0.4;
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "rgba(255, 220, 60, " + a + ")";
-      strokeRound(ctx, x - 3, py - 3, w + 6, h + 6, radius + 3);
+      const a = 0.25 + Math.sin(state.time * 4) * 0.2;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(90, 50, 20, " + a + ")";
+      strokeRound(ctx, x - 2, py - 2, w + 4, h + 4, ticket + 2);
     }
     if (spec.icon) spec.icon(ctx, x, py, w, h);
     else if (spec.shopRow) {
@@ -186,22 +167,33 @@
       label(ctx, cost, cx + cw / 2, py + h / 2, 12, INK, null, 0);
     } else if (spec.shopTile) {
       const affordable = spec.affordable !== false;
-      const chipH = 13;
-      const top = py + 2;
-      const ph = Math.max(16, h - chipH - 6);
-      const pw = Math.min(w - 6, ph);
+      const chipH = 14;
+      const ph = Math.max(16, h - chipH - 8);
+      const pw = Math.min(w - 10, ph);
+      const ox = x + (w - pw) / 2;
+      const oy = py + 3;
       ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(ox + pw / 2, oy + ph / 2, pw / 2, ph / 2, 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = "#efe4c8";
+      ctx.fillRect(ox, oy, pw, ph);
       if (!affordable) ctx.globalAlpha = 0.4;
-      drawPortrait(ctx, spec.portraitKey, x + (w - pw) / 2, top, pw, ph);
+      drawPortrait(ctx, spec.portraitKey, ox, oy, pw, ph);
       ctx.restore();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.ellipse(ox + pw / 2, oy + ph / 2, pw / 2, ph / 2, 0, 0, Math.PI * 2);
+      ctx.stroke();
       const cost = "$" + spec.cost;
       font(ctx, 11);
       const cw = Math.min(w - 6, Math.max(28, ctx.measureText(cost).width + 8));
       const chipY = py + h - chipH - 2;
-      fillRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 6, affordable ? "#ffe14a" : "#d5d0c6");
+      fillRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 2, affordable ? "#f3e2b0" : "#d9d0c0");
       ctx.lineWidth = 1.3;
       ctx.strokeStyle = affordable ? INK : "#8a8680";
-      strokeRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 6);
+      strokeRound(ctx, x + (w - cw) / 2, chipY, cw, chipH, 2);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       label(ctx, cost, x + w / 2, chipY + chipH / 2, 11, affordable ? INK : "#6a6560", null, 0);
@@ -426,154 +418,89 @@
     const desert = B.map.theme === "desert";
     const sky = ctx.createLinearGradient(0, 0, 0, 570);
     if (snow) {
-      sky.addColorStop(0, "#f7fbff");
-      sky.addColorStop(0.42, "#d5e6f4");
-      sky.addColorStop(1, "#8fb4d0");
+      sky.addColorStop(0, "#c5d4e0");
+      sky.addColorStop(0.55, "#e7eef2");
+      sky.addColorStop(1, "#d5e0e4");
     } else if (desert) {
-      sky.addColorStop(0, "#f6d48a");
-      sky.addColorStop(0.45, "#e2b15a");
-      sky.addColorStop(1, "#c4843a");
+      sky.addColorStop(0, "#e2c48a");
+      sky.addColorStop(0.5, "#f0d7a4");
+      sky.addColorStop(1, "#d7b07a");
     } else {
-      sky.addColorStop(0, "#b6f07a");
-      sky.addColorStop(0.4, "#5ec63a");
-      sky.addColorStop(1, "#2f8a24");
+      sky.addColorStop(0, "#b7cbe0");
+      sky.addColorStop(0.42, "#d5e4c8");
+      sky.addColorStop(1, "#c6b48a");
     }
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, 400, 570);
-    const sun = ctx.createRadialGradient(70, 40, 8, 90, 80, 220);
-    sun.addColorStop(0, "rgba(255,255,220,0.35)");
-    sun.addColorStop(1, "rgba(255,255,220,0)");
-    ctx.fillStyle = sun;
-    ctx.fillRect(0, 0, 400, 280);
-    const blobs = snow
-      ? [
-          [80, 200, 120, 50, "#ffffff"],
-          [300, 80, 100, 36, "#e7f2fb"],
-          [210, 300, 140, 46, "#f4fbff"],
-          [90, 470, 110, 40, "#d7e6f2"],
-          [300, 360, 90, 34, "#ffffff"],
-          [40, 80, 70, 24, "#e4eef6"],
-        ]
+    const hills = snow
+      ? [[80, 420, 180, 70, "#f4f7f4"], [260, 460, 200, 80, "#e4eef2"], [180, 200, 220, 60, "#f7f4ee"]]
       : desert
-      ? [
-          [70, 180, 130, 70, "#efc56e"],
-          [300, 150, 120, 60, "#c98a3a"],
-          [200, 300, 160, 80, "#f0d48a"],
-          [80, 400, 140, 70, "#d9a04a"],
-          [320, 430, 130, 64, "#e8b45a"],
-          [180, 500, 170, 50, "#f3d7a0"],
-          [40, 120, 90, 40, "#c4843a"],
-          [340, 260, 80, 48, "#b87428"],
-        ]
-      : [
-          [70, 180, 130, 70, "#6ed84a"],
-          [300, 150, 120, 60, "#3ea028"],
-          [200, 300, 160, 80, "#7ae052"],
-          [80, 400, 140, 70, "#369424"],
-          [320, 430, 130, 64, "#62c840"],
-          [180, 500, 170, 50, "#8ae85e"],
-          [40, 120, 90, 40, "#3d9a2c"],
-          [340, 260, 80, 48, "#2f8a24"],
-        ];
-    blobs.forEach((b) => {
-      ctx.fillStyle = b[4];
+        ? [[70, 180, 150, 50, "#e2c48a"], [280, 240, 160, 46, "#c49a62"], [160, 400, 190, 55, "#d7b07a"]]
+        : [[60, 160, 140, 46, "#c5b06a"], [250, 210, 160, 40, "#8ea56a"], [140, 340, 180, 50, "#a3b56a"], [300, 430, 150, 42, "#d2c08a"], [40, 480, 120, 36, "#b7a06a"]];
+    hills.forEach(function (h) {
+      ctx.fillStyle = h[4];
       ctx.beginPath();
-      ctx.ellipse(b[0], b[1], b[2], b[3], 0, 0, Math.PI * 2);
+      ctx.ellipse(h[0], h[1], h[2], h[3], 0, 0, Math.PI * 2);
       ctx.fill();
     });
-
-    const rand = mulberry32(snow ? 41 : desert ? 29 : 11);
-    for (let i = 0; i < 70; i++) {
-      const x = 8 + rand() * 384;
-      const y = 60 + rand() * 490;
-      if (B.distToRoute(x, y) < 32) continue;
-      if (nearBlock(x, y, 6)) continue;
-      if (snow) drawSnowCap(ctx, x, y, 4 + rand() * 5);
-      else if (desert) drawPebble(ctx, x, y, 2 + rand() * 2.4);
-      else drawTuft(ctx, x, y, 5 + rand() * 6);
+    if (!snow && !desert) {
+      ctx.fillStyle = "#8d3a32";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(330, 92);
+      ctx.lineTo(358, 92);
+      ctx.lineTo(352, 70);
+      ctx.lineTo(336, 70);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#f3ead4";
+      ctx.fillRect(338, 92, 12, 16);
+      ctx.strokeRect(338, 92, 12, 16);
+      ctx.strokeStyle = INK;
+      ctx.beginPath();
+      ctx.moveTo(300, 48);
+      ctx.lineTo(300, 108);
+      ctx.moveTo(300, 56);
+      ctx.lineTo(318, 64);
+      ctx.lineTo(300, 72);
+      ctx.stroke();
     }
-    const colors = desert
-      ? ["#ff9a3c", "#ffe56a", "#f07a3a", "#fff2c4"]
-      : ["#ff8ab4", "#ffe56a", "#ffffff", "#ff9a3c", "#8ad4ff"];
-    for (let i = 0; i < (desert ? 18 : 34); i++) {
-      const x = 12 + rand() * 376;
-      const y = 70 + rand() * 470;
-      if (B.distToRoute(x, y) < 30) continue;
-      if (nearBlock(x, y, 8)) continue;
-      if (snow) drawSnowCap(ctx, x, y, 2 + rand() * 2);
-      else if (desert && i % 2 === 0) drawPebble(ctx, x, y, 3 + rand() * 2);
-      else drawFlower(ctx, x, y, 2.4 + rand() * 1.6, colors[i % colors.length]);
+    if (desert) {
+      ctx.fillStyle = "#a87848";
+      ctx.beginPath();
+      ctx.moveTo(40, 120);
+      ctx.lineTo(110, 70);
+      ctx.lineTo(170, 120);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+      ctx.fillStyle = "#6a5030";
+      ctx.fillRect(300, 80, 6, 28);
+      ctx.beginPath();
+      ctx.ellipse(303, 78, 14, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
-
     ctx.save();
-    ctx.translate(2, 5);
-    strokePath(ctx, 58, snow ? "rgba(40, 70, 100, 0.28)" : desert ? "rgba(90, 48, 16, 0.35)" : "rgba(20, 50, 12, 0.28)");
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const edge = snow ? "#f7f4ee" : desert ? "#e7d2a4" : "#e7d7b0";
+    const dirt = snow ? "#c5d0d4" : desert ? "#c49a62" : "#b08960";
+    const core = snow ? "#e7eef2" : desert ? "#d7b07a" : "#c4a06a";
+    strokePath(ctx, 46, edge);
+    strokePath(ctx, 34, dirt);
+    strokePath(ctx, 18, core);
     ctx.restore();
-    if (snow) {
-      strokePath(ctx, 64, "rgba(90, 120, 150, 0.35)");
-      strokePath(ctx, 56, "#f7fbff");
-      strokePath(ctx, 46, "#d5e2ee");
-      strokePath(ctx, 34, "#8ea0b0");
-      strokePath(ctx, 14, "rgba(255,255,255,0.8)");
-    } else if (desert) {
-      strokePath(ctx, 64, "rgba(120, 64, 18, 0.35)");
-      strokePath(ctx, 56, "#6a3a18");
-      strokePath(ctx, 48, "#e2b56a");
-      strokePath(ctx, 36, "#f6d7a4");
-      strokePath(ctx, 16, "rgba(255, 244, 214, 0.7)");
-    } else {
-      strokePath(ctx, 64, "rgba(36, 70, 16, 0.35)");
-      strokePath(ctx, 56, "#3a2414");
-      strokePath(ctx, 48, "#e6c98a");
-      strokePath(ctx, 36, "#f7e2b4");
-      strokePath(ctx, 16, "rgba(255, 250, 230, 0.75)");
-    }
-
-    ctx.save();
-    ctx.translate(0, -3);
-    strokePath(ctx, 18, snow ? "rgba(255,255,255,0.55)" : desert ? "rgba(255,236,196,0.35)" : "rgba(255,250,230,0.4)");
-    ctx.restore();
-    ctx.save();
-    ctx.translate(0, 2);
-    strokePath(ctx, 8, "rgba(40, 24, 12, 0.28)");
-    ctx.restore();
-
-    const specks = mulberry32(desert ? 7 : 3);
-    for (let i = 0; i < 420; i++) {
-      const x = specks() * 400;
-      const y = 50 + specks() * 510;
-      if (B.distToRoute(x, y) < 28) continue;
-      ctx.fillStyle = snow
-        ? "rgba(255,255,255," + (0.25 + specks() * 0.35) + ")"
-        : desert
-          ? "rgba(120,70,20," + (0.08 + specks() * 0.12) + ")"
-          : "rgba(10,50,10," + (0.06 + specks() * 0.12) + ")";
-      ctx.fillRect(x, y, 2, 2);
-    }
-
-    ctx.fillStyle = snow ? "rgba(255,255,255,0.65)" : "rgba(120, 78, 36, 0.35)";
-    const routes = B.routes && B.routes.length ? B.routes : [B.route];
-    for (let li = 0; li < routes.length; li++) {
-      for (let d = 0; d < routes[li].total; d += 9) {
-        const p = B.pointAt(d, li);
-        const nx = -Math.sin(p.angle);
-        const ny = Math.cos(p.angle);
-        ctx.fillRect(p.x + nx * 8 - 1, p.y + ny * 8 - 1, 2, 2);
-        ctx.fillRect(p.x - nx * 10 - 1, p.y - ny * 10 - 1, 2, 2);
-      }
-    }
-
     const pond = B.map.pond;
     if (pond && pond.kind === "well") drawWell(ctx, pond);
     else if (pond && pond.kind === "ice") drawIce(ctx, pond);
     else if (pond) drawPond(ctx, pond);
-
     const exit = B.pointAt(B.route.total - 16, 0);
     drawFort(ctx, exit.x, exit.y);
     const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Maple Grove" };
     drawSign(ctx, sign.x, sign.y, sign.label);
-
-    ctx.fillStyle = "rgba(90, 40, 120, 0.0)";
     if (mapLines().length > 1) {
       mapLines().forEach((pts) => {
         const a = pts[0];
@@ -582,7 +509,6 @@
         drawBannerPost(ctx, a[0] + Math.cos(ang) * 36 - Math.sin(ang) * 36, a[1] + Math.sin(ang) * 36 + Math.cos(ang) * 36);
       });
     } else drawBannerPost(ctx, 26, 96);
-    if (!snow) drawCamp(ctx);
   }
 
   function drawCamp(ctx) {
@@ -1002,14 +928,6 @@
       ctx.strokeStyle = INK;
       ctx.stroke();
     });
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.beginPath();
-    ctx.ellipse(tree.x - r * 0.22, tree.y - r * 1.15, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    ctx.beginPath();
-    ctx.arc(tree.x + r * 0.15, tree.y - r * 0.7, r * 0.18, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
   }
 
@@ -1630,26 +1548,29 @@
 
   function drawHeader(ctx, state, L) {
     const h = L.headerH;
-    const desert = B.map.theme === "desert";
-    const bar = ctx.createLinearGradient(0, 0, 0, h);
-    bar.addColorStop(0, desert ? "#f0c56a" : "#3ecf4e");
-    bar.addColorStop(1, desert ? "#c47a28" : "#127a32");
-    ctx.fillStyle = bar;
+    ctx.fillStyle = "#6a5030";
     ctx.fillRect(0, 0, L.vw, h);
-    ctx.fillStyle = desert ? "#5a3010" : "#08381a";
-    ctx.fillRect(0, h - 4, L.vw, 4);
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    ctx.fillRect(0, 0, L.vw, 6);
-    ctx.fillStyle = "#ffe56a";
-    ctx.fillRect(0, h - 7, L.vw, 3);
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(4, 4, L.vw - 8, h - 8);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(4, 4, L.vw - 8, h - 8);
+    ctx.strokeStyle = "#8a7048";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(7, 7, L.vw - 14, h - 14);
 
     const pillH = Math.min(36, h - 14);
     const py = (h - 4 - pillH) / 2;
     function pill(x, w) {
-      fillRound(ctx, x, py, w, pillH, pillH / 2, desert ? "#6a3a12" : "#0e4a22");
-      ctx.lineWidth = 2.5;
+      ctx.fillStyle = "#f7f1e2";
+      ctx.beginPath();
+      ctx.arc(x + pillH / 2, py + pillH / 2, pillH / 2 - 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2;
       ctx.strokeStyle = INK;
-      strokeRound(ctx, x, py, w, pillH, pillH / 2);
+      ctx.stroke();
+      fillRound(ctx, x + pillH * 0.7, py + 2, w - pillH * 0.7, pillH - 4, 4, "#f7f1e2");
+      ctx.strokeRect(x + pillH * 0.55, py + 2, w - pillH * 0.7, pillH - 4);
     }
     const squeeze = state.hurt > 0 ? 1 + Math.sin(state.time * 28) * 0.06 : 1;
     pill(8, 92);
@@ -1660,12 +1581,12 @@
     ctx.restore();
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    label(ctx, String(state.lives), 42, py + pillH / 2 + 1, 18, "#ffffff", INK, 3);
+    label(ctx, String(state.lives), 42, py + pillH / 2 + 1, 18, INK, null, 0);
 
     pill(108, 112);
     drawCoin(ctx, 126, py + pillH / 2, 8);
     ctx.textAlign = "left";
-    label(ctx, String(state.cash), 140, py + pillH / 2 + 1, 18, "#ffffff", INK, 3);
+    label(ctx, String(state.cash), 140, py + pillH / 2 + 1, 18, INK, null, 0);
 
     const snd = 44;
     const sndX = L.vw - 8 - snd;
@@ -1678,8 +1599,8 @@
     else if (state.rewarded >= n && state.started > 0) num = "WIN";
     else if (state.started > 0) num = (state.started + 1) + "/" + n;
     ctx.textAlign = "center";
-    label(ctx, "ROUND", roundX + roundW / 2, py + 11, 9, "#d8ffc4", null, 0);
-    label(ctx, num, roundX + roundW / 2, py + pillH / 2 + 6, 16, "#ffffff", INK, 3);
+    label(ctx, "ROUND", roundX + roundW / 2, py + 11, 9, "#6a5030", null, 0);
+    label(ctx, num, roundX + roundW / 2, py + pillH / 2 + 6, 16, INK, null, 0);
 
     if (!L.portrait && roundX - 230 > 120) {
       ctx.textAlign = "center";
@@ -2093,7 +2014,7 @@
     ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = 12;
     ctx.shadowOffsetY = -2;
-    fillRound(ctx, p.x, p.y, p.w, p.h, rad, "#0c4a22");
+    fillRound(ctx, p.x, p.y, p.w, p.h, rad, "#6a5030");
     ctx.restore();
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
@@ -2102,16 +2023,10 @@
     const ir = L.portrait
       ? { tl: 12, tr: 12, br: 0, bl: 0 }
       : { tl: 12, tr: 0, br: 0, bl: 12 };
-    fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, "#fff6df");
-    ctx.save();
-    roundPath(ctx, p.x + inset, p.y + inset, p.w - inset * 2, Math.min(28, p.h * 0.2), ir);
-    ctx.clip();
-    const gloss = ctx.createLinearGradient(0, p.y, 0, p.y + 28);
-    gloss.addColorStop(0, "rgba(255,255,255,0.55)");
-    gloss.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = gloss;
-    ctx.fillRect(p.x, p.y, p.w, 28);
-    ctx.restore();
+    fillRound(ctx, p.x + inset, p.y + inset, p.w - inset * 2, p.h - inset, ir, PAPER);
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "#8a7048";
+    strokeRound(ctx, p.x + inset + 3, p.y + inset + 3, p.w - inset * 2 - 6, p.h - inset - 6, ir);
     const selected = state.towers.find((t) => t.id === state.selectedId) || null;
     const show = selected && !state.placing;
     const m = metrics(L, show);
@@ -3070,6 +2985,23 @@
     });
   }
 
+  function paperGrain(ctx, L) {
+    const rand = mulberry32(7);
+    ctx.save();
+    for (let i = 0; i < 180; i++) {
+      const x = rand() * L.vw;
+      const y = rand() * L.vh;
+      ctx.fillStyle = "rgba(60, 40, 20, " + (0.03 + rand() * 0.05) + ")";
+      ctx.fillRect(x, y, 1.4, 1.4);
+    }
+    const vg = ctx.createRadialGradient(L.vw / 2, L.vh / 2, L.vh * 0.35, L.vw / 2, L.vh / 2, L.vh * 0.75);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(40, 24, 12, 0.16)");
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, L.vw, L.vh);
+    ctx.restore();
+  }
+
   function draw(ctx, state) {
     const L = state.layout;
     if (!L) return;
@@ -3144,6 +3076,8 @@
       }
       drawBuild(ctx, state, L);
     }
+
+    paperGrain(ctx, L);
 
     if (state.error) {
       ctx.fillStyle = "#4a1020";
