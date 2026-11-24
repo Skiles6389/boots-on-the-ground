@@ -1,2 +1,1 @@
-// Rewritten on every GitHub Pages deploy with the date and commit.
-window.BOTG_BUILD = "2026-11-24";
+window.BOTG_BUILD = "2026-11-24.9add048";
