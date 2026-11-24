@@ -438,15 +438,18 @@
     announce(`Wave ${state.started}, ${wave.name}. ${wave.hint}`);
   }
 
-  function spawnEnemy(type) {
+  function spawnEnemy(type, opt) {
     const def = B.enemies[type];
-    const p = B.pointAt(0);
+    const dropping = !!(def.drop || (opt && opt.drop));
+    const frac = dropping ? (typeof def.drop === "number" ? def.drop : 0.46) : 0;
+    const p = B.pointAt(dropping ? B.route.total * frac : 0);
+    const fall = dropping ? def.dropTime || 1.25 : 0;
     const enemy = {
       id: state.nextId++,
       type,
-      dist: 0,
+      dist: dropping ? B.route.total * frac : 0,
       x: p.x,
-      y: p.y,
+      y: p.y - (dropping ? 78 : 0),
       angle: p.angle,
       hp: def.hp,
       maxHp: def.hp,
@@ -459,8 +462,14 @@
       flash: 0,
       tinkCd: 0,
       dead: false,
+      falling: fall,
+      fall: fall,
+      airborne: dropping,
+      shieldHp: def.shield ? def.shieldHp || 14 : 0,
+      shieldMax: def.shield ? def.shieldHp || 14 : 0,
     };
     state.enemies.push(enemy);
+    if (dropping) floater(p.x, p.y - 70, "DROP", "#ffd0d8", 0.8);
     if (def.ironjaw) {
       showBanner("Scowl Corps", "Ironjaw", "The mega-tank. Cannons and mortars. His blast stuns nearby guns.", "boss");
       audio.play("boss");
@@ -519,13 +528,24 @@
   function deal(enemy, damage, armorBite, from) {
     if (!enemy || enemy.dead) return;
     const def = B.enemies[enemy.type];
-    if (def && def.shield && armorBite < 0.5 && fromFront(enemy, from)) {
+    if (def && def.camo && !enemySeen(enemy)) return;
+    if (def && def.shield && enemy.shieldHp > 0 && armorBite < 0.5 && fromFront(enemy, from)) {
+      enemy.shieldHp -= damage;
       enemy.flash = 0.1;
-      if (enemy.tinkCd <= 0) {
-        floater(enemy.x, enemy.y - 16, "clang", "#d7e7ff", 0.35);
-        enemy.tinkCd = 0.45;
+      if (enemy.shieldHp <= 0) {
+        const overflow = -enemy.shieldHp;
+        enemy.shieldHp = 0;
+        floater(enemy.x, enemy.y - 18, "CRACK", "#d7e7ff", 0.55);
+        enemy.tinkCd = 0.35;
+        if (overflow <= 0) return;
+        damage = overflow;
+      } else {
+        if (enemy.tinkCd <= 0) {
+          floater(enemy.x, enemy.y - 16, "clang", "#d7e7ff", 0.35);
+          enemy.tinkCd = 0.35;
+        }
+        return;
       }
-      return;
     }
     const resist = enemy.armor * (1 - armorBite);
     const dealt = damage * (1 - resist);
@@ -569,11 +589,13 @@
 
   function enemySeen(enemy) {
     const def = B.enemies[enemy.type];
-    if (!def || !def.stealth) return true;
+    if (!def || (!def.stealth && !def.camo)) return true;
     for (const tower of state.towers) {
       const stats = B.statsFor(tower.type, tower.ranks);
-      if (!(stats.detect || stats.detectAura || tower.type === "longshot")) continue;
-      const reach = stats.detect || stats.detectAura || tower.type === "longshot" ? stats.range || 160 : 0;
+      const recon = !!(stats.detect || stats.detectAura);
+      const eyes = def.camo ? recon : recon || tower.type === "longshot";
+      if (!eyes) continue;
+      const reach = stats.range || 160;
       if (Math.hypot(tower.x - enemy.x, tower.y - enemy.y) <= reach) return true;
     }
     return false;
@@ -582,8 +604,9 @@
   function canTarget(tower, stats, enemy) {
     const def = B.enemies[enemy.type];
     if (!def) return true;
-    if (def.air && !(stats.air || stats.role === "sky" || stats.role === "chopper")) return false;
-    if (def.stealth && !enemySeen(enemy)) return false;
+    const flying = !!(def.air || enemy.airborne);
+    if (flying && !(stats.air || stats.role === "sky" || stats.role === "chopper")) return false;
+    if ((def.stealth || def.camo) && !enemySeen(enemy)) return false;
     return true;
   }
 
@@ -855,7 +878,7 @@
       state.waveClock += dt;
       while (state.spawnQueue.length && state.spawnQueue[0].at <= state.waveClock) {
         const item = state.spawnQueue.shift();
-        spawnEnemy(item.type);
+        spawnEnemy(item.type, item);
         if (state.screen !== "play") return;
       }
     }
@@ -938,6 +961,28 @@
       if (enemy.hobble > 0) {
         enemy.hobble -= dt;
         enemy.slow = Math.min(enemy.slow || 1, 0.62);
+      }
+      if (enemy.falling > 0) {
+        enemy.falling -= dt;
+        enemy.airborne = true;
+        enemy.air = true;
+        const p = B.pointAt(enemy.dist);
+        const u = 1 - Math.max(0, enemy.falling) / (enemy.fall || 1);
+        enemy.x = p.x;
+        enemy.y = p.y - (1 - u) * 78;
+        enemy.angle = p.angle;
+        enemy.phase += dt * 4;
+        enemy.flash = Math.max(0, enemy.flash - dt);
+        enemy.tinkCd = Math.max(0, enemy.tinkCd - dt);
+        enemy.revealed = enemySeen(enemy);
+        if (enemy.falling <= 0) {
+          enemy.falling = 0;
+          enemy.airborne = false;
+          enemy.air = false;
+          enemy.x = p.x;
+          enemy.y = p.y;
+        }
+        continue;
       }
       enemy.dist += enemy.speed * (enemy.slow || 1) * dt;
       enemy.phase += dt * enemy.speed * 0.16;
@@ -1429,6 +1474,26 @@
       stop() {
         state.auto = false;
         state.speedOverride = 0;
+      },
+      spam(type) {
+        for (let y = 72; y <= 530; y += 42) {
+          for (let x = 32; x <= 368; x += 42) {
+            if (canPlace(x, y, type).ok) place(x, y, type);
+          }
+        }
+        return state.towers.length;
+      },
+      send() {
+        if (state.screen === "play" && !state.waveActive && state.launchLock <= 0 && state.started < B.waves.length) launch();
+      },
+      tick(seconds) {
+        let left = seconds;
+        while (left > 0 && state.screen === "play") {
+          const h = Math.min(1 / 30, left);
+          update(h);
+          left -= h;
+        }
+        return state.screen;
       },
       summary() {
         return state.summary || `${state.screen} wave ${state.started} lives ${state.lives} cash ${state.cash} towers ${state.towers.length}`;

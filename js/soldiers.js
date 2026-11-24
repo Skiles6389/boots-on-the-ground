@@ -51,10 +51,27 @@
   function palFor(team, role) {
     if (team !== "enemy") return FRIEND;
     const pal = Object.assign({}, FOE);
-    if (role === "scout") {
+    if (role === "scout" || role === "dash") {
       pal.jacket = "#7a2850";
       pal.jacketHi = "#c45a80";
       pal.helmet = "#3a1834";
+    }
+    if (role === "dash") {
+      pal.belt = "#ffe14a";
+      pal.helmetHi = "#fff0a0";
+    }
+    if (role === "camo") {
+      pal.jacket = "#4a5a32";
+      pal.jacketSh = "#2a3818";
+      pal.jacketHi = "#8aaa58";
+      pal.helmet = "#3a4a28";
+      pal.helmetHi = "#b6d48a";
+      pal.pants = "#2c2418";
+    }
+    if (role === "bulwark") {
+      pal.jacket = "#3a1028";
+      pal.jacketHi = "#7a2848";
+      pal.helmet = "#1a1020";
     }
     if (role === "heavy") {
       pal.jacket = "#3a1028";
@@ -518,9 +535,63 @@
       ctx.fillStyle = "#7dff6a";
       ctx.fillRect(-1.2, -24, 2.4, 7);
       ctx.fillRect(-3.4, -21.6, 7, 2.4);
-    } else if (role === "riot") {
-      stand(ctx, pal, true, opt.phase || 0, 1.05);
-      piece(ctx, 6, -26, 5, 16, 2, "#6a6e78", "#3a3e48");
+    } else if (role === "riot" || role === "bulwark") {
+      const bulk = role === "bulwark" ? 1.16 : 1.05;
+      stand(ctx, pal, true, opt.phase || 0, bulk);
+      const frac = opt.shield == null ? 1 : opt.shield;
+      if (frac > 0.02) {
+        const w = role === "bulwark" ? 8 : 5.2;
+        const h = role === "bulwark" ? 20 : 16;
+        piece(ctx, 7, -28, w, h, 2.2, "#c5ced8", "#5c6672");
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.fillRect(8, -26, Math.max(1.2, w * 0.28), h * 0.35);
+        if (frac < 0.7) {
+          ctx.strokeStyle = "#2a241c";
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(8, -24);
+          ctx.lineTo(7 + w * 0.7, -16);
+          if (frac < 0.35) {
+            ctx.moveTo(7 + w, -22);
+            ctx.lineTo(9, -12);
+          }
+          ctx.stroke();
+        }
+      }
+    } else if (role === "dash") {
+      stand(ctx, pal, true, (opt.phase || 0) * 1.7, 0.8);
+      ctx.fillStyle = "#ffe14a";
+      ctx.fillRect(-5, -16.5, 10, 2.2);
+      ctx.strokeStyle = "rgba(255, 246, 192, 0.9)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-12, -22);
+      ctx.lineTo(-20, -23);
+      ctx.moveTo(-11, -17);
+      ctx.lineTo(-18, -16);
+      ctx.stroke();
+    } else if (role === "camo") {
+      const seen = !!opt.revealed;
+      ctx.save();
+      ctx.globalAlpha = seen ? 1 : 0.3;
+      stand(ctx, pal, true, opt.phase || 0, 0.98);
+      ctx.fillStyle = seen ? "#6f8f3e" : "#314020";
+      ctx.beginPath();
+      ctx.ellipse(-2, -22, 4.2, 2.6, 0.4, 0, Math.PI * 2);
+      ctx.ellipse(3.2, -17, 3, 2, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(-1, -12, 3.4, 1.8, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (role === "para") {
+      stand(ctx, pal, true, opt.phase || 0, 1);
+      ctx.strokeStyle = "#f4efe4";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(-3, -26);
+      ctx.lineTo(0, -38);
+      ctx.moveTo(3, -26);
+      ctx.lineTo(0, -38);
+      ctx.stroke();
     } else if (role === "scout") {
       stand(ctx, pal, true, (opt.phase || 0) * 1.4, 0.9);
       ctx.save();
