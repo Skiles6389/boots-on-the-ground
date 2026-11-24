@@ -126,6 +126,9 @@
     engineer: "#f3d7b0",
     sky: "#d4ebf6",
     chopper: "#efe0a8",
+    tent: "#e7d7b4",
+    flame: "#f6c49a",
+    gunner: "#d9c48a",
   };
 
   function drawLock(ctx, x, y, s) {
@@ -170,12 +173,25 @@
       ctx.lineTo(sx, badgeY + badgeH);
       ctx.stroke();
     }
+    let drew = false;
     if (root.BOTGArt && root.BOTGArt.drawBust) {
       if (!affordable) ctx.globalAlpha = 0.42;
-      root.BOTGArt.drawBust(ctx, spec.portraitKey, badgeX - 2, badgeY - 1, badgeW + 4, badgeH + 2);
+      drew = root.BOTGArt.drawBust(ctx, spec.portraitKey, badgeX - 2, badgeY - 1, badgeW + 4, badgeH + 2);
       ctx.globalAlpha = 1;
-    } else {
-      drawPortrait(ctx, spec.portraitKey, badgeX, badgeY, badgeW, badgeH);
+    }
+    if (!drew) {
+      if (root.BOTGSoldier) {
+        const sc = Math.min((badgeW * 0.7) / 28, (badgeH * 0.86) / 40);
+        root.BOTGSoldier.draw(ctx, badgeX + badgeW * 0.5, badgeY + badgeH - 2, {
+          team: "player",
+          role: spec.portraitKey,
+          aim: 0.2,
+          phase: state.time * 2 + (spec.bob || 0),
+          scale: sc / 1.22,
+        });
+      } else {
+        drawPortrait(ctx, spec.portraitKey, badgeX, badgeY, badgeW, badgeH);
+      }
     }
     if (motion && affordable) {
       const sweep = (state.time * 0.28 + phase) % 1;
@@ -1694,6 +1710,25 @@
       star(ctx, fx.x, fx.y, fx.r * 1.6, k * 5);
       ctx.fill();
       ctx.restore();
+    } else if (fx.kind === "flame") {
+      ctx.save();
+      ctx.translate(fx.x, fx.y);
+      ctx.rotate(fx.a || 0);
+      ctx.globalAlpha = 1 - k;
+      const reach = (fx.r || 60) * (0.55 + k * 0.45);
+      const spread = fx.cone || 0.7;
+      const g = ctx.createLinearGradient(0, 0, reach, 0);
+      g.addColorStop(0, "rgba(255,244,180,0.9)");
+      g.addColorStop(0.45, "rgba(255,120,30,0.75)");
+      g.addColorStop(1, "rgba(180,40,10,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(-spread) * reach, Math.sin(-spread) * reach * 0.55);
+      ctx.lineTo(Math.cos(spread) * reach, Math.sin(spread) * reach * 0.55);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     } else if (fx.kind === "tracer") {
       ctx.save();
       ctx.globalAlpha = 1 - k * 0.3;
@@ -2113,7 +2148,7 @@
 
   function drawCards(ctx, state, area) {
     const order = B.towerOrder || ["trooper", "longshot", "gatling", "mortar", "tread", "engineer", "sky", "chopper"];
-    const cols = area.w >= area.h ? 4 : 2;
+    const cols = area.w >= 330 ? 6 : area.w >= 168 ? 3 : 2;
     const rows = Math.ceil(order.length / cols);
     const gap = 4;
     const tw = (area.w - gap * (cols - 1)) / cols;

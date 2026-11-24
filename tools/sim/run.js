@@ -10,11 +10,11 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const TOWERS = ["trooper", "longshot", "gatling", "mortar", "tread", "engineer", "sky", "chopper"];
+const TOWERS = ["trooper", "longshot", "gatling", "flame", "mortar", "tread", "engineer", "tent", "sky", "chopper", "gunner"];
 const MAPS = ["maple", "cactus", "frost"];
 const DIFFS = ["easy", "medium", "hard"];
-const QUOTA = { trooper: 4, gatling: 3, longshot: 2, mortar: 2, sky: 2, engineer: 1, tread: 1, chopper: 1 };
-const MIX = ["gatling", "longshot", "trooper", "mortar", "sky", "engineer", "tread", "chopper"];
+const QUOTA = { trooper: 4, gatling: 2, flame: 2, longshot: 2, mortar: 2, sky: 2, engineer: 1, tent: 1, tread: 1, chopper: 1, gunner: 1 };
+const MIX = ["gatling", "longshot", "trooper", "flame", "mortar", "sky", "engineer", "tent", "tread", "chopper", "gunner"];
 
 function boot() {
   const g = global;
@@ -112,6 +112,11 @@ function bestSpot(type, range) {
       const check = bot.canPlace(x, y, type);
       if (!check.ok) continue;
       let score = cover(x, y, range);
+      if (type === "tent") {
+        global.BOTG.state.towers.forEach(function (t) {
+          if (Math.hypot(t.x - x, t.y - y) < 110) score += 4;
+        });
+      }
       if ((type === "sky" || type === "chopper") && airCover().length > 1) {
         const have = airCover();
         const hits = laneHits(x, y, range);

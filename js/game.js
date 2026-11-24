@@ -17,7 +17,7 @@
     if (portrait) {
       // Shop bar is about a third slimmer than the old 40% footer.
       // Selecting a tower grows it just enough for three 40px path buttons.
-      const shop = Math.round(Math.min(224, Math.max(188, vh * 0.255)));
+      const shop = Math.round(Math.min(252, Math.max(210, vh * 0.28)));
       const upgrade = 232;
       footerH = inspecting ? Math.max(shop, upgrade) : shop;
       const minMap = 230;
@@ -613,7 +613,7 @@
       }
       return;
     }
-    if (def && def.smallArms && (armorBite || 0) < 0.45 && !(from && from.explosive)) {
+    if (def && def.smallArms && (armorBite || 0) < 0.45 && !(from && (from.explosive || from.burn))) {
       enemy.flash = 0.06;
       if (enemy.tinkCd <= 0) {
         floater(enemy.x, enemy.y - 16, "plink", "#d7e7ff", 0.28);
@@ -643,6 +643,10 @@
     const dealt = damage * (1 - resist);
     enemy.hp -= dealt;
     enemy.flash = 0.18;
+    if (from && from.quiet) {
+      if (enemy.hp <= 0) defeat(enemy);
+      return;
+    }
     const plink = dealt < damage * 0.6;
     const shown = Math.max(1, Math.round(dealt));
     spawnSparks(enemy.x, enemy.y, plink ? "#d5e6ff" : "#ffe9a0");
@@ -738,8 +742,37 @@
     return { x: tower.x + Math.cos(a) * 16, y: tower.y - 18 + Math.sin(a) * 7 };
   }
 
+  function supportMods(tower) {
+    let rate = 1;
+    let damage = 1;
+    for (const other of state.towers) {
+      if (other === tower || other.type !== "tent") continue;
+      const os = B.statsFor(other.type, other.ranks);
+      if (Math.hypot(other.x - tower.x, other.y - tower.y) > (os.range || 0)) continue;
+      if (os.aid) rate = Math.max(rate, os.aid);
+      if (os.kit) damage += os.kit;
+    }
+    return { rate: rate, damage: damage };
+  }
+
+  function ignite(enemy, stats, from) {
+    enemy.burn = Math.max(enemy.burn || 0, stats.burn || 1.6);
+    enemy.burnDps = Math.max(enemy.burnDps || 0, stats.burnDps || 3);
+    enemy.burnBite = Math.max(enemy.burnBite || 0, stats.armorBite || 0);
+    enemy.burnFrom = from || { x: enemy.x, y: enemy.y };
+    if (stats.burnSlow) enemy.hobble = Math.max(enemy.hobble || 0, 0.45);
+  }
+
   function shoot(tower, target, stats) {
-    if (stats.role === "engineer" || stats.rate <= 0) return;
+    if (stats.role === "engineer" || stats.role === "tent" || stats.rate <= 0) return;
+    const mods = supportMods(tower);
+    if (mods.damage !== 1 || mods.rate !== 1) {
+      stats = Object.assign({}, stats, {
+        damage: (stats.damage || 0) * mods.damage,
+        burnDps: (stats.burnDps || 0) * mods.damage,
+        rate: (stats.rate || 0) * mods.rate,
+      });
+    }
     const origin = stats.role === "chopper" ? chopperGun(tower) : aimOrigin(tower.x, tower.y, stats.role);
     const aim = Math.atan2(target.y - origin.y, target.x - origin.x);
     tower.aim = aim;
@@ -754,6 +787,25 @@
     const tip = stats.role === "chopper" ? origin : muzzleTip(tower.x, tower.y, stats.role, aim);
     const mx = tip.x;
     const my = tip.y;
+    if (stats.role === "flame") {
+      const cone = stats.cone || 0.8;
+      let hit = 0;
+      for (const enemy of liveEnemies()) {
+        if (!canTarget(tower, stats, enemy)) continue;
+        const dx = enemy.x - tower.x;
+        const dy = enemy.y - tower.y;
+        if (Math.hypot(dx, dy) > stats.range + (enemy.radius || 0) * 0.25) continue;
+        if (enemy !== target && Math.abs(angDelta(tower.aim, Math.atan2(dy, dx))) > cone) continue;
+        ignite(enemy, stats, { x: tower.x, y: tower.y });
+        hit += 1;
+      }
+      if (hit) {
+        state.effects.push({ kind: "flame", x: mx, y: my, a: tower.aim, r: stats.range, cone: cone, t: 0, life: 0.16 });
+        audio.play("flame");
+      }
+      tower.cooldown = 1 / Math.max(0.25, stats.rate);
+      return;
+    }
     if (stats.role === "mortar") {
       const travel = 0.55;
       const laneRoute = B.routeFor(target.lane);
@@ -838,7 +890,9 @@
         vy: (dy / mag) * stats.projectileSpeed,
         damage: stats.damage,
         armorBite: stats.armorBite,
-        radius: stats.role === "gatling" ? 5 : 7,
+        radius: stats.role === "gatling" || stats.role === "gunner" ? 4 : 7,
+        burn: stats.burn || 0,
+        burnDps: stats.burnDps || 0,
         kind: stats.role,
         pierce: stats.pierce || 0,
         life: 1.15,
@@ -856,13 +910,15 @@
           vy: Math.sin(ang) * stats.projectileSpeed,
           damage: stats.damage,
           armorBite: stats.armorBite,
-          radius: 5,
+          radius: 4,
+          burn: stats.burn || 0,
+          burnDps: stats.burnDps || 0,
           kind: stats.role,
           pierce: stats.pierce || 0,
           life: 1.15,
         });
       }
-      const sound = stats.role === "gatling" ? "gatling" : stats.role === "tread" ? "cannon" : stats.role === "chopper" ? "chopper" : "rifle";
+      const sound = stats.role === "gunner" ? "mauler" : stats.role === "gatling" ? "gatling" : stats.role === "tread" ? "cannon" : stats.role === "chopper" ? "chopper" : "rifle";
       if (stats.role === "chopper" && tower.rocketCd == null) tower.rocketCd = 0;
       if (stats.role === "chopper" && stats.splash && tower.rocketCd <= 0) {
         state.shots.push({
@@ -939,6 +995,26 @@
         en.hobble = Math.max(en.hobble || 0, 2.5);
       });
       spawnPoof(tower.x, tower.y, 1.4, true);
+    } else if (spec.id === "triage") {
+      state.towers.forEach(function (t) {
+        if (Math.hypot(t.x - tower.x, t.y - tower.y) <= (stats.range || 90) + 16) t.buff = 4;
+      });
+      floater(tower.x, tower.y - 28, "TRIAGE", "#d8ffc4", 0.9);
+    } else if (spec.id === "belch") {
+      enemies.forEach(function (en) {
+        if (!inReach(en, 6) || !canTarget(tower, stats, en)) return;
+        ignite(en, {
+          burn: 2.6,
+          burnDps: (stats.burnDps || 5) * 1.4,
+          armorBite: stats.armorBite,
+          burnSlow: stats.burnSlow,
+        }, { x: tower.x, y: tower.y });
+      });
+      state.effects.push({ kind: "flame", x: tower.x, y: tower.y - 8, a: tower.aim, r: stats.range + 6, cone: Math.PI * 0.85, t: 0, life: 0.32 });
+      audio.play("flame");
+    } else if (spec.id === "overdrive") {
+      tower.buff = 4.5;
+      floater(tower.x, tower.y - 28, "OVERDRIVE", "#ffe56a", 0.9);
     } else {
       let n = 0;
       const routes = B.routes && B.routes.length ? B.routes : [B.route];
@@ -967,7 +1043,7 @@
       if (!n) splashDamage(tower.x, tower.y + 20, 30, 14, 0.4);
     }
     showBanner("Ability", spec.name, spec.blurb, "info");
-    audio.play(spec.id === "rally" || spec.id === "storm" ? "wave" : "cannon");
+    audio.play(spec.id === "rally" || spec.id === "storm" || spec.id === "triage" || spec.id === "overdrive" ? "wave" : spec.id === "belch" ? "flame" : "cannon");
     announce(spec.name + ". " + spec.blurb);
   }
 
@@ -994,7 +1070,7 @@
       tower.buff = Math.max(0, (tower.buff || 0) - dt);
       if (tower.rocketCd) tower.rocketCd = Math.max(0, tower.rocketCd - dt);
       const stats = B.statsFor(tower.type, tower.ranks);
-      if (stats.role === "engineer" && !(stats.rate > 0)) {
+      if ((stats.role === "engineer" || stats.role === "tent") && !(stats.rate > 0)) {
         tower.aim = tower.idleAim;
         continue;
       }
@@ -1046,6 +1122,7 @@
         if (enemy.dead) continue;
         if (distPointSeg(enemy.x, enemy.y, shot.px, shot.py, shot.x, shot.y) <= enemy.radius + shot.radius) {
           deal(enemy, shot.damage, shot.armorBite, { x: shot.x, y: shot.y });
+          if (shot.burnDps && !enemy.dead) ignite(enemy, { burn: shot.burn, burnDps: shot.burnDps, armorBite: shot.armorBite }, { x: shot.x, y: shot.y });
           if (shot.pierce > 0) shot.pierce -= 1;
           else shot.life = 0;
           break;
@@ -1062,6 +1139,21 @@
       if (enemy.hobble > 0) {
         enemy.hobble -= dt;
         enemy.slow = Math.min(enemy.slow || 1, 0.62);
+      }
+      if (enemy.burn > 0) {
+        enemy.burn -= dt;
+        enemy.burnTick = (enemy.burnTick || 0) - dt;
+        if (enemy.burnTick <= 0) {
+          enemy.burnTick = 0.35;
+          const from = enemy.burnFrom || { x: enemy.x, y: enemy.y };
+          deal(enemy, (enemy.burnDps || 0) * 0.35, enemy.burnBite || 0, {
+            burn: true,
+            quiet: true,
+            x: from.x,
+            y: from.y,
+          });
+          if (enemy.dead) continue;
+        }
       }
       if (enemy.falling > 0) {
         enemy.falling -= dt;
@@ -1183,7 +1275,7 @@
       if (purse) {
         let supply = 0;
         for (const tower of state.towers) {
-          if (tower.type === "engineer") supply += B.statsFor(tower.type, tower.ranks).wavePay || 0;
+          supply += B.statsFor(tower.type, tower.ranks).wavePay || 0;
         }
         state.cash += purse + supply;
         floater(200, 240, supply ? `Wave purse +$${purse + supply}` : `Wave purse +$${purse}`, "#ffe56a", 1.2);

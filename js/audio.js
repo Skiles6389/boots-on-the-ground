@@ -154,6 +154,16 @@
         case "gatling":
           this.noise(0.03, 0.03, 1800);
           break;
+        case "mauler":
+          if (this.throttled("mauler", 45)) return;
+          this.noise(0.04, 0.04, 900);
+          this.tone(70, 0.04, "square", 0.02);
+          break;
+        case "flame":
+          if (this.throttled("flame", 90)) return;
+          this.noise(0.12, 0.05, 400);
+          this.tone(180, 0.1, "sawtooth", 0.03, 0, 90);
+          break;
         case "mortar":
           this.noise(0.12, 0.07, 220);
           this.tone(90, 0.2, "sine", 0.06, 0, 50);
