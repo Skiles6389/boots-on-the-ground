@@ -35,7 +35,8 @@ jobs:
           STAMP="$(date -u +%Y-%m-%d).$(git rev-parse --short HEAD)"
           mkdir -p _site
           tar --exclude _site --exclude .git --exclude .github -cf - . | tar -C _site -xf -
-          sed -i "s/2026-11-22/${STAMP}/g" _site/index.html _site/js/build.js
+          printf 'window.BOTG_BUILD = "%s";\n' "$STAMP" > _site/js/build.js
+          sed -i "s/v=2026-11-24/v=${STAMP}/g" _site/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
