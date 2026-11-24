@@ -1,1 +1,1 @@
-window.BOTG_BUILD = "2026-11-24.f8cb5af";
+window.BOTG_BUILD = "2026-11-24.5a571f7";
