@@ -1560,6 +1560,8 @@
     unlockAll,
     useAbility,
     finishCoach,
+    canPlace: canPlace,
+    place: place,
   };
 
   const params = new URLSearchParams(root.location.search);

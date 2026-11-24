@@ -2,7 +2,8 @@
 // Maps are 800×1140 paintings drawn into the 400×570 world.
 // Sprites are 3× cut-outs drawn at the manifest's logical size and anchor.
 (function (root) {
-  const VERSION = "2026-11-24k";
+  const VERSION = "2026-11-24m";
+  const SHOW = 1.18;
   const SPRITES = {
     trooper: { w: 31.0, h: 42.0, ax: 0.382, ay: 0.944 },
     longshot: { w: 52.0, h: 30.3, ax: 0.449, ay: 0.923 },
@@ -32,6 +33,18 @@
     dress: "#3a62a8",
   };
 
+  // Neck is the cut, as a fraction of the plate height from the top.
+  // Infantry get a bigger head and a shorter body. The tank only grows the commander.
+  const CHIBI = {
+    trooper: { neck: 0.36, head: 1.35, body: 0.85 },
+    longshot: { neck: 0.34, head: 1.35, body: 0.85 },
+    gatling: { neck: 0.36, head: 1.35, body: 0.85 },
+    mortar: { neck: 0.34, head: 1.35, body: 0.85 },
+    engineer: { neck: 0.34, head: 1.35, body: 0.85 },
+    sky: { neck: 0.24, head: 1.35, body: 0.85 },
+    tread: { neck: 0.32, head: 1.32, body: 1 },
+  };
+
   const maps = {};
   const frames = {};
   let readyFlag = false;
@@ -56,10 +69,126 @@
   const jobs = [];
   ["maple", "cactus", "frost"].forEach(function (id) { jobs.push(loadInto(maps, "maps", id)); });
   Object.keys(SPRITES).forEach(function (id) { jobs.push(loadInto(frames, "sprites", id)); });
-  Promise.all(jobs).then(function () { readyFlag = true; });
+  Promise.all(jobs).then(function () {
+    try { bakeSprites(); } catch (err) { /* keep the raw plates */ }
+    readyFlag = true;
+  });
 
   function alive(img) {
-    return !!(img && img.complete && img.naturalWidth);
+    if (!img) return false;
+    if (img.naturalWidth > 0) return true;
+    return !!(img.getContext && img.width > 0 && img.height > 0);
+  }
+
+  function canvasOf(w, h) {
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.ceil(w));
+    c.height = Math.max(1, Math.ceil(h));
+    return c;
+  }
+
+  function gradeSprite(img) {
+    const c = canvasOf(img.naturalWidth, img.naturalHeight);
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    const data = g.getImageData(0, 0, c.width, c.height);
+    const d = data.data;
+    const contrast = 1.16;
+    const sat = 1.22;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 8) continue;
+      let r = d[i] / 255;
+      let gc = d[i + 1] / 255;
+      let b = d[i + 2] / 255;
+      r = (r - 0.5) * contrast + 0.5;
+      gc = (gc - 0.5) * contrast + 0.5;
+      b = (b - 0.5) * contrast + 0.5;
+      const y = r * 0.3 + gc * 0.59 + b * 0.11;
+      r = y + (r - y) * sat;
+      gc = y + (gc - y) * sat;
+      b = y + (b - y) * sat;
+      d[i] = Math.max(0, Math.min(255, r * 255));
+      d[i + 1] = Math.max(0, Math.min(255, gc * 255));
+      d[i + 2] = Math.max(0, Math.min(255, b * 255));
+    }
+    g.putImageData(data, 0, 0);
+    return c;
+  }
+
+  function chibiSprite(src, spec) {
+    const sw = src.width;
+    const sh = src.height;
+    const neck = Math.max(4, Math.round(sh * spec.neck));
+    const bodyH = sh - neck;
+    const headScale = spec.head;
+    const bodyScale = spec.body;
+    const overlap = Math.round(neck * headScale * 0.16);
+    const outW = Math.ceil(sw * Math.max(headScale, bodyScale));
+    const outH = Math.ceil(neck * headScale + bodyH * bodyScale - overlap);
+    const c = canvasOf(outW, outH);
+    const g = c.getContext("2d");
+    const bodyW = sw * bodyScale;
+    const bodyHt = bodyH * bodyScale;
+    const bodyX = (outW - bodyW) / 2;
+    const bodyY = outH - bodyHt;
+    g.drawImage(src, 0, neck, sw, bodyH, bodyX, bodyY, bodyW, bodyHt);
+    const headW = sw * headScale;
+    const headHt = neck * headScale;
+    const headX = (outW - headW) / 2;
+    const headY = bodyY - headHt + overlap;
+    g.drawImage(src, 0, 0, sw, neck, headX, headY, headW, headHt);
+    return {
+      canvas: c,
+      bodyX: bodyX,
+      bodyY: bodyY,
+      bodyScale: bodyScale,
+    };
+  }
+
+  function inkOutline(src) {
+    const pad = 3;
+    const c = canvasOf(src.width + pad * 2, src.height + pad * 2);
+    const g = c.getContext("2d");
+    const rings = [[-2, 0], [2, 0], [0, -2], [0, 2], [-1, -1], [1, -1], [-1, 1], [1, 1], [-3, 0], [3, 0], [0, -3], [0, 3]];
+    rings.forEach(function (o) {
+      g.drawImage(src, pad + o[0], pad + o[1]);
+    });
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#120e0a";
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = "source-over";
+    g.drawImage(src, pad, pad);
+    return c;
+  }
+
+  function bakeSprites() {
+    Object.keys(SPRITES).forEach(function (id) {
+      const img = frames[id];
+      const meta = SPRITES[id];
+      if (!img || !img.naturalWidth || !meta) return;
+      const graded = gradeSprite(img);
+      const spec = CHIBI[id];
+      let shaped = graded;
+      let footX = meta.ax * graded.width;
+      let footY = meta.ay * graded.height;
+      if (spec) {
+        const piece = chibiSprite(graded, spec);
+        shaped = piece.canvas;
+        footX = piece.bodyX + meta.ax * graded.width * piece.bodyScale;
+        const neck = Math.round(graded.height * spec.neck);
+        const footInBody = meta.ay * graded.height - neck;
+        footY = piece.bodyY + Math.max(0, footInBody) * piece.bodyScale;
+      }
+      const outlined = inkOutline(shaped);
+      const pad = 3;
+      frames[id] = outlined;
+      const pxW = graded.width;
+      const pxH = graded.height;
+      meta.w = meta.w * (outlined.width / pxW) * SHOW;
+      meta.h = meta.h * (outlined.height / pxH) * SHOW;
+      meta.ax = (footX + pad) / outlined.width;
+      meta.ay = (footY + pad) / outlined.height;
+    });
   }
 
   function skinOf(opt) {
@@ -132,16 +261,22 @@
     const sy = (1 - beat * 0.045) * (1 + Math.min(0.12, flash * 0.2));
     const bob = beat * (opt.team === "enemy" ? 1.5 : 2.1);
 
+    if (!meta.center) {
+      ctx.save();
+      ctx.translate(x, y + 2);
+      ctx.fillStyle = "rgba(12, 10, 8, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(0, 1, Math.max(9, meta.w * 0.42), 6.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(12, 10, 8, 0.45)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, Math.max(6, meta.w * 0.26), 3.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(x - Math.cos(aim) * kick, y - Math.sin(aim) * kick * 0.35 - bob);
     ctx.scale(face * sx * sc, sy * sc);
-
-    if (!meta.center) {
-      ctx.fillStyle = "rgba(40, 28, 16, 0.28)";
-      ctx.beginPath();
-      ctx.ellipse(0, 2, Math.max(6, meta.w * 0.22), 3.1, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
 
     if (hidden) ctx.globalAlpha = role === "camo" ? 0.34 : 0.42;
 
