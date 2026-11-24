@@ -180,6 +180,66 @@
         ["Eyes in the Sky", "The top lens spots sneaks. It takes the whole recon path.", { detect: 1, wavePay: 12, range: 150 }],
       ]),
     ],
+    tent: [
+      path("aid", "Aid", 130, [
+        ["Bandages", "Friends nearby fire a bit faster.", { aid: 1.12 }],
+        ["Stim Kits", "The volley picks up.", { aid: 1.18 }],
+        ["Trauma Bay", "A wider, quicker pocket.", { aid: 1.24, range: 102 }],
+        ["Field Hospital", "The tent drives the whole pocket.", { aid: 1.3, range: 110 }],
+      ]),
+      path("canteen", "Canteen", 130, [
+        ["Coffee Pot", "A few more coins when the lane clears.", { wavePay: 16 }],
+        ["Mess Line", "The purse notices.", { wavePay: 24 }],
+        ["Payroll", "A real cut of the round.", { wavePay: 36 }],
+        ["Quartermaster", "The crate gets heavy.", { wavePay: 52 }],
+      ]),
+      path("dressing", "Dressing", 130, [
+        ["Wider Fly", "The tent covers more grass.", { range: 100 }],
+        ["Ammo Crates", "Friends nearby hit a little harder.", { range: 100, kit: 0.08 }],
+        ["Shared Belts", "The crates keep coming.", { range: 108, kit: 0.12 }],
+        ["Fire Support", "Damage and a quicker trigger.", { range: 112, kit: 0.16, aid: 1.12 }],
+      ]),
+    ],
+    flame: [
+      path("heat", "Heat", 155, [
+        ["Hotter Jet", "The burn climbs.", { burnDps: 4.4, burn: 2 }],
+        ["Sticky Fuel", "It keeps cooking after they leave.", { burnDps: 5.5, burn: 2.6 }],
+        ["White Flame", "A mean, short burn.", { burnDps: 7, burn: 2.8 }],
+        ["Inferno", "Anything in the jet cooks fast.", { burnDps: 8.5, burn: 3.2 }],
+      ]),
+      path("cone", "Nozzle", 155, [
+        ["Wider Nozzle", "The jet opens up.", { range: 78, cone: 0.95 }],
+        ["Long Hose", "A step more reach.", { range: 88, cone: 0.95 }],
+        ["Fan Spray", "A wide sheet of fire.", { range: 90, cone: 1.15 }],
+        ["Blanket", "The sheet covers a corner.", { range: 98, cone: 1.3, burnDps: 4 }],
+      ]),
+      path("tar", "Tar", 155, [
+        ["Tar Mix", "Burning troops slow down.", { burnSlow: 1, burnDps: 3.6 }],
+        ["Smoke", "The cloud drags at their boots.", { burnSlow: 1, range: 76, burnDps: 4 }],
+        ["Thermite", "The burn starts cracking plate.", { burnSlow: 1, armorBite: 0.55, burnDps: 4.5 }],
+        ["Dragon Pit", "Plate and flesh both cook.", { burnSlow: 1, armorBite: 0.7, burnDps: 6, range: 80 }],
+      ]),
+    ],
+    gunner: [
+      path("twin", "Twin Guns", 480, [
+        ["Brace", "The barrel settles and spins up.", { rate: 13, range: 92 }],
+        ["Twin Belts", "A second minigun joins in.", { rate: 14, extra: 1 }],
+        ["Spin Cage", "Both guns pour it on.", { rate: 16, extra: 1 }],
+        ["Twin Maulers", "A walking wall of tracers.", { rate: 18, extra: 1, range: 100 }],
+      ]),
+      path("incendiary", "Incendiary", 480, [
+        ["Hot Tracers", "Rounds leave a small burn.", { burn: 1.2, burnDps: 2 }],
+        ["Incendiary Mix", "The burn sticks.", { burn: 1.6, burnDps: 3.2 }],
+        ["Cook-Off", "Soft targets keep burning.", { burn: 2, burnDps: 4.4 }],
+        ["Dragon Belts", "The stream sets the lane alight.", { burn: 2.4, burnDps: 6 }],
+      ]),
+      path("exo", "Exo Suit", 480, [
+        ["Plate Vest", "He plants and watches farther.", { range: 100 }],
+        ["Stabilizers", "Heavier rounds, steadier aim.", { range: 108, damage: 2 }],
+        ["Exo Frame", "The suit shrugs and the gun bites.", { range: 116, damage: 2, armorBite: 0.35 }],
+        ["Walking Fort", "The suit and the gun are one machine.", { range: 124, damage: 3, armorBite: 0.7 }],
+      ]),
+    ],
   };
 
   Object.keys(book).forEach(function (id) {
@@ -198,6 +258,9 @@
     engineer: { path: "fort", tier: 4, id: "blast", name: "Blast", blurb: "The bags burst and slow the lane.", cd: 22 },
     sky: { path: "missile", tier: 4, id: "swarm", name: "Swarm", blurb: "A rack of missiles.", cd: 24 },
     chopper: { path: "strike", tier: 4, id: "strike", name: "Strike", blurb: "Bombs along the lane.", cd: 30 },
+    tent: { path: "aid", tier: 4, id: "triage", name: "Triage", blurb: "Friends nearby shoot faster for a few seconds.", cd: 26 },
+    flame: { path: "heat", tier: 4, id: "belch", name: "Belch", blurb: "A wide gout of fire in range.", cd: 22 },
+    gunner: { path: "twin", tier: 4, id: "overdrive", name: "Overdrive", blurb: "The miniguns spin past the red line.", cd: 24 },
   };
 
   B.abilityFor = function (type, ranks) {

@@ -251,6 +251,68 @@
           { name: "Heavy Gunship", cost: 200, blurb: "The chain gun bites armor.", set: { damage: 4, splash: 18, armorBite: 0.5, rate: 2.3 } },
         ],
       },
+      tent: {
+        name: "Supply Tent",
+        short: "Tent",
+        cost: 130,
+        blurb: "Does not shoot. Friends nearby fire a little faster, and the purse gets a coin each round.",
+        aim: "near",
+        base: {
+          damage: 0,
+          range: 88,
+          rate: 0,
+          armorBite: 0,
+          projectileSpeed: 0,
+          aid: 1.08,
+          wavePay: 8,
+          role: "tent",
+        },
+        upgrades: [
+          { name: "Coffee Pot", cost: 80, blurb: "A quicker volley nearby.", set: { aid: 1.12, wavePay: 12 } },
+          { name: "Aid Station", cost: 140, blurb: "The tent reaches farther.", set: { aid: 1.16, range: 100, wavePay: 16 } },
+        ],
+      },
+      flame: {
+        name: "Flamethrower",
+        short: "Flame",
+        cost: 155,
+        blurb: "A short jet of fire. It keeps burning after they step out. Rifles it is not.",
+        aim: "first",
+        base: {
+          damage: 0,
+          range: 68,
+          rate: 1.15,
+          armorBite: 0,
+          projectileSpeed: 0,
+          burn: 1.7,
+          burnDps: 3.2,
+          cone: 0.72,
+          role: "flame",
+        },
+        upgrades: [
+          { name: "Hotter Jet", cost: 100, blurb: "The burn bites harder.", set: { burnDps: 4.5, burn: 2 } },
+          { name: "Wide Nozzle", cost: 150, blurb: "A longer, wider jet.", set: { burnDps: 4.5, range: 80, cone: 0.95 } },
+        ],
+      },
+      gunner: {
+        name: "Mauler",
+        short: "Mauler",
+        cost: 480,
+        blurb: "A walking minigun. Very expensive, and it spends bullets like water.",
+        aim: "first",
+        base: {
+          damage: 1,
+          range: 86,
+          rate: 11,
+          armorBite: 0,
+          projectileSpeed: 540,
+          role: "gunner",
+        },
+        upgrades: [
+          { name: "Brace", cost: 220, blurb: "The barrels spin faster.", set: { rate: 14, range: 92 } },
+          { name: "Twin Belts", cost: 320, blurb: "A second stream joins the first.", set: { rate: 14, extra: 1, range: 96 } },
+        ],
+      },
     },
 
     enemies: {
@@ -823,7 +885,7 @@
 
   const B = root.BOTG_BALANCE;
 
-  B.towerOrder = ["trooper", "longshot", "gatling", "mortar", "tread", "engineer", "sky", "chopper"];
+  B.towerOrder = ["trooper", "longshot", "gatling", "flame", "mortar", "tread", "engineer", "tent", "sky", "chopper", "gunner"];
 
   B.statsFor = function statsFor(type, rank) {
     const def = B.towers[type];

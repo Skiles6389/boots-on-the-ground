@@ -370,6 +370,61 @@
       gun(ctx, 12, -1.25);
       gun(ctx, 10, -0.9);
       ctx.restore();
+    } else if (!enemy && role === "tent") {
+      shadow(ctx, 16);
+      ctx.fillStyle = "#6d7a48";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-20, -1);
+      ctx.lineTo(-4, -22);
+      ctx.lineTo(12, -1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#c4373a";
+      ctx.fillRect(-20, -6, 32, 3);
+      blob(ctx, 10, -2, 4.2, 2.6, "#c6a25c", 0);
+      ctx.save();
+      ctx.translate(14, 4);
+      ctx.scale(0.62, 0.62);
+      person(ctx, pal, false, ph * 0.35, { hat: "m1", head: 6.2, stride: 0.25 });
+      ctx.restore();
+    } else if (!enemy && role === "flame") {
+      person(ctx, pal, false, ph * 0.5, { hat: "m1", head: 6.4 });
+      blob(ctx, -8, -8, 3.4, 4.2, "#5c4030", 0.2);
+      ctx.save();
+      ctx.translate(6, -16);
+      ctx.rotate(-0.35);
+      ctx.fillStyle = INK;
+      ctx.fillRect(0, -1.4, 14, 2.8);
+      ctx.fillStyle = "#c4373a";
+      ctx.fillRect(10, -2.2, 4, 4.4);
+      if (opt.flash > 0.02) {
+        ctx.fillStyle = "rgba(255,140,40," + Math.min(0.9, opt.flash * 5) + ")";
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(26, -6);
+        ctx.lineTo(24, 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (!enemy && role === "gunner") {
+      shadow(ctx, 14);
+      legs(ctx, pal, ph * 0.3, 0.45);
+      blob(ctx, 0, -14, 11, 8, pal.cloth, 0);
+      face(ctx, -2, -28, 6.6, false);
+      m1(ctx, -2, -30, 6.4, pal);
+      ctx.save();
+      ctx.translate(4, -16);
+      gun(ctx, 10, -0.2);
+      gun(ctx, 16, -0.05);
+      gun(ctx, 22, 0.12);
+      ctx.fillStyle = "#c6a25c";
+      ctx.fillRect(-2, 2, 8, 2);
+      ctx.restore();
+      blob(ctx, -9, -10, 3.2, 4, "#6a5434", 0.4);
     } else if (!enemy && role === "chopper") {
       shadow(ctx, 11);
       blob(ctx, 0, -4, 10, 2.6, "#6a5434", 0);
@@ -438,6 +493,9 @@
     if (role === "tread") return { x: x + 4, y: y - 11 };
     if (role === "sky") return { x: x + 2, y: y - 24 };
     if (role === "chopper") return { x: x, y: y - 20 };
+    if (role === "flame") return { x: x + 6, y: y - 16 };
+    if (role === "gunner") return { x: x + 6, y: y - 16 };
+    if (role === "tent") return { x: x, y: y - 10 };
     return { x: x + 4, y: y - 18 };
   };
 
