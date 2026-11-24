@@ -2,27 +2,27 @@
 // Maps are 800×1140 paintings drawn into the 400×570 world.
 // Sprites are 3× cut-outs drawn at the manifest's logical size and anchor.
 (function (root) {
-  const VERSION = "2026-11-24j";
+  const VERSION = "2026-11-24k";
   const SPRITES = {
     trooper: { w: 31.0, h: 42.0, ax: 0.382, ay: 0.944 },
-    longshot: { w: 52.7, h: 30.0, ax: 0.446, ay: 0.922 },
-    gatling: { w: 39.7, h: 43.7, ax: 0.412, ay: 0.947 },
-    mortar: { w: 36.7, h: 38.3, ax: 0.5, ay: 0.939 },
-    tread: { w: 50.3, h: 45.0, ax: 0.517, ay: 0.948 },
-    engineer: { w: 37.7, h: 35.0, ax: 0.531, ay: 0.933 },
-    sky: { w: 33.0, h: 33.3, ax: 0.389, ay: 0.93 },
-    chopper: { w: 60.3, h: 44.0, ax: 0.5, ay: 0.5, center: true },
-    grunt: { w: 30.0, h: 38.0, ax: 0.45, ay: 0.939 },
-    dash: { w: 32.0, h: 31.7, ax: 0.74, ay: 0.926 },
-    brute: { w: 41.7, h: 44.7, ax: 0.46, ay: 0.948 },
-    riot: { w: 33.0, h: 40.0, ax: 0.369, ay: 0.942 },
-    bulwark: { w: 33.0, h: 38.0, ax: 0.48, ay: 0.939 },
-    medic: { w: 28.0, h: 39.7, ax: 0.429, ay: 0.941 },
-    sneak: { w: 26.7, h: 36.3, ax: 0.444, ay: 0.936 },
-    camo: { w: 30.0, h: 40.7, ax: 0.461, ay: 0.943 },
-    para: { w: 33.0, h: 42.7, ax: 0.121, ay: 0.945 },
-    heavy: { w: 42.0, h: 41.3, ax: 0.361, ay: 0.944 },
-    scout: { w: 28.7, h: 39.3, ax: 0.459, ay: 0.941 },
+    longshot: { w: 52.0, h: 30.3, ax: 0.449, ay: 0.923 },
+    gatling: { w: 39.3, h: 43.3, ax: 0.415, ay: 0.946 },
+    mortar: { w: 36.3, h: 38.0, ax: 0.5, ay: 0.939 },
+    tread: { w: 49.3, h: 45.0, ax: 0.51, ay: 0.941 },
+    engineer: { w: 37.0, h: 35.0, ax: 0.527, ay: 0.933 },
+    sky: { w: 32.3, h: 33.3, ax: 0.392, ay: 0.93 },
+    chopper: { w: 59.0, h: 44.0, ax: 0.5, ay: 0.5, center: true },
+    grunt: { w: 29.7, h: 38.0, ax: 0.455, ay: 0.939 },
+    dash: { w: 31.3, h: 31.7, ax: 0.734, ay: 0.926 },
+    brute: { w: 41.3, h: 44.3, ax: 0.456, ay: 0.947 },
+    riot: { w: 32.3, h: 39.7, ax: 0.371, ay: 0.941 },
+    bulwark: { w: 32.3, h: 37.7, ax: 0.479, ay: 0.938 },
+    medic: { w: 27.7, h: 39.3, ax: 0.428, ay: 0.941 },
+    sneak: { w: 26.3, h: 35.7, ax: 0.443, ay: 0.935 },
+    camo: { w: 29.3, h: 40.0, ax: 0.46, ay: 0.942 },
+    para: { w: 32.3, h: 42.0, ax: 0.273, ay: 0.944 },
+    heavy: { w: 41.3, h: 40.7, ax: 0.363, ay: 0.943 },
+    scout: { w: 28.7, h: 39.3, ax: 0.453, ay: 0.941 },
   };
 
   const SCARF = {
