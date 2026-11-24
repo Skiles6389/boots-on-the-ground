@@ -1,4 +1,4 @@
-// Hand-inked rubber-hose soldiers. Big heads, noodle limbs, M1 helmets,
+// Fallback ink soldiers, used only if a plate is missing. Big heads, field caps,
 // and a different silhouette for every tower and every Scowl Corps type.
 (function (root) {
   const INK = "#14100c";
@@ -127,7 +127,7 @@
     ctx.fill();
   }
 
-  function bicorne(ctx, x, y) {
+  function fieldCap(ctx, x, y) {
     ctx.fillStyle = "#1a120c";
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
@@ -224,7 +224,7 @@
 
   function person(ctx, pal, enemy, phase, opt) {
     const bulk = opt.bulk || 1;
-    const hat = opt.hat || (enemy ? "bicorne" : "m1");
+    const hat = opt.hat || (enemy ? "fieldCap" : "m1");
     shadow(ctx, 9 * bulk);
     legs(ctx, pal, phase, opt.stride || 1);
     if (opt.belly) blob(ctx, 2, -12, 6.5 * bulk, 5.2 * bulk, pal.clothDk, 0.2);
@@ -239,7 +239,7 @@
     const hy = opt.tall ? -30 : -26;
     const hr = opt.head || (enemy ? 7.2 : 6.8);
     face(ctx, 0.5, hy, hr, enemy);
-    if (hat === "bicorne") bicorne(ctx, 0.5, hy - hr * 0.85);
+    if (hat === "fieldCap") fieldCap(ctx, 0.5, hy - hr * 0.85);
     else if (hat === "kepi") kepi(ctx, 0.6, hy - hr * 0.7);
     else if (hat === "hood") hood(ctx, 0.5, hy - 1);
     else if (hat === "m1") m1(ctx, 0.5, hy - hr * 0.15, hr * 0.95, pal);
@@ -396,11 +396,11 @@
     } else if (role === "brute") {
       person(ctx, pal, true, ph * 0.6, { hat: "kepi", bulk: 1.35, head: 6.2, stride: 0.7 });
     } else if (role === "heavy") {
-      person(ctx, pal, true, ph * 0.7, { hat: "bicorne", belly: true, bulk: 1.12, head: 7 });
+      person(ctx, pal, true, ph * 0.7, { hat: "fieldCap", belly: true, bulk: 1.12, head: 7 });
     } else if (role === "riot") {
       person(ctx, pal, true, ph, { hat: "kepi", shield: opt.shield == null ? 1 : opt.shield, head: 6.8 });
     } else if (role === "bulwark") {
-      person(ctx, pal, true, ph * 0.8, { hat: "bicorne", shield: opt.shield == null ? 1.4 : opt.shield, bulk: 1.18, head: 6.6 });
+      person(ctx, pal, true, ph * 0.8, { hat: "fieldCap", shield: opt.shield == null ? 1.4 : opt.shield, bulk: 1.18, head: 6.6 });
     } else if (role === "medic") {
       person(ctx, pal, true, ph, { hat: "kepi", cross: true, head: 6.8 });
     } else if (role === "sneak") {
@@ -422,7 +422,7 @@
     } else if (role === "scout" || role === "moto") {
       person(ctx, pal, true, ph * 1.4, { hat: "kepi", bulk: 0.84, stride: 1.2, head: 6 });
     } else {
-      person(ctx, pal, true, ph, { hat: "bicorne", head: 7.2 });
+      person(ctx, pal, true, ph, { hat: "fieldCap", head: 7.2 });
     }
 
     if (!hidden) gearMarks(ctx, opt.ranks);

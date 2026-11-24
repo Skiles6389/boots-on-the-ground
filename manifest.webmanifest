@@ -1,13 +1,13 @@
 {
   "name": "Boots on the Ground",
   "short_name": "Boots",
-  "description": "Hold Maple Grove. A cartoon toy-soldier tower defense.",
+  "description": "Hold the lane against the Scowl Corps. A cartoon tower defense.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#146b32",
-  "theme_color": "#146b32",
+  "background_color": "#b7b09a",
+  "theme_color": "#3e4634",
   "icons": [
     {
       "src": "assets/icons/icon-192.png",

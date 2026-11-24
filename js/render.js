@@ -3,7 +3,7 @@
 (function (root) {
   const B = root.BOTG_BALANCE;
   const FONT = '"Alfa Slab One", "Libre Baskerville", "Palatino Linotype", Palatino, serif';
-  const GRASS = "#8ea56a";
+  const GRASS = "#7c865c";
   const INK = "#2a2118";
   const PAPER = "#f3ead4";
 
@@ -656,7 +656,7 @@
     else if (pond) drawPond(ctx, pond);
     const exit = B.pointAt(B.route.total - 16, 0);
     drawFort(ctx, exit.x, exit.y);
-    const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Maple Grove" };
+    const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Normandy Shore" };
     drawSign(ctx, sign.x, sign.y, sign.label);
   }
 
@@ -785,7 +785,7 @@
     fillRound(ctx, x + 44, y + 24, 6, 14, 2, "#8a5a32");
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, text || "Maple Grove", x + 48, y + 14, 13, "#5c3b22", null, 0);
+    label(ctx, text || "Normandy Shore", x + 48, y + 14, 13, "#5c3b22", null, 0);
   }
 
   function drawPond(ctx, pond) {
@@ -1693,7 +1693,7 @@
 
   function drawHeader(ctx, state, L) {
     const h = L.headerH;
-    ctx.fillStyle = "#6a5030";
+    ctx.fillStyle = "#3e4634";
     ctx.fillRect(0, 0, L.vw, h);
     ctx.fillStyle = PAPER;
     ctx.fillRect(4, 4, L.vw - 8, h - 8);
@@ -1866,7 +1866,7 @@
       const hint = !wave
         ? (B.map.name || "The lane") + " holds."
         : state.placedCount === 0
-          ? "Tap Trooper, then the glowing " + (B.map.theme === "snow" ? "snow" : B.map.theme === "desert" ? "sand" : "grass") + "."
+          ? "Tap Trooper, then the glowing mark."
           : state.started === 0
             ? "Tap Start Round. Arrows show the march."
             : wave.hint;
@@ -1889,9 +1889,9 @@
       startLabel = "START ROUND";
       startSub = "Round " + (state.started + 1) + "   +$" + B.waves[state.started].reward;
       disabled = false;
-      top = "#b6f56a";
-      bot = "#2fbe3c";
-      lip = "#0e6a22";
+      top = "#d5d6a0";
+      bot = "#5c7a3a";
+      lip = "#2c3c22";
     } else if (early) {
       startLabel = "SEND NEXT";
       startSub = "+$" + B.meta.earlyWaveBonus + " hurry bonus";
@@ -1929,7 +1929,7 @@
       labelSize: m.compactStart ? 16 : 20,
       fillTop: fast ? "#c8f8a4" : "#fff3b0",
       fillBot: fast ? "#46c85a" : "#ffc83a",
-      lip: fast ? "#0e6a22" : "#a86a08",
+      lip: fast ? "#2c3c22" : "#a86a08",
       ink: INK,
       stroke: false,
       action: () => root.BOTG.toggleSpeed(),
@@ -1984,7 +1984,7 @@
       subSize: tight ? 11 : 12,
       fillTop: next ? "#c8f8b0" : "#efe6d2",
       fillBot: next ? "#5ad86a" : "#e4d8c0",
-      lip: "#0e6a22",
+      lip: "#2c3c22",
       ink: INK,
       stroke: false,
       action: () => root.BOTG.upgrade(p.id),
@@ -2074,9 +2074,9 @@
     if (!state.waveActive && canSend) {
       startLabel = "START";
       disabled = false;
-      top = "#b6f56a";
-      bot = "#2fbe3c";
-      lip = "#0e6a22";
+      top = "#d5d6a0";
+      bot = "#5c7a3a";
+      lip = "#2c3c22";
     } else if (early) {
       startLabel = "SEND";
       disabled = false;
@@ -2143,7 +2143,7 @@
       labelSize: 14,
       fillTop: fast ? "#c8f8a4" : "#fff3b0",
       fillBot: fast ? "#46c85a" : "#ffc83a",
-      lip: fast ? "#0e6a22" : "#a86a08",
+      lip: fast ? "#2c3c22" : "#a86a08",
       ink: INK,
       stroke: false,
       action: () => root.BOTG.toggleSpeed(),
@@ -2159,7 +2159,7 @@
     ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = 12;
     ctx.shadowOffsetY = -2;
-    fillRound(ctx, p.x, p.y, p.w, p.h, rad, "#6a5030");
+    fillRound(ctx, p.x, p.y, p.w, p.h, rad, "#3e4634");
     ctx.restore();
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
@@ -2239,10 +2239,10 @@
 
   function drawTitle(ctx, state, L) {
     const g = ctx.createLinearGradient(0, 0, 0, L.vh);
-    g.addColorStop(0, "#8fd8ff");
-    g.addColorStop(0.45, "#d7f4ff");
+    g.addColorStop(0, "#a8b0a4");
+    g.addColorStop(0.45, "#d8d2c0");
     g.addColorStop(0.62, GRASS);
-    g.addColorStop(1, "#2f9a2a");
+    g.addColorStop(1, "#4a5a38");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, L.vw, L.vh);
     const sun = ctx.createRadialGradient(L.vw * 0.82, 54, 4, L.vw * 0.82, 54, 48);
@@ -2263,8 +2263,8 @@
     if (L.portrait) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      label(ctx, "BOOTS ON", L.vw / 2, 86, 40, "#ffe56a", "#145214", 8);
-      label(ctx, "THE GROUND", L.vw / 2, 132, 36, "#ffe56a", "#145214", 8);
+      label(ctx, "BOOTS ON", L.vw / 2, 86, 40, "#ffe56a", "#2a3420", 8);
+      label(ctx, "THE GROUND", L.vw / 2, 132, 36, "#ffe56a", "#2a3420", 8);
       label(ctx, "Thirty rounds. Three maps.", L.vw / 2, 168, 16, "#ffffff", INK, 3);
       const feet = Math.min(L.vh * 0.46, 420);
       drawSoldier(ctx, L.vw * 0.28, feet, { team: "player", role: "trooper", aim: 0.35, phase: state.time * 2, scale: 1.7 });
@@ -2278,7 +2278,7 @@
       label(ctx, "Hold the lane.", L.vw / 2, cardY + 28, 18, INK, null, 0);
       font(ctx, 13);
       ctx.fillStyle = "#5c4630";
-      ["Plant on the grass, never on the dirt.", "Longshots crack armor. Gatlings own a corner.", "Tap a soldier to buy a kit."].forEach((t, i) => {
+      ["Plant beside the road, never on it.", "Longshots crack armor. Gatlings own a corner.", "Tap a soldier to buy a chevron."].forEach((t, i) => {
         ctx.fillText(t, L.vw / 2, cardY + 54 + i * 18);
       });
       uiButton(ctx, state, {
@@ -2289,9 +2289,9 @@
         h: 48,
         label: "PLAY",
         labelSize: 24,
-        fillTop: "#b6f56a",
-        fillBot: "#2fbe3c",
-        lip: "#0e6a22",
+        fillTop: "#d5d6a0",
+        fillBot: "#5c7a3a",
+        lip: "#2c3c22",
         pulse: true,
         action: () => root.BOTG.openMaps(),
       });
@@ -2314,8 +2314,8 @@
     } else {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      label(ctx, "BOOTS ON", 28, 78, 36, "#ffe56a", "#145214", 7);
-      label(ctx, "THE GROUND", 28, 118, 32, "#ffe56a", "#145214", 7);
+      label(ctx, "BOOTS ON", 28, 78, 36, "#ffe56a", "#2a3420", 7);
+      label(ctx, "THE GROUND", 28, 118, 32, "#ffe56a", "#2a3420", 7);
       label(ctx, "Thirty rounds. Three maps.", 28, 156, 16, "#ffffff", INK, 3);
       drawSoldier(ctx, L.vw * 0.42, L.vh * 0.62, { team: "player", role: "gatling", aim: 0.45, phase: state.time * 2, scale: 1.35 });
       drawSoldier(ctx, L.vw * 0.58, L.vh * 0.66, { team: "enemy", role: "heavy", aim: Math.PI, phase: state.time * 2, scale: 1.3 });
@@ -2327,16 +2327,16 @@
         h: 64,
         label: "PLAY",
         labelSize: 26,
-        fillTop: "#b6f56a",
-        fillBot: "#2fbe3c",
-        lip: "#0e6a22",
+        fillTop: "#d5d6a0",
+        fillBot: "#5c7a3a",
+        lip: "#2c3c22",
         pulse: true,
         action: () => root.BOTG.openMaps(),
       });
       font(ctx, 14);
       ctx.fillStyle = INK;
       ctx.textAlign = "left";
-      ["Plant on the grass.", "Longshots crack armor.", "Gatlings own a corner."].forEach((t, i) => {
+      ["Plant beside the road.", "Longshots crack armor.", "Gatlings own a corner."].forEach((t, i) => {
         ctx.fillText(t, L.vw - 250, L.vh * 0.38 + 78 + i * 18);
       });
       uiButton(ctx, state, {
@@ -2361,7 +2361,7 @@
   function drawMiniPath(ctx, map, x, y, w, h) {
     const snow = map.theme === "snow";
     const desert = map.theme === "desert";
-    fillRound(ctx, x, y, w, h, 12, snow ? "#d5e6f4" : desert ? "#e2b15a" : "#4fb534");
+    fillRound(ctx, x, y, w, h, 12, snow ? "#d5e6f4" : desert ? "#e2b15a" : "#7d8a5c");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, w, h, 12);
@@ -2421,7 +2421,7 @@
         labelSize: 13,
         fillTop: item.on ? "#c8f8a4" : "#e7e2d8",
         fillBot: item.on ? "#46c85a" : "#c9c3b6",
-        lip: item.on ? "#0e6a22" : "#8d867c",
+        lip: item.on ? "#2c3c22" : "#8d867c",
         ink: INK,
         stroke: false,
         action: item.go,
@@ -2442,9 +2442,9 @@
 
   function drawMaps(ctx, state, L) {
     const g = ctx.createLinearGradient(0, 0, 0, L.vh);
-    g.addColorStop(0, "#8fd8ff");
-    g.addColorStop(0.4, "#d7f4ff");
-    g.addColorStop(1, "#2f9a2a");
+    g.addColorStop(0, "#a8b0a4");
+    g.addColorStop(0.4, "#d8d2c0");
+    g.addColorStop(1, "#4a5a38");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.textAlign = "center";
@@ -2454,7 +2454,7 @@
     const unlocked = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll());
     const openCactus = unlocked || (Save && Save.wonAny("maple"));
     const openFrost = unlocked || (Save && Save.wonAny("cactus"));
-    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 28 : 22, L.portrait ? 28 : 22, "#ffe56a", "#145214", 6);
+    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 28 : 22, L.portrait ? 28 : 22, "#ffe56a", "#2a3420", 6);
     const diffY = L.portrait ? 52 : 42;
     const diffH = 40;
     const names = ["easy", "medium", "hard"];
@@ -2504,7 +2504,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const note = locked
-        ? (map.id === "frost" ? "Beat Cactus Junction" : "Beat Maple Grove")
+        ? (map.id === "frost" ? "Beat Desert Outpost" : "Beat Normandy Shore")
         : (best ? "Best round " + best : "No run yet");
       ctx.fillText(note, x + w / 2, y + (tight ? 44 : 54));
       const miniY = tight ? 52 : 66;
@@ -2518,9 +2518,9 @@
         h: tight ? 40 : 42,
         label: locked ? "LOCKED" : "DEFEND",
         labelSize: 18,
-        fillTop: locked ? "#d9d3c8" : "#b6f56a",
-        fillBot: locked ? "#c9c2b6" : "#2fbe3c",
-        lip: locked ? "#8d867c" : "#0e6a22",
+        fillTop: locked ? "#d9d3c8" : "#d5d6a0",
+        fillBot: locked ? "#c9c2b6" : "#5c7a3a",
+        lip: locked ? "#8d867c" : "#2c3c22",
         disabled: locked,
         action: () => root.BOTG.startGame(map.id),
       });
@@ -2591,8 +2591,8 @@
     if (!state.coach || state.screen !== "play") return;
     const step = state.started > 0 ? 2 : state.placedCount > 0 ? 1 : 0;
     const lines = [
-      "Plant a Trooper on the glowing spot.",
-      "Arrows show the march. Tap Start Round.",
+      "Plant a Trooper on the glowing mark.",
+      "Chevrons mark the march. Tap Start Round.",
       "Tap your soldier to buy a chevron.",
     ];
     const h = 72;
@@ -2667,7 +2667,7 @@
     strokeRound(ctx, x, y, w, h, 18);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, win ? r.map + " holds!" : "They slipped by", x + w / 2, y + 22, w < 340 ? 18 : 22, win ? "#1f8a32" : "#a02840", null, 0);
+    label(ctx, win ? r.map + " holds!" : "The line broke", x + w / 2, y + 22, w < 340 ? 18 : 22, win ? "#3d5a28" : "#a02840", null, 0);
     const starN = Math.max(0, Math.min(3, r.stars || 0));
     for (let i = 0; i < 3; i++) {
       ctx.fillStyle = i < starN ? "#ffe56a" : "#e4dcc8";
@@ -2720,9 +2720,9 @@
       h: retryH,
       label: win ? "Defend again" : "Try again",
       labelSize: 16,
-      fillTop: "#b6f56a",
-      fillBot: "#2fbe3c",
-      lip: "#0e6a22",
+      fillTop: "#d5d6a0",
+      fillBot: "#5c7a3a",
+      lip: "#2c3c22",
       action: () => root.BOTG.startGame(),
     });
     uiButton(ctx, state, {
@@ -2744,9 +2744,9 @@
 
   function drawArmory(ctx, state, L) {
     const g = ctx.createLinearGradient(0, 0, 0, L.vh);
-    g.addColorStop(0, "#8fd8ff");
-    g.addColorStop(0.35, "#d7f4ff");
-    g.addColorStop(1, "#2f9a2a");
+    g.addColorStop(0, "#a8b0a4");
+    g.addColorStop(0.35, "#d8d2c0");
+    g.addColorStop(1, "#4a5a38");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, L.vw, L.vh);
     const Save = root.BOTGSave;
@@ -2754,7 +2754,7 @@
     const wearing = Save ? Save.skin() : "field";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, "ARMORY", L.vw / 2, L.portrait ? 28 : 20, L.portrait ? 28 : 22, "#ffe56a", "#145214", 6);
+    label(ctx, "ARMORY", L.vw / 2, L.portrait ? 28 : 20, L.portrait ? 28 : 22, "#ffe56a", "#2a3420", 6);
     label(ctx, purse + (purse === 1 ? " medal" : " medals"), L.vw / 2, L.portrait ? 56 : 44, 16, "#3a2208", "#fff6d0", 3);
     const kits = B.kits || [];
     const top = L.portrait ? 78 : 62;
@@ -2801,7 +2801,7 @@
         labelSize: 14,
         fillTop: on ? "#d9d3c8" : owned ? "#c8f8a4" : purse >= kit.cost ? "#ffe08a" : "#e7e2d8",
         fillBot: on ? "#c9c2b6" : owned ? "#46c85a" : purse >= kit.cost ? "#f0b429" : "#c9c3b6",
-        lip: on ? "#8d867c" : owned ? "#0e6a22" : "#a86a08",
+        lip: on ? "#8d867c" : owned ? "#2c3c22" : "#a86a08",
         ink: INK,
         stroke: false,
         disabled: on,
@@ -2968,7 +2968,7 @@
           },
         });
       });
-      B.map.trees.forEach((tree) => {
+      (B.map.trees || []).forEach((tree) => {
         items.push({
           y: tree.y,
           draw: () => (tree.style === "cactus" ? drawCactus(ctx, tree, state.time) : tree.style === "pine" ? drawPine(ctx, tree) : drawTree(ctx, tree, state.time)),
@@ -3074,7 +3074,7 @@
     items.forEach((item) => item.draw());
 
     if (state.ghost) {
-      const ring = state.ghost.valid ? "#b6f56a" : "#ff6a6a";
+      const ring = state.ghost.valid ? "#d5d6a0" : "#ff6a6a";
       ctx.strokeStyle = ring;
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -3162,18 +3162,18 @@
     const rand = mulberry32(7);
     ctx.save();
     ctx.globalCompositeOperation = "multiply";
-    ctx.fillStyle = "rgba(168, 136, 92, 0.12)";
+    ctx.fillStyle = "rgba(118, 116, 96, 0.05)";
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.globalCompositeOperation = "source-over";
     for (let i = 0; i < 420; i++) {
       const x = rand() * L.vw;
       const y = rand() * L.vh;
-      ctx.fillStyle = "rgba(50, 32, 16, " + (0.04 + rand() * 0.08) + ")";
+      ctx.fillStyle = "rgba(40, 44, 32, " + (0.035 + rand() * 0.06) + ")";
       ctx.fillRect(x, y, 1.5, 1.5);
     }
     const vg = ctx.createRadialGradient(L.vw / 2, L.vh / 2, L.vh * 0.28, L.vw / 2, L.vh / 2, L.vh * 0.72);
     vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(40, 24, 12, 0.2)");
+    vg.addColorStop(1, "rgba(24, 28, 18, 0.14)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, L.vw, L.vh);
     ctx.strokeStyle = "#3a2a1c";
@@ -3192,7 +3192,7 @@
 
   function drawLoading(ctx, L) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#c6b48a";
+    ctx.fillStyle = "#b7b09a";
     ctx.fillRect(0, 0, L.vw, L.vh);
     const w = Math.min(300, L.vw - 28);
     const h = 128;

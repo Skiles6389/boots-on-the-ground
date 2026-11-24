@@ -5,7 +5,7 @@
   root.BOTG_BALANCE = {
     meta: {
       title: "Boots on the Ground",
-      mapName: "Maple Grove",
+      mapName: "Normandy Shore",
       startingCash: 230,
       startingLives: 30,
       sellRefund: 0.7,
@@ -22,10 +22,10 @@
 
     map: {
       id: "maple",
-      name: "Maple Grove",
+      name: "Normandy Shore",
       theme: "grove",
-      blurb: "A green lane with soft bends. The friendly first map.",
-      // Dirt lane through the grove. Coordinates are game pixels.
+      blurb: "A beach road through the bocage. The first landing.",
+      // Dirt lane. Coordinates are game pixels. Internal id stays maple.
       path: [
         [-28, 116],
         [292, 116],
@@ -44,32 +44,22 @@
       // A friendly first spot, in the grass between the first two bends.
       // Trees, props, and the pond are the footprints painted into assets/art/maps.
       hint: { x: 188, y: 160 },
-      trees: [
-        { x: 358, y: 98, r: 26, style: "amber" },
-        { x: 30, y: 250, r: 20, style: "green" },
-        { x: 372, y: 338, r: 18, style: "rust" },
-        { x: 34, y: 432, r: 16, style: "amber" },
-        { x: 150, y: 526, r: 22, style: "green" },
-        { x: 236, y: 530, r: 16, style: "rust" },
-      ],
-      pond: { x: 328, y: 522, r: 22, kind: "pond" },
-      sign: { x: 78, y: 524, label: "Maple Grove" },
-      // Trunks and the pond refuse towers. Canopies are just scenery.
-      trunkBlock: 14,
-      props: [
-        { kind: "fence", x: 78, y: 86, w: 150 },
-        { kind: "fence", x: 250, y: 86, w: 136 },
-        { kind: "bags", x: 50, y: 168 },
-        { kind: "bush", x: 368, y: 164 },
-        { kind: "crate", x: 26, y: 250 },
-        { kind: "bags", x: 356, y: 252 },
-        { kind: "rock", x: 24, y: 336 },
-        { kind: "crate", x: 368, y: 336 },
-        { kind: "bush", x: 22, y: 424 },
-        { kind: "rock", x: 370, y: 418 },
-        { kind: "bags", x: 46, y: 508 },
-        { kind: "crate", x: 196, y: 516 },
-        { kind: "bush", x: 300, y: 508 },
+      sign: { x: 78, y: 524, label: "Normandy" },
+      // Painted obstacles from the WW2 plate. Craters are not in this list.
+      blocks: [
+        { kind: "horizon_beach_strip", x: 0, y: 48, w: 400, h: 44 },
+        { kind: "pillbox", x: 45, y: 63, w: 47, h: 35 },
+        { kind: "sandbag_wall", x: 0, y: 66, w: 46, h: 32 },
+        { kind: "hedgerow_bank_left", x: 0, y: 118, w: 36, h: 114 },
+        { kind: "hedgerow_bank_right", x: 364, y: 63, w: 36, h: 119 },
+        { kind: "hedgehog", x: 49, y: 129, w: 32, h: 32 },
+        { kind: "hedgehog", x: 322, y: 104, w: 27, h: 29 },
+        { kind: "hedgehog", x: 334, y: 191, w: 43, h: 43 },
+        { kind: "hedgehog", x: 14, y: 247, w: 32, h: 39 },
+        { kind: "hedgehog", x: 351, y: 313, w: 40, h: 39 },
+        { kind: "hedgehog", x: 348, y: 390, w: 50, h: 39 },
+        { kind: "hedgehog", x: 136, y: 497, w: 46, h: 73 },
+        { kind: "barbed_wire_posts", x: 0, y: 452, w: 98, h: 118 },
       ],
     },
 
@@ -77,7 +67,7 @@
       trooper: {
         name: "Trooper",
         cost: 65,
-        blurb: "Cheap rifleman. Medium range, steady shots.",
+        blurb: "Rifleman in olive drab. Medium range, steady shots.",
         // first = farthest along the lane, last, tough, near
         aim: "first",
         base: {
@@ -126,7 +116,7 @@
           {
             name: "Eagle Post",
             cost: 220,
-            blurb: "Faster cycle and a longer view of the grove.",
+            blurb: "Faster cycle and a longer view down the lane.",
             set: { damage: 42, range: 214, rate: 0.58 },
           },
         ],
@@ -321,7 +311,7 @@
         vehicle: true,
       },
       tank: {
-        name: "Grim Tank",
+        name: "Scowl Tank",
         hp: 460,
         speed: 22,
         cash: 80,
@@ -382,7 +372,7 @@
         shieldHp: 36,
       },
       medic: {
-        name: "Quack Medic",
+        name: "Corps Medic",
         hp: 14,
         speed: 40,
         cash: 9,
@@ -565,8 +555,8 @@
         ],
       },
       {
-        name: "Quack Medics",
-        hint: "Quack Medics patch whoever stands near them. Pop the medic first.",
+        name: "Corps Medics",
+        hint: "Corps Medics patch whoever stands near them. Drop the medic first.",
         reward: 200,
         groups: [
           { type: "grunt", count: 8, interval: 0.38 },
@@ -643,8 +633,8 @@
         ],
       },
       {
-        name: "Grimstache",
-        hint: "General Grimstache's tank. Mortars and the Tread Tank crack it.",
+        name: "Scowl Tank",
+        hint: "Colonel Grim's tank. Mortars and the Tread Tank crack it.",
         reward: 340,
         boss: true,
         groups: [
@@ -674,7 +664,7 @@
       },
       {
         name: "Mixed Bag",
-        hint: "Shields, medics, and sneaks together. Pop supports, then the line.",
+        hint: "Shields, medics, and sneaks together. Drop the supports, then the line.",
         reward: 375,
         groups: [
           { type: "scout", count: 6, interval: 0.28 },
@@ -795,9 +785,9 @@
     maple: B.map,
     cactus: {
       id: "cactus",
-      name: "Cactus Junction",
+      name: "Desert Outpost",
       theme: "desert",
-      blurb: "A dusty roadside. The lane doubles back between the rocks.",
+      blurb: "A dusty street between the houses. The lane doubles back.",
       path: [
         [-28, 148],
         [318, 148],
@@ -811,33 +801,25 @@
       pathClearance: 26,
       towerGap: 40,
       hint: { x: 176, y: 196 },
-      trees: [
-        { x: 48, y: 96, r: 18, style: "cactus" },
-        { x: 360, y: 92, r: 22, style: "cactus" },
-        { x: 28, y: 300, r: 16, style: "cactus" },
-        { x: 372, y: 292, r: 20, style: "cactus" },
-        { x: 150, y: 508, r: 18, style: "cactus" },
-        { x: 268, y: 516, r: 15, style: "cactus" },
-      ],
-      pond: { x: 196, y: 508, r: 18, kind: "well" },
-      sign: { x: 270, y: 500, label: "Cactus Jct" },
-      trunkBlock: 14,
-      props: [
-        { kind: "rock", x: 40, y: 196 },
-        { kind: "crate", x: 370, y: 200 },
-        { kind: "bags", x: 24, y: 390 },
-        { kind: "rock", x: 250, y: 200 },
-        { kind: "crate", x: 20, y: 470 },
-        { kind: "bags", x: 300, y: 500 },
-        { kind: "rock", x: 90, y: 500 },
-        { kind: "bush", x: 360, y: 400 },
+      sign: { x: 270, y: 500, label: "Outpost" },
+      blocks: [
+        { kind: "horizon_town_strip", x: 0, y: 48, w: 400, h: 8 },
+        { kind: "market_stall", x: 0, y: 57, w: 96, h: 57 },
+        { kind: "burned_car", x: 100, y: 65, w: 66, h: 33 },
+        { kind: "hesco_row", x: 217, y: 57, w: 97, h: 35 },
+        { kind: "house_and_stall", x: 317, y: 52, w: 83, h: 71 },
+        { kind: "house_right", x: 348, y: 228, w: 52, h: 74 },
+        { kind: "wall_stub", x: 0, y: 357, w: 14, h: 35 },
+        { kind: "house_bottom_left", x: 0, y: 400, w: 114, h: 114 },
+        { kind: "hesco_and_barrels", x: 65, y: 448, w: 106, h: 84 },
+        { kind: "sandbags", x: 26, y: 504, w: 53, h: 45 },
       ],
     },
     frost: {
       id: "frost",
-      name: "Frostbite Pass",
+      name: "Ardennes Woods",
       theme: "snow",
-      blurb: "Two snowy lanes that meet at the gate.",
+      blurb: "Two snowy lanes that meet at the village gate.",
       path: [
         [-28, 110],
         [300, 110],
@@ -874,23 +856,30 @@
       ],
       pathClearance: 24,
       towerGap: 40,
-      hint: { x: 170, y: 292 },
-      trees: [
-        { x: 380, y: 150, r: 22, style: "pine" },
-        { x: 220, y: 150, r: 16, style: "pine" },
-        { x: 230, y: 292, r: 12, style: "pine" },
-        { x: 120, y: 450, r: 15, style: "pine" },
-        { x: 250, y: 530, r: 16, style: "pine" },
-        { x: 40, y: 530, r: 14, style: "pine" },
-      ],
-      pond: { x: 160, y: 150, r: 14, kind: "ice" },
-      sign: { x: 180, y: 536, label: "Frostbite" },
-      trunkBlock: 12,
-      props: [
-        { kind: "rock", x: 370, y: 230 },
-        { kind: "snowman", x: 120, y: 300 },
-        { kind: "crate", x: 230, y: 530 },
-        { kind: "rock", x: 20, y: 150 },
+      hint: { x: 176, y: 220 },
+      sign: { x: 180, y: 536, label: "Ardennes" },
+      blocks: [
+        { kind: "horizon_village_strip", x: 0, y: 48, w: 400, h: 26 },
+        { kind: "sandbags", x: 200, y: 74, w: 53, h: 18 },
+        { kind: "fence", x: 343, y: 83, w: 57, h: 35 },
+        { kind: "rock", x: 48, y: 135, w: 31, h: 23 },
+        { kind: "rock", x: 348, y: 130, w: 52, h: 32 },
+        { kind: "pillbox_tank_trap", x: 343, y: 174, w: 49, h: 49 },
+        { kind: "pine", x: 0, y: 157, w: 18, h: 44 },
+        { kind: "log_foxhole", x: 0, y: 278, w: 62, h: 45 },
+        { kind: "rock", x: 78, y: 278, w: 23, h: 23 },
+        { kind: "hedgehog_ball", x: 139, y: 274, w: 36, h: 27 },
+        { kind: "frozen_pond", x: 240, y: 283, w: 61, h: 44 },
+        { kind: "pine_cluster", x: 378, y: 287, w: 22, h: 122 },
+        { kind: "rock", x: 261, y: 348, w: 40, h: 18 },
+        { kind: "rock", x: 87, y: 358, w: 27, h: 17 },
+        { kind: "fence", x: 130, y: 448, w: 58, h: 31 },
+        { kind: "rock_tank_trap", x: 200, y: 430, w: 53, h: 32 },
+        { kind: "tank_trap_pile", x: 30, y: 517, w: 71, h: 41 },
+        { kind: "hedgehog", x: 126, y: 526, w: 27, h: 23 },
+        { kind: "rock", x: 217, y: 526, w: 45, h: 40 },
+        { kind: "rock", x: 309, y: 530, w: 49, h: 40 },
+        { kind: "pine", x: 0, y: 504, w: 18, h: 62 },
       ],
     },
   };
@@ -917,10 +906,10 @@
   };
   B.costMul = 1;
   B.kits = [
-    { id: "field", name: "Field green", cost: 0, blurb: "The kit every recruit is issued." },
-    { id: "parade", name: "Parade gold", cost: 15, blurb: "A brighter cloth and a gold belt." },
-    { id: "night", name: "Night drill", cost: 25, blurb: "Darker green for the late rounds." },
-    { id: "sand", name: "Dust tan", cost: 30, blurb: "Tan cloth for the dry maps." },
+    { id: "field", name: "Olive drab", cost: 0, blurb: "The kit every recruit is issued." },
+    { id: "parade", name: "Khaki flash", cost: 15, blurb: "A khaki cloth and a brass belt." },
+    { id: "night", name: "Night drill", cost: 25, blurb: "Darker cloth for the late rounds." },
+    { id: "sand", name: "Desert tan", cost: 30, blurb: "Tan cloth for the dry maps." },
     { id: "dress", name: "Dress blue", cost: 40, blurb: "Blue jackets for the review." },
   ];
 
