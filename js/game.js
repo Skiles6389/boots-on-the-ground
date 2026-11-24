@@ -213,7 +213,9 @@
   }
 
   function refund(tower) {
-    return Math.round(invested(tower) * B.meta.sellRefund);
+    const perk = currentPerk();
+    const rate = perk && perk.refund ? perk.refund : B.meta.sellRefund;
+    return Math.round(invested(tower) * rate);
   }
 
   function unlockAll() {
@@ -247,7 +249,40 @@
     return "That's in the way.";
   }
 
+  function playerXp() {
+    return root.BOTGSave ? root.BOTGSave.xp() : 0;
+  }
+
+  function towerOpen(type) {
+    if (unlockAll()) return true;
+    if (state.challenge === "snipers") return type === "longshot";
+    if (B.towerUnlocked) return B.towerUnlocked(type, playerXp());
+    return true;
+  }
+
+  function lockReason(type) {
+    if (state.challenge === "snipers" && type !== "longshot") return "Snipers only.";
+    const ranks = B.ranks || [];
+    for (let i = 0; i < ranks.length; i++) {
+      if (ranks[i].towers.indexOf(type) >= 0) return "Unlocks at " + ranks[i].name + ".";
+    }
+    return "Locked.";
+  }
+
+  function grantRankKits() {
+    if (!root.BOTGSave || !B.ranks) return;
+    const xp = playerXp();
+    B.ranks.forEach(function (r) {
+      if (xp >= r.xp && r.skin) root.BOTGSave.own(r.skin);
+    });
+  }
+
+  function currentPerk() {
+    return B.perkFor ? B.perkFor(playerXp()) : null;
+  }
+
   function canPlace(x, y, type) {
+    if (!towerOpen(type)) return { ok: false, reason: lockReason(type) };
     const map = B.map;
     if (y > B.view.footerY - 16 || x < 18 || x > B.view.width - 18) {
       return { ok: false, reason: "Plant beside the road." };
@@ -354,6 +389,11 @@
 
   function pick(key) {
     if (state.screen !== "play") return;
+    if (!towerOpen(key)) {
+      toast(lockReason(key));
+      audio.play("deny");
+      return;
+    }
     if (state.placing === key) {
       state.placing = null;
       audio.play("ui");
@@ -444,12 +484,30 @@
     return items;
   }
 
+  function freeWave(round) {
+    const bump = Math.max(1, round - B.waves.length);
+    const groups = [
+      { type: "grunt", count: 8 + bump, interval: Math.max(0.32, 0.62 - bump * 0.02), hp: 8 + bump * 2 },
+    ];
+    if (bump > 1) groups.push({ type: "scout", count: 4 + Math.floor(bump / 2), interval: 0.4 });
+    if (bump > 3) groups.push({ type: "heavy", count: 2 + Math.floor(bump / 3), interval: 0.85 });
+    if (bump > 5) groups.push({ type: "gnat", count: 2, interval: 0.8 });
+    if (round % 10 === 0) groups.push({ type: round % 20 === 0 ? "ram" : "vex", count: 1, interval: 0.4 });
+    return {
+      name: "Freeplay " + round,
+      hint: "The Corps does not stop. Hold as long as you can.",
+      reward: 36 + bump * 4,
+      boss: round % 10 === 0,
+      groups: groups,
+    };
+  }
+
   function launch() {
     if (state.screen !== "play") return;
     if (state.launchLock > 0) return;
-    if (state.started >= B.waves.length) return;
+    if (state.started >= B.waves.length && !state.freeplay) return;
     const early = state.waveActive;
-    const wave = B.waves[state.started];
+    const wave = state.started >= B.waves.length ? freeWave(state.started + 1) : B.waves[state.started];
     const items = queueWave(wave);
     if (early) {
       const base = state.waveClock + 0.3;
@@ -464,7 +522,8 @@
     }
     state.started += 1;
     state.launchLock = 0.45;
-    showBanner(`Wave ${state.started} of ${B.waves.length}`, wave.name, wave.hint, wave.boss ? "boss" : "info");
+    const cap = state.freeplay ? "freeplay" : String(B.waves.length);
+    showBanner("Wave " + state.started + (state.freeplay ? "" : " of " + cap), wave.name, wave.hint, wave.boss ? "boss" : "info");
     audio.play(wave.boss ? "boss" : "wave");
     announce(`Wave ${state.started}, ${wave.name}. ${wave.hint}`);
   }
@@ -486,6 +545,9 @@
     const route = B.routeFor(lanePick);
     const p = B.pointAt(dropping ? route.total * frac : (opt && typeof opt.dist === "number" ? opt.dist : 0), lanePick);
     const fall = dropping ? def.dropTime || 1.25 : 0;
+    const mul = state.challenge === "double" ? 2 : 1;
+    const baseHp = opt && typeof opt.hp === "number" ? opt.hp : def.hp;
+    const hp = Math.round(baseHp * mul);
     const enemy = {
       id: state.nextId++,
       type,
@@ -494,8 +556,8 @@
       x: p.x,
       y: p.y - (dropping ? 78 : 0),
       angle: p.angle,
-      hp: opt && typeof opt.hp === "number" ? opt.hp : def.hp,
-      maxHp: opt && typeof opt.hp === "number" ? opt.hp : def.hp,
+      hp: hp,
+      maxHp: hp,
       speed: opt && typeof opt.speed === "number" ? opt.speed : def.speed,
       armor: def.armor,
       cash: def.cash,
@@ -509,9 +571,9 @@
       fall: fall,
       airborne: dropping || !!def.air,
       air: !!def.air,
-      shieldHp: def.shield ? def.shieldHp || 14 : 0,
-      shieldMax: def.shield ? def.shieldHp || 14 : 0,
-      plates: def.plates || 0,
+      shieldHp: (def.shield ? def.shieldHp || 14 : 0) * mul,
+      shieldMax: (def.shield ? def.shieldHp || 14 : 0) * mul,
+      plates: (def.plates || 0) * mul,
       callsLeft: def.calls || 0,
       callCd: def.callEvery || 0,
       dropsLeft: def.drops || 0,
@@ -569,6 +631,7 @@
     enemy.dead = true;
     state.leaked = (state.leaked || 0) + 1;
     state.lives -= enemy.leak;
+    if (state.challenge === "noleak") state.lives = 0;
     state.hurt = 1;
     if (!state.reducedMotion) state.shake = Math.max(state.shake, B.enemies[enemy.type].boss ? 7 : 3.5);
     audio.play("leak");
@@ -1270,8 +1333,10 @@
     if (state.waveActive && state.spawnQueue.length === 0 && laneClear) {
       let purse = 0;
       while (state.rewarded < state.started) {
-        purse += B.waves[state.rewarded].reward;
+        const cleared = state.rewarded < B.waves.length ? B.waves[state.rewarded] : freeWave(state.rewarded + 1);
+        purse += cleared.reward || 0;
         state.rewarded += 1;
+        if (root.BOTGSave) root.BOTGSave.addXp(8);
       }
       state.waveActive = false;
       if (purse) {
@@ -1297,7 +1362,7 @@
           );
         }
       }
-      if (state.rewarded >= B.waves.length) win();
+      if (state.rewarded >= B.waves.length && !state.freeplay) win();
     }
   }
 
@@ -1329,8 +1394,17 @@
     remember(won);
     const stars = root.BOTGSave ? root.BOTGSave.stars(state.mapId) : (won ? 1 : 0);
     const diff = state.difficulty || "medium";
-    const medals = won ? ((B.medalPay && B.medalPay[diff]) || 20) : 0;
-    if (won && medals && root.BOTGSave) root.BOTGSave.award(medals);
+    let medals = won ? ((B.medalPay && B.medalPay[diff]) || 20) : 0;
+    if (won && state.challenge === "snipers") medals += 12;
+    if (won && state.challenge === "double") medals += 12;
+    if (won && state.challenge === "noleak" && !(state.leaked > 0)) medals += 18;
+    const xpGain = won ? 40 : 0;
+    if (root.BOTGSave) {
+      if (medals) root.BOTGSave.award(medals);
+      if (xpGain) root.BOTGSave.addXp(xpGain);
+      if (won) root.BOTGSave.markChallenge(state.mapId, state.challenge);
+      grantRankKits();
+    }
     state.result = {
       won: !!won,
       map: (B.map && B.map.name) || "The lane",
@@ -1343,6 +1417,8 @@
       towers: state.towers.length,
       stars: stars,
       medals: medals,
+      xp: xpGain,
+      rank: B.rankFor ? B.rankFor(playerXp()).name : "",
       purse: root.BOTGSave ? root.BOTGSave.data.medals : medals,
     };
   }
@@ -1371,6 +1447,26 @@
     state.summary = `WIN lives ${state.lives} cash ${state.cash}`;
     audio.play("win");
     announce((B.map.name || "The lane") + " holds. The Scowl Corps fell back.");
+  }
+
+  function continueFreeplay() {
+    if (state.screen !== "win") return;
+    state.screen = "play";
+    state.freeplay = true;
+    state.waveActive = false;
+    state.launchLock = 0;
+    state.shots = [];
+    showBanner("Freeplay", "Past round " + B.waves.length, "The Corps keeps coming. Send the next file.", "info");
+    audio.play("wave");
+    resize();
+  }
+
+  function setChallenge(id) {
+    const known = (B.challenges || []).some(function (c) { return c.id === id; });
+    if (!known) return;
+    state.challenge = id;
+    if (root.BOTGSave) root.BOTGSave.setChallenge(id);
+    audio.play("ui");
   }
 
   const PLAN = [
@@ -1657,6 +1753,12 @@
     B.costMul = diff.cost;
     state.cash = diff.cash;
     state.lives = diff.lives;
+    state.challenge = (root.BOTGSave && root.BOTGSave.challenge()) || "normal";
+    state.freeplay = false;
+    const perk = currentPerk();
+    if (perk && perk.cash) state.cash += perk.cash;
+    if (perk && perk.lives) state.lives += perk.lives;
+    grantRankKits();
     state.debug = debug;
     state.reducedMotion = motion;
     state.screen = "play";
@@ -1754,6 +1856,9 @@
     startGame,
     openMaps,
     mapOpen,
+    towerOpen,
+    setChallenge,
+    continueFreeplay,
     openArmory,
     leaveArmory,
     buyKit,

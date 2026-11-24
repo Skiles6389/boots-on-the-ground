@@ -36,6 +36,9 @@
       if (!Array.isArray(this.data.kits)) this.data.kits = ["field"];
       if (this.data.kits.indexOf("field") < 0) this.data.kits.push("field");
       if (!this.data.skin) this.data.skin = "field";
+      if (typeof this.data.xp !== "number" || this.data.xp < 0) this.data.xp = 0;
+      if (!this.data.challenge) this.data.challenge = "normal";
+      if (!this.data.challenges) this.data.challenges = {};
     },
 
     save() {
@@ -124,6 +127,40 @@
     wonAny(mapId) {
       const m = this.data.maps[mapId];
       return !!(m && m.wins && DIFFS.some((d) => m.wins[d]));
+    },
+
+    xp() {
+      this.ensure();
+      return this.data.xp || 0;
+    },
+
+    addXp(n) {
+      this.ensure();
+      this.data.xp = (this.data.xp || 0) + Math.max(0, n | 0);
+      this.save();
+      return this.data.xp;
+    },
+
+    challenge() {
+      return this.data.challenge || "normal";
+    },
+
+    setChallenge(id) {
+      this.data.challenge = id || "normal";
+      this.save();
+    },
+
+    markChallenge(mapId, challenge) {
+      if (!challenge || challenge === "normal") return;
+      if (!this.data.challenges) this.data.challenges = {};
+      if (!this.data.challenges[mapId]) this.data.challenges[mapId] = {};
+      this.data.challenges[mapId][challenge] = true;
+      this.save();
+    },
+
+    challengeWon(mapId, challenge) {
+      const bag = this.data.challenges && this.data.challenges[mapId];
+      return !!(bag && bag[challenge]);
     },
   };
 
