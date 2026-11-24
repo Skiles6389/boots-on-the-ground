@@ -2777,9 +2777,9 @@
     ctx.textBaseline = "middle";
     const Save = root.BOTGSave;
     const diffId = state.difficulty || (Save && Save.data.difficulty) || "medium";
-    const unlocked = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll());
-    const openCactus = unlocked || (Save && Save.wonAny("maple"));
-    const openFrost = unlocked || (Save && Save.wonAny("cactus"));
+    const isOpen = function (id) {
+      return root.BOTG && root.BOTG.mapOpen ? root.BOTG.mapOpen(id) : true;
+    };
     label(ctx, "PICK A MAP", L.portrait ? L.vw * 0.38 : L.vw / 2, L.portrait ? 30 : 22, L.portrait ? 22 : 22, "#ffe56a", "#2a3420", 6);
     const diffY = L.portrait ? 52 : 42;
     const diffH = 40;
@@ -2810,9 +2810,9 @@
     const armoryY = audioY - armoryH - 6;
     const cardsTop = diffY + diffH + 8;
     const cardsBottom = armoryY - 8;
-    const maps = [B.maps.maple, B.maps.cactus, B.maps.frost];
+    const maps = (B.mapOrder || ["maple", "cactus", "frost"]).map(function (id) { return B.maps[id]; }).filter(Boolean);
     function card(map, x, y, w, h) {
-      const locked = (map.id === "cactus" && !openCactus) || (map.id === "frost" && !openFrost);
+      const locked = !isOpen(map.id);
       const stars = Save ? Save.stars(map.id) : 0;
       const best = Save ? Save.best(map.id, diffId) : 0;
       const tight = h < 210;
@@ -2824,13 +2824,21 @@
       ctx.textAlign = "center";
       const nameSize = w < 200 ? 15 : tight ? 16 : (L.portrait ? 20 : 18);
       label(ctx, map.name, x + w / 2, y + (tight ? 14 : 18), nameSize, INK, null, 0);
+      if (map.tier) {
+        font(ctx, 11);
+        ctx.fillStyle = "#8a5a18";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(map.tier, x + 48, y + (tight ? 14 : 18));
+      }
       drawStars(ctx, x + w / 2 - 26, y + (tight ? 30 : 38), stars);
       font(ctx, 12);
       ctx.fillStyle = "#5c4630";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      const need = map.requires && B.maps[map.requires];
       const note = locked
-        ? (map.id === "frost" ? "Beat Desert Outpost" : "Beat Normandy Shore")
+        ? (need ? "Beat " + need.name : "Locked")
         : (best ? "Best round " + best : "No run yet");
       ctx.fillText(note, x + w / 2, y + (tight ? 44 : 54));
       const miniY = tight ? 52 : 66;
@@ -2851,16 +2859,22 @@
         action: () => root.BOTG.startGame(map.id),
       });
     }
-    if (L.portrait) {
-      const gap = 8;
-      const h = Math.floor((cardsBottom - cardsTop - gap * (maps.length - 1)) / maps.length);
-      maps.forEach((map, i) => card(map, 14, cardsTop + i * (h + gap), L.vw - 28, h));
-    } else {
-      const gap = 10;
-      const w = (L.vw - 28 - gap * (maps.length - 1)) / maps.length;
-      const h = cardsBottom - cardsTop;
-      maps.forEach((map, i) => card(map, 14 + i * (w + gap), cardsTop, w, h));
-    }
+    const gap = 8;
+    const cardH = 168;
+    const total = maps.length * cardH + Math.max(0, maps.length - 1) * gap;
+    const viewH = Math.max(40, cardsBottom - cardsTop);
+    const maxScroll = Math.max(0, total - viewH);
+    state.mapScroll = Math.max(0, Math.min(maxScroll, state.mapScroll || 0));
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, cardsTop, L.vw, viewH);
+    ctx.clip();
+    maps.forEach(function (map, i) {
+      const y = cardsTop + i * (cardH + gap) - state.mapScroll;
+      if (y + cardH < cardsTop - 4 || y > cardsBottom + 4) return;
+      card(map, 14, y, L.vw - 28, cardH);
+    });
+    ctx.restore();
     const purse = Save ? Save.data.medals || 0 : 0;
     uiButton(ctx, state, {
       id: "armory",
@@ -3583,6 +3597,7 @@
       drawBuild(ctx, state, L);
     } else if (state.screen === "maps") {
       drawMaps(ctx, state, L);
+      if (state.toast) drawToast(ctx, state, L);
       drawBuild(ctx, state, L);
     } else if (state.screen === "armory") {
       drawArmory(ctx, state, L);

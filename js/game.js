@@ -221,11 +221,10 @@
   }
 
   function mapOpen(id) {
-    if (!id || id === "maple") return true;
     if (unlockAll()) return true;
-    if (id === "cactus") return !!(root.BOTGSave && root.BOTGSave.wonAny("maple"));
-    if (id === "frost") return !!(root.BOTGSave && root.BOTGSave.wonAny("cactus"));
-    return true;
+    const map = B.maps[id] || B.maps.maple;
+    if (!map.requires) return true;
+    return !!(root.BOTGSave && root.BOTGSave.wonAny(map.requires));
   }
 
   function remember(won) {
@@ -1528,6 +1527,7 @@
     trackPointer(p, true);
     const spot = hit(p);
     down = { sx: p.sx, sy: p.sy, id: spot ? spot.id : null };
+    state._mapDragY = p.sy;
     state.pressedId = spot ? spot.id : null;
     audio.ensure();
     updateGhost();
@@ -1537,6 +1537,11 @@
   canvas.addEventListener("pointermove", (e) => {
     const p = toGame(e);
     trackPointer(p, true);
+    if (state.screen === "maps" && down) {
+      const dy = p.sy - (state._mapDragY == null ? down.sy : state._mapDragY);
+      state._mapDragY = p.sy;
+      state.mapScroll = (state.mapScroll || 0) - dy;
+    }
     updateGhost();
   });
 
@@ -1553,10 +1558,16 @@
     if (moved < 36 && spot && spot.id === down.id && !spot.disabled && spot.action) spot.action();
     else if (moved < 36 && down.id == null && !spot) mapTap(p);
     down = null;
+    state._mapDragY = null;
     state.pressedId = null;
   });
 
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("wheel", (e) => {
+    if (state.screen !== "maps") return;
+    state.mapScroll = (state.mapScroll || 0) + e.deltaY;
+    e.preventDefault();
+  }, { passive: false });
 
   root.addEventListener("keydown", (e) => {
     audio.ensure();
@@ -1627,10 +1638,8 @@
   function startGame(mapId) {
     const id = mapId || state.mapId || "maple";
     if (!mapOpen(id)) {
-      const text = id === "frost"
-        ? "Beat Desert Outpost to unlock Ardennes Woods."
-        : "Beat Normandy Shore to unlock Desert Outpost.";
-      state.toast = { text: text, t: 0, life: 1.8 };
+      const need = B.maps[id] && B.maps[id].requires && B.maps[B.maps[id].requires];
+      state.toast = { text: need ? "Beat " + need.name + " first." : "That map is locked.", t: 0, life: 1.8 };
       audio.play("deny");
       return;
     }
@@ -1741,6 +1750,7 @@
     pick,
     startGame,
     openMaps,
+    mapOpen,
     openArmory,
     leaveArmory,
     buyKit,

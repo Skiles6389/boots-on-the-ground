@@ -67,7 +67,7 @@
   }
 
   const jobs = [];
-  ["maple", "cactus", "frost"].forEach(function (id) { jobs.push(loadInto(maps, "maps", id)); });
+  ["maple", "cactus", "frost", "atoll", "ridge", "quarter", "basin"].forEach(function (id) { jobs.push(loadInto(maps, "maps", id)); });
   Object.keys(SPRITES).forEach(function (id) { jobs.push(loadInto(frames, "sprites", id)); });
   Promise.all(jobs).then(function () {
     try { bakeSprites(); } catch (err) { /* keep the raw plates */ }
