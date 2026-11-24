@@ -11,7 +11,7 @@
   }
 
   const Save = {
-    data: { difficulty: "medium", maps: {} },
+    data: { difficulty: "medium", maps: {}, tutorial: false },
 
     load() {
       try {
@@ -24,6 +24,7 @@
       }
       if (!this.data.maps) this.data.maps = {};
       if (!this.data.difficulty) this.data.difficulty = "medium";
+      if (this.data.tutorial == null) this.data.tutorial = false;
     },
 
     save() {
@@ -61,6 +62,14 @@
       if (!m || !m.best) return 0;
       if (diff && DIFFS.indexOf(diff) >= 0) return m.best[diff] || 0;
       return Math.max(m.best.easy || 0, m.best.medium || 0, m.best.hard || 0);
+    },
+
+    played() {
+      const maps = this.data.maps || {};
+      return Object.keys(maps).some((id) => {
+        const best = maps[id] && maps[id].best;
+        return best && ((best.easy || 0) + (best.medium || 0) + (best.hard || 0) > 0);
+      });
     },
 
     wonAny(mapId) {

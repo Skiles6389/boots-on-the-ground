@@ -1394,24 +1394,46 @@
         ctx.restore();
       });
       ctx.restore();
+    } else if (fx.kind === "hit") {
+      ctx.save();
+      ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = "#fff6d0";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(fx.x, fx.y, (fx.r || 12) * (0.4 + k), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255," + (1 - k) * 0.45 + ")";
+      ctx.beginPath();
+      ctx.arc(fx.x, fx.y, 4 * (1 - k), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     } else if (fx.kind === "boom") {
       ctx.save();
       ctx.globalAlpha = 1 - k;
+      const rad = 8 + k * (fx.r || 28);
+      const glow = ctx.createRadialGradient(fx.x, fx.y, 2, fx.x, fx.y, rad);
+      glow.addColorStop(0, "rgba(255,244,180," + (1 - k) + ")");
+      glow.addColorStop(0.45, "rgba(255,140,40," + (1 - k) * 0.7 + ")");
+      glow.addColorStop(1, "rgba(255,80,20,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(fx.x, fx.y, rad, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = "#ffe56a";
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(fx.x, fx.y, 8 + k * (fx.r || 28), 0, Math.PI * 2);
+      ctx.arc(fx.x, fx.y, rad, 0, Math.PI * 2);
       ctx.stroke();
       ctx.strokeStyle = "#ff8a3d";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(fx.x, fx.y, 4 + k * (fx.r || 28) * 0.7, 0, Math.PI * 2);
+      ctx.arc(fx.x, fx.y, rad * 0.62, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = "rgba(90,50,20," + (1 - k) * 0.7 + ")";
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + 0.2;
+        ctx.fillStyle = i % 2 ? "#3a2414" : "#ffe14a";
         ctx.beginPath();
-        ctx.arc(fx.x + Math.cos(a) * k * 22, fx.y + Math.sin(a) * k * 14, 3 + k * 2, 0, Math.PI * 2);
+        ctx.arc(fx.x + Math.cos(a) * k * (fx.r || 26), fx.y + Math.sin(a) * k * (fx.r || 26) * 0.7, 3 + (1 - k) * 2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -1460,11 +1482,25 @@
     const pop = k < 0.18 ? 0.45 + (k / 0.18) * 0.75 : 1 + (1 - (k - 0.18) / 0.82) * 0.08;
     ctx.save();
     ctx.globalAlpha = k > 0.72 ? (1 - k) / 0.28 : 1;
-    ctx.translate(f.x, f.y - k * 26);
+    ctx.translate(f.x, f.y - k * (f.kind === "coin" ? 34 : 26));
     ctx.scale(pop, pop);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    label(ctx, f.text, 0, 0, 16, f.color || "#fff6d0", INK, 4);
+    if (f.kind === "coin") {
+      font(ctx, 13);
+      const tw = Math.max(28, ctx.measureText(f.text).width + 16);
+      fillRound(ctx, -tw / 2, -11, tw, 22, 11, "#ffe14a");
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, -tw / 2, -11, tw, 22, 11);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.beginPath();
+      ctx.ellipse(-tw * 0.18, -4, tw * 0.22, 4, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      label(ctx, f.text, 0, 1, 13, "#3a2208", null, 0);
+    } else {
+      label(ctx, f.text, 0, 0, f.life < 0.5 ? 13 : 16, f.color || "#fff6d0", INK, 3);
+    }
     ctx.restore();
   }
 
@@ -2443,45 +2479,121 @@
     label(ctx, def.name.toUpperCase(), x + w / 2, y + 9, 12, "#ffe56a", INK, 3);
   }
 
+  function drawCoach(ctx, state, L) {
+    if (!state.coach || state.screen !== "play") return;
+    const step = state.started > 0 ? 2 : state.placedCount > 0 ? 1 : 0;
+    const lines = [
+      "Plant a Trooper on the glowing spot.",
+      "Arrows show the march. Tap Start Round.",
+      "Tap your soldier to buy a chevron.",
+    ];
+    const h = 72;
+    const w = Math.min(360, L.mapBox.w - 16);
+    const x = L.mapBox.x + 8;
+    const y = L.mapBox.y + L.mapBox.h - h - 28;
+    fillRound(ctx, x, y + 3, w, h, 16, "rgba(0,0,0,0.2)");
+    fillRound(ctx, x, y, w, h, 16, "#fff6df");
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, x, y, w, h, 16);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    label(ctx, "Drill " + (step + 1) + " of 3", x + 12, y + 16, 11, "#8a6840", null, 0);
+    font(ctx, 13);
+    const words = lines[step];
+    const maxW = w - 96;
+    ctx.fillStyle = INK;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    drawWrapped(ctx, words, x + 12, y + 28, maxW, 15, 2);
+    uiButton(ctx, state, {
+      id: "coach-skip",
+      x: x + w - 76,
+      y: y + (h - 44) / 2,
+      w: 64,
+      h: 44,
+      label: step === 2 ? "Got it" : "Skip",
+      labelSize: 13,
+      fillTop: "#fff8e4",
+      fillBot: "#f0ddb0",
+      lip: "#8a6840",
+      ink: INK,
+      stroke: false,
+      action: () => root.BOTG.finishCoach(),
+    });
+  }
+
   function drawEnd(ctx, state, L) {
-    ctx.fillStyle = "rgba(8, 20, 12, 0.5)";
+    ctx.fillStyle = "rgba(8, 20, 12, 0.55)";
     ctx.fillRect(0, 0, L.vw, L.vh);
     const win = state.screen === "win";
-    const w = Math.min(360, L.vw - 28);
-    const h = Math.min(380, L.vh - 28);
+    const r = state.result || {
+      map: B.map.name,
+      diff: state.difficulty || "medium",
+      round: Math.max(1, state.started),
+      rounds: B.waves.length,
+      lives: state.lives,
+      popped: state.popped || 0,
+      leaked: state.leaked || 0,
+      towers: state.towers.length,
+      stars: 0,
+    };
+    const w = Math.min(380, L.vw - 20);
+    const h = Math.min(332, L.vh - 16);
     const x = (L.vw - w) / 2;
     const y = (L.vh - h) / 2;
-    fillRound(ctx, x, y + 6, w, h, 20, "rgba(0,0,0,0.25)");
-    fillRound(ctx, x, y, w, h, 20, "#fff6df");
+    fillRound(ctx, x, y + 5, w, h, 18, "rgba(0,0,0,0.25)");
+    fillRound(ctx, x, y, w, h, 18, "#fff6df");
     ctx.lineWidth = 4;
     ctx.strokeStyle = INK;
-    strokeRound(ctx, x, y, w, h, 20);
+    strokeRound(ctx, x, y, w, h, 18);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    if (win) {
-      for (let i = 0; i < 5; i++) {
-        ctx.fillStyle = "#ffe56a";
-        ctx.strokeStyle = INK;
-        ctx.lineWidth = 2;
-        star(ctx, x + 40 + i * ((w - 80) / 4), y + 36, 10, state.time + i);
-        ctx.fill();
-        ctx.stroke();
-      }
+    label(ctx, win ? r.map + " holds!" : "They slipped by", x + w / 2, y + 22, w < 340 ? 18 : 22, win ? "#1f8a32" : "#a02840", null, 0);
+    const starN = Math.max(0, Math.min(3, r.stars || 0));
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = i < starN ? "#ffe56a" : "#e4dcc8";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      star(ctx, x + w / 2 - 28 + i * 28, y + 48, 9, win ? state.time + i : -0.2);
+      ctx.fill();
+      ctx.stroke();
     }
-    label(ctx, win ? (B.map.name || "The lane") + " holds!" : "They slipped by", x + w / 2, y + 78, 22, win ? "#1f8a32" : "#a02840", null, 0);
-    font(ctx, 14);
+    font(ctx, 12);
     ctx.fillStyle = "#5c4630";
-    const body = win
-      ? "The Scowl Corps went up in stars and smoke. " + (B.map.name || "The lane") + " is still smiling."
-      : "The Scowl Corps reached the gate on wave " + Math.max(1, state.started) + ". Plant tighter on the bends and bring a Longshot for armor.";
-    drawWrapped(ctx, body, x + w / 2, y + 112, w - 48, 18, 4);
+    const diffName = (B.difficulties[r.diff] && B.difficulties[r.diff].name) || "Medium";
+    ctx.fillText(diffName + " · " + r.map, x + w / 2, y + 70);
+    const stats = [
+      ["Round", r.round + "/" + r.rounds],
+      ["Popped", String(r.popped)],
+      ["Lives", String(r.lives)],
+      ["Leaked", String(r.leaked)],
+    ];
+    const gap = 6;
+    const cellW = (w - 28 - gap) / 2;
+    const cellH = 36;
+    stats.forEach((pair, i) => {
+      const cx = x + 14 + (i % 2) * (cellW + gap);
+      const cy = y + 84 + Math.floor(i / 2) * (cellH + gap);
+      fillRound(ctx, cx, cy, cellW, cellH, 10, "#fff");
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, cx, cy, cellW, cellH, 10);
+      ctx.textAlign = "center";
+      label(ctx, pair[1], cx + cellW / 2, cy + 13, 16, INK, null, 0);
+      font(ctx, 11);
+      ctx.fillStyle = "#8a6840";
+      ctx.fillText(pair[0], cx + cellW / 2, cy + 27);
+    });
+    const btnW = Math.min(200, w - 36);
     uiButton(ctx, state, {
       id: "retry",
-      x: x + (w - 220) / 2,
-      y: y + h - 130,
-      w: 220,
-      h: 54,
+      x: x + (w - btnW) / 2,
+      y: y + h - 96,
+      w: btnW,
+      h: 44,
       label: win ? "Defend again" : "Try again",
+      labelSize: 16,
       fillTop: "#b6f56a",
       fillBot: "#2fbe3c",
       lip: "#0e6a22",
@@ -2489,18 +2601,18 @@
     });
     uiButton(ctx, state, {
       id: "titlescreen",
-      x: x + (w - 160) / 2,
-      y: y + h - 64,
-      w: 160,
+      x: x + (w - 140) / 2,
+      y: y + h - 50,
+      w: 140,
       h: 40,
-      label: "Title",
-      labelSize: 16,
+      label: "Maps",
+      labelSize: 15,
       fillTop: "#fff8e4",
       fillBot: "#f0ddb0",
       lip: "#8a6840",
       ink: INK,
       stroke: false,
-      action: () => root.BOTG.title(),
+      action: () => root.BOTG.openMaps(),
     });
   }
 
@@ -2563,7 +2675,7 @@
     const tw = ctx.measureText(text).width + 14;
     let x;
     let y;
-    if (state.screen === "title" || state.screen === "maps") {
+    if (state.screen === "title" || state.screen === "maps" || state.screen === "win" || state.screen === "lose") {
       x = L.vw - tw - 8;
       y = 6;
     } else {
@@ -2868,6 +2980,7 @@
           ctx.restore();
         }
         drawHeader(ctx, state, L);
+        drawCoach(ctx, state, L);
         drawAbilityBar(ctx, state, L);
         drawPanel(ctx, state, L);
         drawBanner(ctx, state, L);
