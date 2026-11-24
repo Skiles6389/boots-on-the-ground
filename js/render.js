@@ -2454,7 +2454,7 @@
     const unlocked = (root.BOTG && root.BOTG.unlockAll && root.BOTG.unlockAll());
     const openCactus = unlocked || (Save && Save.wonAny("maple"));
     const openFrost = unlocked || (Save && Save.wonAny("cactus"));
-    label(ctx, "PICK A MAP", L.vw / 2, L.portrait ? 28 : 22, L.portrait ? 28 : 22, "#ffe56a", "#2a3420", 6);
+    label(ctx, "PICK A MAP", L.portrait ? L.vw * 0.38 : L.vw / 2, L.portrait ? 30 : 22, L.portrait ? 22 : 22, "#ffe56a", "#2a3420", 6);
     const diffY = L.portrait ? 52 : 42;
     const diffH = 40;
     const names = ["easy", "medium", "hard"];
