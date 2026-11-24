@@ -1210,6 +1210,45 @@
 
   B.medalPay = { easy: 12, medium: 20, hard: 32 };
 
+  B.ranks = [
+    { id: "recruit", name: "Recruit", xp: 0, towers: ["trooper", "gatling"] },
+    { id: "private", name: "Private", xp: 80, towers: ["mortar"], perk: { cash: 10 } },
+    { id: "corporal", name: "Corporal", xp: 220, towers: ["longshot", "engineer"], perk: { refund: 0.75 } },
+    { id: "sergeant", name: "Sergeant", xp: 480, towers: ["flame", "sky"], skin: "night" },
+    { id: "lieutenant", name: "Lieutenant", xp: 900, towers: ["tread", "tent", "chopper"], perk: { lives: 1 } },
+    { id: "captain", name: "Captain", xp: 1500, towers: ["gunner"], perk: { cash: 20, lives: 1 }, skin: "dress" },
+  ];
+
+  B.challenges = [
+    { id: "normal", name: "Normal" },
+    { id: "snipers", name: "Snipers" },
+    { id: "double", name: "2x HP" },
+    { id: "noleak", name: "No leak" },
+  ];
+
+  B.rankFor = function rankFor(xp) {
+    let cur = B.ranks[0];
+    const n = xp || 0;
+    B.ranks.forEach(function (r) { if (n >= r.xp) cur = r; });
+    return cur;
+  };
+
+  B.towerUnlocked = function towerUnlocked(type, xp) {
+    const n = xp || 0;
+    for (let i = 0; i < B.ranks.length; i++) {
+      const r = B.ranks[i];
+      if (n >= r.xp && r.towers.indexOf(type) >= 0) return true;
+    }
+    return false;
+  };
+
+  B.perkFor = function perkFor(xp) {
+    let perk = null;
+    const n = xp || 0;
+    B.ranks.forEach(function (r) { if (n >= r.xp && r.perk) perk = r.perk; });
+    return perk;
+  };
+
   B.pay = function pay(n) {
     return Math.max(5, Math.round(Number(n) * (B.costMul || 1)));
   };

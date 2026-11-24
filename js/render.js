@@ -2276,7 +2276,8 @@
     order.forEach(function (key, i) {
       const def = B.towers[key];
       const price = B.pay(def.cost);
-      const afford = state.cash >= price;
+      const open = root.BOTG && root.BOTG.towerOpen ? root.BOTG.towerOpen(key) : true;
+      const afford = open && state.cash >= price;
       const on = state.placing === key;
       const drop = slide * (10 + (i % cols) * 3);
       uiButton(ctx, state, {
@@ -2781,8 +2782,14 @@
     const isOpen = function (id) {
       return root.BOTG && root.BOTG.mapOpen ? root.BOTG.mapOpen(id) : true;
     };
-    label(ctx, "PICK A MAP", L.portrait ? L.vw * 0.38 : L.vw / 2, L.portrait ? 30 : 22, L.portrait ? 22 : 22, "#ffe56a", "#2a3420", 6);
-    const diffY = L.portrait ? 52 : 42;
+    const rank = B.rankFor ? B.rankFor(Save ? Save.xp() : 0) : null;
+    label(ctx, (rank ? rank.name : "Recruit").toUpperCase(), L.portrait ? L.vw * 0.38 : L.vw / 2, L.portrait ? 22 : 16, L.portrait ? 20 : 18, "#ffe56a", "#2a3420", 5);
+    font(ctx, 12);
+    ctx.fillStyle = "#3a3420";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Pick a map · " + (Save ? Save.xp() : 0) + " xp", L.portrait ? L.vw * 0.38 : L.vw / 2, L.portrait ? 40 : 32);
+    const diffY = L.portrait ? 58 : 46;
     const diffH = 40;
     const names = ["easy", "medium", "hard"];
     const dw = Math.min(112, Math.floor((L.vw - 40) / 3) - 6);
@@ -2809,7 +2816,30 @@
     const audioY = L.vh - audioH - 8;
     const armoryH = 44;
     const armoryY = audioY - armoryH - 6;
-    const cardsTop = diffY + diffH + 8;
+    const chalY = diffY + diffH + 6;
+    const chalH = 32;
+    const challenges = B.challenges || [{ id: "normal", name: "Normal" }];
+    const chalW = Math.floor((L.vw - 28 - 6 * (challenges.length - 1)) / challenges.length);
+    const chalOn = (Save && Save.challenge()) || state.challenge || "normal";
+    challenges.forEach(function (c, i) {
+      const on = chalOn === c.id;
+      uiButton(ctx, state, {
+        id: "chal-" + c.id,
+        x: 14 + i * (chalW + 6),
+        y: chalY,
+        w: chalW,
+        h: chalH,
+        label: c.name,
+        labelSize: 12,
+        fillTop: on ? "#ffe08a" : "#fff8e4",
+        fillBot: on ? "#f0b429" : "#f0ddb0",
+        lip: on ? "#a86a08" : "#8a6840",
+        ink: INK,
+        stroke: false,
+        action: () => root.BOTG.setChallenge(c.id),
+      });
+    });
+    const cardsTop = chalY + chalH + 8;
     const cardsBottom = armoryY - 8;
     const maps = (B.mapOrder || ["maple", "cactus", "frost"]).map(function (id) { return B.maps[id]; }).filter(Boolean);
     function card(map, x, y, w, h) {
@@ -3002,8 +3032,9 @@
     const medalH = win ? 32 : 0;
     const retryH = 44;
     const mapsH = 40;
+    const freeH = win ? 40 : 0;
     const retryTop = statsEnd + 12 + medalH + (win ? 10 : 0);
-    const mapsTop = retryTop + retryH + 12;
+    const mapsTop = retryTop + retryH + (win ? 8 + freeH + 8 : 12);
     const h = Math.min(L.vh - 16, mapsTop + mapsH + 14);
     const x = (L.vw - w) / 2;
     const y = (L.vh - h) / 2;
@@ -3056,9 +3087,24 @@
       ctx.strokeStyle = INK;
       strokeRound(ctx, x + 14, my, w - 28, medalH, 10);
       ctx.textAlign = "center";
-      label(ctx, "+" + (r.medals || 0) + " medals  ·  purse " + (r.purse || 0), x + w / 2, my + medalH / 2, 14, "#3a2208", null, 0);
+      label(ctx, "+" + (r.medals || 0) + " medals · " + (r.rank || "Recruit"), x + w / 2, my + medalH / 2, 13, "#3a2208", null, 0);
     }
     const btnW = Math.min(220, w - 36);
+    if (win) {
+      uiButton(ctx, state, {
+        id: "freeplay",
+        x: x + (w - btnW) / 2,
+        y: y + retryTop + retryH + 8,
+        w: btnW,
+        h: freeH,
+        label: "Freeplay",
+        labelSize: 16,
+        fillTop: "#ffe08a",
+        fillBot: "#f0b429",
+        lip: "#a86a08",
+        action: () => root.BOTG.continueFreeplay(),
+      });
+    }
     uiButton(ctx, state, {
       id: "retry",
       x: x + (w - btnW) / 2,
