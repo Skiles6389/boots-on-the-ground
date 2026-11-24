@@ -111,7 +111,7 @@
         ["Treads", "A little more reach.", { range: 140 }],
         ["Ram Plow", "Hits shove the line back.", { range: 140, knock: 18 }],
         ["Long Patrol", "The cannon watches farther.", { range: 160, knock: 18 }],
-        ["Juggernaut", "Grunts in the blast pop.", { range: 160, knock: 28, splash: 30, damage: 36 }],
+        ["Juggernaut", "Grunts in the blast go down.", { range: 160, knock: 28, splash: 30, damage: 36 }],
       ]),
       path("coax", "Coax", 240, [
         ["Coax MG", "A machine gun on the turret.", { extra: 1, rate: 0.55 }],
@@ -143,7 +143,7 @@
     sky: [
       path("flak", "Flak Burst", 190, [
         ["Wide Burst", "The puff is bigger.", { splash: 36, damage: 8 }],
-        ["Proximity Fuse", "It pops harder.", { splash: 36, damage: 11 }],
+        ["Proximity Fuse", "The burst hits harder.", { splash: 36, damage: 11 }],
         ["Quad Flak", "Four barrels.", { splash: 40, damage: 11, rate: 1.15, extra: 1 }],
         ["Skyshield", "Flyers in range drag.", { splash: 44, damage: 12, airBonus: 2.6, slowAura: 0.6 }],
       ]),

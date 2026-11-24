@@ -48,8 +48,19 @@
     spike: "#d8d0dc",
   };
 
-  function palFor(team, role) {
-    if (team !== "enemy") return FRIEND;
+  const KITS = {
+    parade: { jacket: "#3caf4c", jacketHi: "#e4ff8a", helmet: "#2f9e44", helmetHi: "#fff0a0", belt: "#ffe14a", pants: "#217a32" },
+    night: { jacket: "#1c4a28", jacketHi: "#4e9a58", jacketSh: "#0e2a16", helmet: "#143820", helmetHi: "#8ec88a", pants: "#102818", belt: "#c4a06a" },
+    sand: { jacket: "#c4a06a", jacketHi: "#f3ddb0", jacketSh: "#8a6840", helmet: "#a88448", helmetHi: "#ffe6b0", pants: "#6a5030", belt: "#5c4030" },
+    dress: { jacket: "#2a5a9a", jacketHi: "#b7dcff", jacketSh: "#16386a", helmet: "#1a3a68", helmetHi: "#e4f2ff", pants: "#142848", belt: "#ffe14a" },
+  };
+
+  function palFor(team, role, skinId) {
+    if (team !== "enemy") {
+      const id = skinId || ((root.BOTGSave && root.BOTGSave.skin && root.BOTGSave.skin()) || "field");
+      const extra = KITS[id];
+      return extra ? Object.assign({}, FRIEND, extra) : FRIEND;
+    }
     const pal = Object.assign({}, FOE);
     if (role === "scout" || role === "dash") {
       pal.jacket = "#7a2850";
@@ -429,7 +440,7 @@
     const role = opt.role || (opt.team === "enemy" ? "grunt" : "trooper");
     const team = opt.team || "player";
     const enemy = team === "enemy";
-    const pal = palFor(team, role);
+    const pal = palFor(team, role, opt.skin);
     const aim = opt.aim || 0;
     const face = Math.cos(aim) >= 0 ? 1 : -1;
     const sc = opt.scale || 1;

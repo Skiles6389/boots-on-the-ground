@@ -915,6 +915,16 @@
     hard: { id: "hard", name: "Hard", cost: 1.35, cash: 180, lives: 16, blurb: "Pricier kits and fewer lives." },
   };
   B.costMul = 1;
+  B.kits = [
+    { id: "field", name: "Field green", cost: 0, blurb: "The kit every recruit is issued." },
+    { id: "parade", name: "Parade gold", cost: 15, blurb: "A brighter cloth and a gold belt." },
+    { id: "night", name: "Night drill", cost: 25, blurb: "Darker green for the late rounds." },
+    { id: "sand", name: "Dust tan", cost: 30, blurb: "Tan cloth for the dry maps." },
+    { id: "dress", name: "Dress blue", cost: 40, blurb: "Blue jackets for the review." },
+  ];
+
+  B.medalPay = { easy: 12, medium: 20, hard: 32 };
+
   B.pay = function pay(n) {
     return Math.max(5, Math.round(Number(n) * (B.costMul || 1)));
   };
