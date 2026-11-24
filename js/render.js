@@ -127,7 +127,8 @@
     const py = y + (pressed ? Math.min(4, h * 0.08) : 0);
     const hot = pointerHot(state, x, y, w, h);
     const radius = spec.radius || Math.min(14, h / 2);
-    const paper = spec.disabled ? "#e4dcc8" : (hot ? "#fff6e4" : (spec.fillTop || PAPER));
+    const raw = spec.disabled ? "#e4dcc8" : (hot ? "#fff6e4" : (spec.fillTop || PAPER));
+    const paper = /b6f56a|2fbe3c|c8f8a4|46c85a|0e6a22/i.test(String(raw)) ? "#e6d3a8" : /ffb|ff8d|ff6/i.test(String(raw)) ? "#c48978" : raw;
     const ticket = Math.min(10, h / 3);
     ctx.save();
     fillRound(ctx, x, py + 2, w, h, ticket, "#c4b496");
@@ -223,8 +224,8 @@
     } else if (spec.label) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const ink = spec.ink || "#ffffff";
-      const stroke = spec.stroke == null ? INK : spec.stroke;
+      const ink = !spec.ink || spec.ink === "#ffffff" || spec.ink === "#fff" ? INK : spec.ink;
+      const stroke = typeof spec.stroke === "string" ? spec.stroke : null;
       if (spec.sub) {
         const ls = fitSize(ctx, spec.label, w - 16, spec.labelSize || 16);
         const ss = fitSize(ctx, spec.sub, w - 16, spec.subSize || 12);
@@ -356,7 +357,7 @@
     roundPath(ctx, x + 1, y + 1, w - 2, h - 2, 11);
     ctx.clip();
     if (vehicle) {
-      fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" || key === "ironjaw" ? "#5a32b0" : "#8a5ad4");
+      fillRound(ctx, x + w * 0.16, y + h * 0.36, w * 0.68, h * 0.3, 6, key === "tank" || key === "ironjaw" ? "#6e342c" : "#8d3a32");
     } else if (root.BOTGSoldier) {
       const prone = key === "longshot";
       const sc = prone
@@ -413,86 +414,223 @@
     return pond && Math.hypot(x - pond.x, y - pond.y) < pond.r + pad;
   }
 
+  function hatch(ctx, color) {
+    const rand = mulberry32(color === "snow" ? 5 : color === "sand" ? 9 : 3);
+    ctx.strokeStyle = color === "snow" ? "rgba(90,110,120,0.28)" : color === "sand" ? "rgba(120,80,30,0.22)" : "rgba(40,60,20,0.28)";
+    ctx.lineWidth = 1.1;
+    ctx.lineCap = "round";
+    for (let i = 0; i < 520; i++) {
+      const x = 6 + rand() * 388;
+      const y = 48 + rand() * 500;
+      if (B.distToRoute(x, y) < 26) continue;
+      const len = 4 + rand() * 7;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len * 0.3, y - len);
+      ctx.stroke();
+    }
+  }
+
+  function fenceRun(ctx, x, y, n) {
+    ctx.strokeStyle = INK;
+    ctx.fillStyle = "#8a6844";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < n; i++) {
+      const px = x + i * 16;
+      ctx.fillRect(px, y - 14, 3, 16);
+      ctx.strokeRect(px, y - 14, 3, 16);
+    }
+    ctx.beginPath();
+    ctx.moveTo(x, y - 10);
+    ctx.lineTo(x + (n - 1) * 16, y - 6);
+    ctx.moveTo(x, y - 4);
+    ctx.lineTo(x + (n - 1) * 16, y - 1);
+    ctx.stroke();
+  }
+
+  function bagPile(ctx, x, y) {
+    for (let i = 0; i < 3; i++) {
+      blobish(ctx, x + i * 8, y - (i === 1 ? 6 : 0), 6, 3.2, "#c6b48a");
+    }
+  }
+
+  function blobish(ctx, x, y, rx, ry, fill) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  function rockPile(ctx, x, y) {
+    blobish(ctx, x, y, 10, 6, "#8a8680");
+    blobish(ctx, x + 8, y + 2, 7, 4.5, "#6a6660");
+    blobish(ctx, x - 6, y + 2, 5, 3.4, "#9a9690");
+  }
+
+  function farmhouse(ctx, x, y) {
+    ctx.fillStyle = "#e7d7b4";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(x, y, 36, 22);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#8d3a32";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y);
+    ctx.lineTo(x + 18, y - 16);
+    ctx.lineTo(x + 40, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#6a5030";
+    ctx.fillRect(x + 14, y + 8, 8, 14);
+    ctx.strokeRect(x + 14, y + 8, 8, 14);
+    ctx.fillStyle = "#c5d4e0";
+    ctx.fillRect(x + 4, y + 6, 7, 6);
+    ctx.strokeRect(x + 4, y + 6, 7, 6);
+  }
+
+  function windmill(ctx, x, y) {
+    ctx.strokeStyle = INK;
+    ctx.fillStyle = "#d7c4a0";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 8, y + 18);
+    ctx.lineTo(x + 8, y + 18);
+    ctx.lineTo(x + 4, y);
+    ctx.lineTo(x - 4, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y - 16);
+    ctx.moveTo(x - 12, y - 8);
+    ctx.lineTo(x + 12, y - 4);
+    ctx.moveTo(x - 8, y - 14);
+    ctx.lineTo(x + 10, y - 12);
+    ctx.stroke();
+  }
+
   function paintTerrain(ctx) {
     const snow = B.map.theme === "snow";
     const desert = B.map.theme === "desert";
-    const sky = ctx.createLinearGradient(0, 0, 0, 570);
+    const sky = ctx.createLinearGradient(0, 40, 0, 200);
     if (snow) {
-      sky.addColorStop(0, "#c5d4e0");
-      sky.addColorStop(0.55, "#e7eef2");
-      sky.addColorStop(1, "#d5e0e4");
+      sky.addColorStop(0, "#c5d0d4");
+      sky.addColorStop(1, "#e4e8e4");
     } else if (desert) {
       sky.addColorStop(0, "#e2c48a");
-      sky.addColorStop(0.5, "#f0d7a4");
-      sky.addColorStop(1, "#d7b07a");
+      sky.addColorStop(1, "#d7b48a");
     } else {
-      sky.addColorStop(0, "#b7cbe0");
-      sky.addColorStop(0.42, "#d5e4c8");
-      sky.addColorStop(1, "#c6b48a");
+      sky.addColorStop(0, "#c5d0b0");
+      sky.addColorStop(1, "#b7c49a");
     }
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, 400, 570);
-    const hills = snow
-      ? [[80, 420, 180, 70, "#f4f7f4"], [260, 460, 200, 80, "#e4eef2"], [180, 200, 220, 60, "#f7f4ee"]]
+    ctx.fillStyle = snow ? "#eef2f0" : desert ? "#e4c898" : "#a8b888";
+    ctx.fillRect(0, 150, 400, 430);
+    const fields = snow
+      ? [[80, 90, 90, 22, "#f4f7f4"], [200, 78, 110, 20, "#d5e0e4"], [320, 96, 80, 18, "#e7eef2"]]
       : desert
-        ? [[70, 180, 150, 50, "#e2c48a"], [280, 240, 160, 46, "#c49a62"], [160, 400, 190, 55, "#d7b07a"]]
-        : [[60, 160, 140, 46, "#c5b06a"], [250, 210, 160, 40, "#8ea56a"], [140, 340, 180, 50, "#a3b56a"], [300, 430, 150, 42, "#d2c08a"], [40, 480, 120, 36, "#b7a06a"]];
-    hills.forEach(function (h) {
-      ctx.fillStyle = h[4];
+        ? [[70, 100, 100, 22, "#c49a62"], [210, 86, 120, 20, "#d7b07a"], [330, 108, 70, 16, "#e2c48a"]]
+        : [[50, 78, 80, 18, "#c6b06a"], [150, 92, 90, 16, "#8ea56a"], [260, 74, 100, 20, "#d2c08a"], [350, 100, 60, 14, "#a3b56a"]];
+    fields.forEach(function (f) {
+      ctx.fillStyle = f[4];
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.ellipse(h[0], h[1], h[2], h[3], 0, 0, Math.PI * 2);
+      ctx.ellipse(f[0], f[1], f[2], f[3], 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
     });
-    if (!snow && !desert) {
-      ctx.fillStyle = "#8d3a32";
+    if (!desert && !snow) {
+      farmhouse(ctx, 18, 108);
+      windmill(ctx, 250, 96);
+    } else if (desert) {
+      ctx.fillStyle = "#b88458";
       ctx.strokeStyle = INK;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(330, 92);
-      ctx.lineTo(358, 92);
-      ctx.lineTo(352, 70);
-      ctx.lineTo(336, 70);
+      ctx.moveTo(20, 130);
+      ctx.lineTo(70, 70);
+      ctx.lineTo(130, 130);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#f3ead4";
-      ctx.fillRect(338, 92, 12, 16);
-      ctx.strokeRect(338, 92, 12, 16);
-      ctx.strokeStyle = INK;
-      ctx.beginPath();
-      ctx.moveTo(300, 48);
-      ctx.lineTo(300, 108);
-      ctx.moveTo(300, 56);
-      ctx.lineTo(318, 64);
-      ctx.lineTo(300, 72);
-      ctx.stroke();
-    }
-    if (desert) {
-      ctx.fillStyle = "#a87848";
-      ctx.beginPath();
-      ctx.moveTo(40, 120);
-      ctx.lineTo(110, 70);
-      ctx.lineTo(170, 120);
-      ctx.fill();
-      ctx.strokeStyle = INK;
-      ctx.stroke();
       ctx.fillStyle = "#6a5030";
-      ctx.fillRect(300, 80, 6, 28);
+      ctx.fillRect(300, 96, 5, 26);
       ctx.beginPath();
-      ctx.ellipse(303, 78, 14, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(302, 94, 16, 6, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+    } else {
+      windmill(ctx, 300, 100);
+    }
+    hatch(ctx, snow ? "snow" : desert ? "sand" : "grass");
+    const noise = mulberry32(19);
+    for (let i = 0; i < 900; i++) {
+      const x = noise() * 400;
+      const y = 50 + noise() * 500;
+      if (B.distToRoute(x, y) < 22) continue;
+      ctx.fillStyle = snow ? "rgba(255,255,255,0.25)" : "rgba(40,30,10," + (0.04 + noise() * 0.08) + ")";
+      ctx.fillRect(x, y, 2, 2);
     }
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const edge = snow ? "#f7f4ee" : desert ? "#e7d2a4" : "#e7d7b0";
-    const dirt = snow ? "#c5d0d4" : desert ? "#c49a62" : "#b08960";
-    const core = snow ? "#e7eef2" : desert ? "#d7b07a" : "#c4a06a";
-    strokePath(ctx, 46, edge);
+    const dirt = snow ? "#d5dee4" : desert ? "#c49a62" : "#b08958";
     strokePath(ctx, 34, dirt);
-    strokePath(ctx, 18, core);
     ctx.restore();
+    const routes = B.routes && B.routes.length ? B.routes : [B.route];
+    ctx.strokeStyle = snow ? "rgba(90,110,120,0.45)" : "rgba(90,60,30,0.4)";
+    ctx.lineWidth = 1.2;
+    for (let li = 0; li < routes.length; li++) {
+      ctx.beginPath();
+      for (let d = 0; d < routes[li].total; d += 10) {
+        const p = B.pointAt(d, li);
+        const nx = -Math.sin(p.angle) * 5;
+        const ny = Math.cos(p.angle) * 5;
+        if (d === 0) ctx.moveTo(p.x + nx, p.y + ny);
+        else ctx.lineTo(p.x + nx, p.y + ny);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      for (let d = 0; d < routes[li].total; d += 10) {
+        const p = B.pointAt(d, li);
+        const nx = -Math.sin(p.angle) * 5;
+        const ny = Math.cos(p.angle) * 5;
+        if (d === 0) ctx.moveTo(p.x - nx, p.y - ny);
+        else ctx.lineTo(p.x - nx, p.y - ny);
+      }
+      ctx.stroke();
+    }
+    if (!snow && !desert) {
+      [[40, 200], [360, 250], [30, 360], [350, 420]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 34) fenceRun(ctx, s[0], s[1], 4);
+      });
+      [[200, 250], [80, 430]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 30) bagPile(ctx, s[0], s[1]);
+      });
+      [[300, 360], [50, 280]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 30) rockPile(ctx, s[0], s[1]);
+      });
+    } else if (desert) {
+      [[40, 220], [340, 300], [60, 420]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 30) rockPile(ctx, s[0], s[1]);
+      });
+    } else {
+      [[50, 200], [340, 260], [40, 400]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 34) fenceRun(ctx, s[0], s[1], 3);
+      });
+      [[180, 300]].forEach(function (s) {
+        if (B.distToRoute(s[0], s[1]) > 30) rockPile(ctx, s[0], s[1]);
+      });
+    }
     const pond = B.map.pond;
     if (pond && pond.kind === "well") drawWell(ctx, pond);
     else if (pond && pond.kind === "ice") drawIce(ctx, pond);
@@ -501,14 +639,6 @@
     drawFort(ctx, exit.x, exit.y);
     const sign = B.map.sign || { x: 78, y: 524, label: B.map.name || "Maple Grove" };
     drawSign(ctx, sign.x, sign.y, sign.label);
-    if (mapLines().length > 1) {
-      mapLines().forEach((pts) => {
-        const a = pts[0];
-        const b = pts[1];
-        const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
-        drawBannerPost(ctx, a[0] + Math.cos(ang) * 36 - Math.sin(ang) * 36, a[1] + Math.sin(ang) * 36 + Math.cos(ang) * 36);
-      });
-    } else drawBannerPost(ctx, 26, 96);
   }
 
   function drawCamp(ctx) {
@@ -779,7 +909,7 @@
     ctx.lineWidth = 2;
     ctx.strokeStyle = INK;
     strokeRound(ctx, x, y, 8, 28, 2);
-    fillRound(ctx, x + 6, y + 2, 36, 16, 4, "#6a3ec4");
+    fillRound(ctx, x + 6, y + 2, 36, 16, 4, "#8d3a32");
     ctx.strokeStyle = INK;
     strokeRound(ctx, x + 6, y + 2, 36, 16, 4);
     ctx.textAlign = "center";
@@ -965,17 +1095,13 @@
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.28;
+      ctx.strokeStyle = "#6a4a28";
+      ctx.lineWidth = 1.2;
       ctx.lineCap = "round";
-      ctx.lineJoin = "round";
       ctx.beginPath();
-      ctx.moveTo(-7, -6);
-      ctx.lineTo(2, 0);
-      ctx.lineTo(-7, 6);
-      ctx.stroke();
-      ctx.strokeStyle = "#fff6d8";
-      ctx.lineWidth = 2.4;
+      ctx.moveTo(-4, 0);
+      ctx.lineTo(4, 0);
       ctx.stroke();
       ctx.restore();
     }
@@ -1055,7 +1181,7 @@
     ctx.ellipse(0, 8, 8, 3, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.translate(0, -12);
-    fillRound(ctx, -6, -3, 12, 6, 2, "#3a1848");
+    fillRound(ctx, -6, -3, 12, 6, 2, "#6e342c");
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     strokeRound(ctx, -6, -3, 12, 6, 2);
@@ -1086,7 +1212,7 @@
       ctx.ellipse(w[0], w[1], 5, 3.4, 0, 0, Math.PI * 2);
       ctx.fill();
     });
-    fillRound(ctx, -18, -9, 36, 18, 6, "#6a3ec4");
+    fillRound(ctx, -18, -9, 36, 18, 6, "#8d3a32");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, -18, -9, 36, 18, 6);
@@ -1136,13 +1262,13 @@
       ctx.fillRect(i + roll - 18, -14, 4, 6);
       ctx.fillRect(i + roll - 18, 8, 4, 6);
     }
-    fillRound(ctx, -26, -12, 50, 24, 8, "#5a32b0");
+    fillRound(ctx, -26, -12, 50, 24, 8, "#6e342c");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     strokeRound(ctx, -26, -12, 50, 24, 8);
     ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.fillRect(-22, -10, 42, 6);
-    ctx.fillStyle = "#7a4ad4";
+    ctx.fillStyle = "#8d3a32";
     ctx.beginPath();
     ctx.arc(-2, 0, 11, 0, Math.PI * 2);
     ctx.fill();
@@ -2988,17 +3114,32 @@
   function paperGrain(ctx, L) {
     const rand = mulberry32(7);
     ctx.save();
-    for (let i = 0; i < 180; i++) {
+    ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = "rgba(168, 136, 92, 0.34)";
+    ctx.fillRect(0, 0, L.vw, L.vh);
+    ctx.globalCompositeOperation = "source-over";
+    for (let i = 0; i < 420; i++) {
       const x = rand() * L.vw;
       const y = rand() * L.vh;
-      ctx.fillStyle = "rgba(60, 40, 20, " + (0.03 + rand() * 0.05) + ")";
-      ctx.fillRect(x, y, 1.4, 1.4);
+      ctx.fillStyle = "rgba(50, 32, 16, " + (0.04 + rand() * 0.08) + ")";
+      ctx.fillRect(x, y, 1.5, 1.5);
     }
-    const vg = ctx.createRadialGradient(L.vw / 2, L.vh / 2, L.vh * 0.35, L.vw / 2, L.vh / 2, L.vh * 0.75);
+    const vg = ctx.createRadialGradient(L.vw / 2, L.vh / 2, L.vh * 0.28, L.vw / 2, L.vh / 2, L.vh * 0.72);
     vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(40, 24, 12, 0.16)");
+    vg.addColorStop(1, "rgba(40, 24, 12, 0.38)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, L.vw, L.vh);
+    ctx.strokeStyle = "#3a2a1c";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(2, 2, L.vw - 4, L.vh - 4);
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(8, 8, L.vw - 16, L.vh - 16);
+    [[14, 14, 1, 1], [L.vw - 14, 14, -1, 1], [14, L.vh - 14, 1, -1], [L.vw - 14, L.vh - 14, -1, -1]].forEach(function (c) {
+      ctx.beginPath();
+      ctx.moveTo(c[0], c[1] + c[3] * 10);
+      ctx.quadraticCurveTo(c[0] + c[2] * 8, c[1] + c[3] * 8, c[0] + c[2] * 10, c[1]);
+      ctx.stroke();
+    });
     ctx.restore();
   }
 
