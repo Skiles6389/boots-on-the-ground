@@ -188,6 +188,25 @@
 
   B.chevronCap = 6;
 
+  // Top tier (4) on one path unlocks a tap ability.
+  B.abilities = {
+    trooper: { path: "fireteam", tier: 4, id: "rally", name: "Rally", blurb: "Friends nearby shoot faster.", cd: 24 },
+    longshot: { path: "deadeye", tier: 4, id: "deadeye", name: "Deadeye", blurb: "A huge shot at the toughest target.", cd: 18 },
+    gatling: { path: "belt", tier: 4, id: "storm", name: "Storm", blurb: "This gun pours it on.", cd: 20 },
+    mortar: { path: "battery", tier: 4, id: "barrage", name: "Barrage", blurb: "Shells walk the lane in range.", cd: 28 },
+    tread: { path: "bore", tier: 4, id: "thunder", name: "Thunder", blurb: "One enormous cannon blast.", cd: 22 },
+    engineer: { path: "fort", tier: 4, id: "blast", name: "Blast", blurb: "The bags burst and slow the lane.", cd: 22 },
+    sky: { path: "missile", tier: 4, id: "swarm", name: "Swarm", blurb: "A rack of missiles.", cd: 24 },
+    chopper: { path: "strike", tier: 4, id: "strike", name: "Strike", blurb: "Bombs along the lane.", cd: 30 },
+  };
+
+  B.abilityFor = function (type, ranks) {
+    const spec = B.abilities[type];
+    if (!spec) return null;
+    if (((ranks && ranks[spec.path]) || 0) < spec.tier) return null;
+    return spec;
+  };
+
   B.chevronsUsed = function (type, ranks) {
     const def = B.towers[type];
     let n = 0;
