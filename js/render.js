@@ -415,10 +415,11 @@
       grunt: "grunt", scout: "scout", heavy: "heavy", moto: "scout", brute: "brute",
       riot: "riot", medic: "medic", sneak: "sneak", camo: "camo", para: "para",
       dash: "dash", bulwark: "bulwark", gnat: "gnat",
+      plate: "heavy", vex: "heavy", outrider: "dash", marksman: "camo", stick: "para",
     };
-    const vehicle = key === "jeep" || key === "tank" || key === "halftrack" || key === "ironjaw";
+    const vehicle = key === "jeep" || key === "tank" || key === "halftrack" || key === "ironjaw" || key === "ram" || key === "blimp";
     const enemy = !!foe[key] || vehicle;
-    const role = foe[key] || (key === "halftrack" ? "jeep" : key === "ironjaw" ? "tank" : key);
+    const role = foe[key] || (key === "halftrack" ? "jeep" : key === "ironjaw" || key === "ram" ? "tank" : key === "blimp" ? "gnat" : key);
     const painted = !!(root.BOTGArt && root.BOTGArt.has(role));
     ctx.save();
     fillRound(ctx, x, y, w, h, 12, painted ? "#efe6c8" : (enemy || vehicle ? "#4a2040" : "#2f9a3c"));
@@ -1395,6 +1396,103 @@
     ctx.restore();
   }
 
+  function drawRam(ctx, e, time) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.angle);
+    ctx.scale(0.82, 0.82);
+    shadow(ctx, 0, 12, 62, 14);
+    ctx.fillStyle = "#1c1a18";
+    fillRound(ctx, -58, -16, 108, 11, 4, "#1c1a18");
+    fillRound(ctx, -58, 8, 108, 11, 4, "#1c1a18");
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    strokeRound(ctx, -58, -16, 108, 11, 4);
+    strokeRound(ctx, -58, 8, 108, 11, 4);
+    const roll = (time * 28) % 14;
+    ctx.fillStyle = "#8a8680";
+    for (let i = -48; i <= 40; i += 14) {
+      ctx.fillRect(i + roll - 20, -14, 5, 7);
+      ctx.fillRect(i + roll - 20, 9, 5, 7);
+    }
+    fillRound(ctx, -52, -13, 96, 26, 6, "#6d7278");
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, -52, -13, 96, 26, 6);
+    ctx.fillStyle = "#c4373a";
+    ctx.fillRect(-52, -13, 96, 4);
+    ctx.fillRect(-52, 9, 96, 4);
+    const plates = Math.max(0, e.plates || 0);
+    const shown = plates > 0 ? 4 : 1;
+    ctx.fillStyle = plates > 0 ? "#b7c0c8" : "#5c6166";
+    for (let i = 0; i < shown; i++) {
+      fillRound(ctx, -40 + i * 18, -8, 14, 16, 3, ctx.fillStyle);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = INK;
+      strokeRound(ctx, -40 + i * 18, -8, 14, 16, 3);
+    }
+    ctx.fillStyle = "#3a3e42";
+    ctx.beginPath();
+    ctx.moveTo(44, -10);
+    ctx.lineTo(62, 0);
+    ctx.lineTo(44, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(28, -3, 8, 3);
+    if (e.flash > 0) {
+      ctx.fillStyle = "rgba(255,255,255," + Math.min(0.65, e.flash * 4) + ")";
+      fillRound(ctx, -52, -13, 96, 26, 6, ctx.fillStyle);
+    }
+    ctx.restore();
+  }
+
+  function drawBlimp(ctx, e, time) {
+    ctx.save();
+    ctx.translate(e.x, e.y - 18);
+    shadow(ctx, 6, 36, 28, 8);
+    const bob = Math.sin(time * 1.6 + (e.id || 0)) * 2;
+    ctx.translate(0, bob);
+    ctx.fillStyle = "#8d949c";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 34, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.fillStyle = "#c4373a";
+    ctx.fillRect(-34, -3, 68, 5);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-34, -3, 68, 5);
+    ctx.fillStyle = "#5c636b";
+    fillRound(ctx, -10, 12, 20, 10, 3, "#5c636b");
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = INK;
+    strokeRound(ctx, -10, 12, 20, 10, 3);
+    ctx.strokeStyle = "#2a2420";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-8, 12);
+    ctx.lineTo(-14, 4);
+    ctx.moveTo(8, 12);
+    ctx.lineTo(14, 4);
+    ctx.stroke();
+    ctx.fillStyle = "#ff3030";
+    ctx.beginPath();
+    ctx.arc(-4, 16, 1.3, 0, Math.PI * 2);
+    ctx.arc(3, 16, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+    if (e.flash > 0) {
+      ctx.fillStyle = "rgba(255,255,255," + Math.min(0.55, e.flash * 3) + ")";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 34, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawDust(ctx, e, time) {
     const a = e.angle + Math.PI;
     for (let i = 0; i < 3; i++) {
@@ -1447,6 +1545,13 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       label(ctx, def.name.toUpperCase(), e.x, y - 2, 12, "#ffe56a", INK, 3);
+    }
+    if (def.plates && e.plates > 0) {
+      const pw = w;
+      const py = y + 9;
+      const pp = Math.max(0, e.plates / def.plates);
+      fillRound(ctx, x - 1, py - 1, pw + 2, 6, 3, INK);
+      fillRound(ctx, x, py, Math.max(3, pw * pp), 4, 2, "#c5d0da");
     }
   }
 
@@ -1709,7 +1814,7 @@
   function composition(wave) {
     const counts = {};
     wave.groups.forEach((g) => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    const order = ["grunt", "scout", "dash", "moto", "heavy", "brute", "riot", "bulwark", "medic", "sneak", "camo", "para", "jeep", "halftrack", "gnat", "tank", "ironjaw"];
+    const order = ["grunt", "scout", "dash", "moto", "outrider", "heavy", "plate", "brute", "riot", "bulwark", "vex", "medic", "sneak", "camo", "marksman", "para", "stick", "jeep", "halftrack", "gnat", "blimp", "tank", "ram", "ironjaw"];
     return order.filter((t) => counts[t]).map((t) => ({ type: t, count: counts[t] }));
   }
 
@@ -2645,11 +2750,17 @@
     const x = L.mapBox.x + (L.mapBox.w - w) / 2;
     const y = L.mapBox.y + 8;
     const pct = Math.max(0, boss.hp / boss.maxHp);
-    fillRound(ctx, x, y, w, 28, 10, "#2a1428");
+    const plated = def.plates && boss.plates > 0;
+    const h = plated ? 40 : 28;
+    fillRound(ctx, x, y, w, h, 10, "#2a1428");
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
-    strokeRound(ctx, x, y, w, 28, 10);
+    strokeRound(ctx, x, y, w, h, 10);
     fillRound(ctx, x + 6, y + 16, Math.max(8, (w - 12) * pct), 8, 4, pct > 0.4 ? "#ff5d6c" : "#ffe14a");
+    if (plated) {
+      const pp = Math.max(0, boss.plates / def.plates);
+      fillRound(ctx, x + 6, y + 28, Math.max(8, (w - 12) * pp), 6, 3, "#c5d0da");
+    }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     label(ctx, def.name.toUpperCase(), x + w / 2, y + 9, 12, "#ffe56a", INK, 3);
@@ -3098,25 +3209,36 @@
             ctx.globalAlpha = Math.max(0, 1 - k);
             ctx.translate(-e.x, -e.y);
           }
-          if (!dying && (e.type === "scout" || e.type === "dash" || e.type === "moto" || e.type === "jeep" || e.type === "halftrack")) drawDust(ctx, e, state.time);
+          if (!dying && (e.type === "scout" || e.type === "dash" || e.type === "moto" || e.type === "outrider" || e.type === "jeep" || e.type === "halftrack")) drawDust(ctx, e, state.time);
           if (!dying && e.falling > 0) drawChute(ctx, e);
           if (e.type === "jeep" || e.type === "halftrack") drawJeep(ctx, e);
           else if (e.type === "tank" || e.type === "ironjaw") drawTank(ctx, e, state.time);
+          else if (e.type === "ram") drawRam(ctx, e, state.time);
+          else if (e.type === "blimp") drawBlimp(ctx, e, state.time);
           else if (e.type === "gnat") drawGnat(ctx, e);
           else {
-            const role = e.type === "moto" ? "scout" : e.type;
+            const roles = { moto: "scout", plate: "heavy", vex: "heavy", outrider: "dash", marksman: "camo", stick: "para" };
+            const role = roles[e.type] || e.type;
             const illustrated = !!(root.BOTGArt && root.BOTGArt.has(role));
+            const bossScale = e.type === "vex" ? 1.45 : 1;
             drawSoldier(ctx, e.x, e.y, {
               team: "enemy",
               role: role,
               aim: e.angle,
               phase: e.phase,
-              scale: illustrated ? 1 : B.enemies[e.type].scale,
+              scale: illustrated ? bossScale : B.enemies[e.type].scale,
               flash: e.flash,
               slow: e.slow,
               revealed: e.revealed,
               shield: e.shieldMax ? e.shieldHp / e.shieldMax : null,
             });
+          }
+          if (!dying && e.plates > 0) {
+            ctx.strokeStyle = "rgba(190,206,218,0.85)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y - 8, (e.radius || 16) + 4, 0, Math.PI * 2);
+            ctx.stroke();
           }
           if (!dying && e.shieldMax && e.shieldHp > 0) {
             const bw = 16;

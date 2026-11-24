@@ -473,16 +473,20 @@
       lane = state.laneCursor || 0;
       state.laneCursor = (lane + 1) % lanes;
     }
-    const route = B.routeFor(lane);
     const dropping = !!(def.drop || (opt && opt.drop));
-    const frac = dropping ? (typeof def.drop === "number" ? def.drop : 0.46) : 0;
-    const p = B.pointAt(dropping ? route.total * frac : 0, lane);
+    const dropFrac = opt && typeof opt.drop === "number"
+      ? opt.drop
+      : (typeof def.drop === "number" ? def.drop : 0.46);
+    const frac = dropping ? dropFrac : 0;
+    const lanePick = opt && opt.lane != null ? opt.lane : lane;
+    const route = B.routeFor(lanePick);
+    const p = B.pointAt(dropping ? route.total * frac : (opt && typeof opt.dist === "number" ? opt.dist : 0), lanePick);
     const fall = dropping ? def.dropTime || 1.25 : 0;
     const enemy = {
       id: state.nextId++,
       type,
-      lane,
-      dist: dropping ? route.total * frac : 0,
+      lane: lanePick,
+      dist: opt && typeof opt.dist === "number" ? opt.dist : (dropping ? route.total * frac : 0),
       x: p.x,
       y: p.y - (dropping ? 78 : 0),
       angle: p.angle,
@@ -499,9 +503,16 @@
       dead: false,
       falling: fall,
       fall: fall,
-      airborne: dropping,
+      airborne: dropping || !!def.air,
+      air: !!def.air,
       shieldHp: def.shield ? def.shieldHp || 14 : 0,
       shieldMax: def.shield ? def.shieldHp || 14 : 0,
+      plates: def.plates || 0,
+      callsLeft: def.calls || 0,
+      callCd: def.callEvery || 0,
+      dropsLeft: def.drops || 0,
+      dropCd: def.dropEvery || 0,
+      supCd: 1.2,
     };
     state.enemies.push(enemy);
     if (dropping) floater(p.x, p.y - 70, "DROP", "#ffd0d8", 0.8);
@@ -510,11 +521,26 @@
       audio.play("boss");
       state.shake = Math.max(state.shake, 7);
       announce("Ironjaw is on the lane.");
-    } else if (def.boss) {
-      showBanner("Scowl Corps", "Colonel Grim", "His tank is on the lane. Stop it before the gate.", "boss");
+    } else if (type === "vex") {
+      showBanner("Scowl Corps", "Captain Vex", "His shield drinks rifle fire. Shells crack it. Then he calls a squad.", "boss");
       audio.play("boss");
       state.shake = Math.max(state.shake, 5);
-      announce("Colonel Grim is on the lane.");
+      announce("Captain Vex is on the lane.");
+    } else if (type === "ram") {
+      showBanner("Scowl Corps", "The Ram", "Armor plates shrug off rifles. Explosives crack the plates.", "boss");
+      audio.play("boss");
+      state.shake = Math.max(state.shake, 6);
+      announce("The Ram is on the lane.");
+    } else if (type === "blimp") {
+      showBanner("Scowl Corps", "Grey Blimp", "It sails overhead and drops troops. Sky guns own it.", "boss");
+      audio.play("boss");
+      state.shake = Math.max(state.shake, 5);
+      announce("The Grey Blimp is overhead.");
+    } else if (def.boss) {
+      showBanner("Scowl Corps", def.name, "A boss is on the lane.", "boss");
+      audio.play("boss");
+      state.shake = Math.max(state.shake, 5);
+      announce(def.name + " is on the lane.");
     }
   }
 
@@ -566,6 +592,32 @@
     if (!enemy || enemy.dead) return;
     const def = B.enemies[enemy.type];
     if (def && def.camo && !enemySeen(enemy)) return;
+    const explosive = (armorBite || 0) >= 0.5 || (from && from.explosive);
+    if (def && def.plates && enemy.plates > 0 && !explosive) {
+      enemy.flash = 0.08;
+      if (enemy.tinkCd <= 0) {
+        floater(enemy.x, enemy.y - 22, "PLATE", "#d7e7ff", 0.35);
+        enemy.tinkCd = 0.45;
+      }
+      return;
+    }
+    if (def && def.plates && enemy.plates > 0 && explosive) {
+      enemy.plates -= damage;
+      enemy.flash = 0.14;
+      if (enemy.plates <= 0) {
+        enemy.plates = 0;
+        floater(enemy.x, enemy.y - 24, "PLATES CRACK", "#ffe56a", 0.8);
+      }
+      return;
+    }
+    if (def && def.smallArms && (armorBite || 0) < 0.45 && !(from && from.explosive)) {
+      enemy.flash = 0.06;
+      if (enemy.tinkCd <= 0) {
+        floater(enemy.x, enemy.y - 16, "plink", "#d7e7ff", 0.28);
+        enemy.tinkCd = 0.45;
+      }
+      return;
+    }
     if (def && def.shield && enemy.shieldHp > 0 && armorBite < 0.5 && fromFront(enemy, from)) {
       enemy.shieldHp -= damage;
       enemy.flash = 0.1;
@@ -617,10 +669,14 @@
   }
 
   function targetScore(tower, enemy) {
-    if (tower.priority === "last") return -enemy.dist;
-    if (tower.priority === "tough") return enemy.hp + enemy.maxHp * 0.01;
-    if (tower.priority === "near") return -Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
-    return enemy.dist;
+    const def = B.enemies[enemy.type];
+    let score;
+    if (tower.priority === "last") score = -enemy.dist;
+    else if (tower.priority === "tough") score = enemy.hp + enemy.maxHp * 0.01;
+    else if (tower.priority === "near") score = -Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
+    else score = enemy.dist;
+    if ((tower.type === "sky" || tower.type === "chopper") && def && (def.air || enemy.air)) score += 100000;
+    return score;
   }
 
   function enemySeen(enemy) {
@@ -666,7 +722,7 @@
     for (const enemy of liveEnemies()) {
       if (ignoreId && enemy.id === ignoreId) continue;
       if (Math.hypot(enemy.x - x, enemy.y - y) <= radius + (enemy.radius || 0) * 0.35) {
-        deal(enemy, damage, armorBite);
+        deal(enemy, damage, armorBite, { x: x, y: y });
       }
     }
     spawnPoof(x, y, 1.15, true);
@@ -929,7 +985,8 @@
       tower.phase += dt * 4;
       tower.spin += dt * (8 + tower.rank * 4);
       tower.flash = Math.max(0, tower.flash - dt);
-      tower.cooldown -= dt;
+      tower.suppress = Math.max(0, (tower.suppress || 0) - dt);
+      tower.cooldown -= dt * (tower.suppress > 0 ? 0.45 : 1);
       tower.abilityCd = Math.max(0, (tower.abilityCd || 0) - dt);
       tower.buff = Math.max(0, (tower.buff || 0) - dt);
       if (tower.rocketCd) tower.rocketCd = Math.max(0, tower.rocketCd - dt);
@@ -1031,6 +1088,44 @@
       enemy.tinkCd = Math.max(0, enemy.tinkCd - dt);
       enemy.revealed = enemySeen(enemy);
       const edef = B.enemies[enemy.type];
+      if (edef.calls && enemy.callsLeft > 0 && !enemy.dead) {
+        enemy.callCd -= dt;
+        if (enemy.callCd <= 0) {
+          enemy.callCd = edef.callEvery || 3.4;
+          enemy.callsLeft -= 1;
+          spawnEnemy("grunt", { dist: Math.max(0, enemy.dist - 36), lane: enemy.lane });
+          floater(enemy.x, enemy.y - 28, "SQUAD", "#ffd0d0", 0.7);
+        }
+      }
+      if (edef.drops && enemy.dropsLeft > 0 && !enemy.dead) {
+        enemy.dropCd -= dt;
+        if (enemy.dropCd <= 0) {
+          enemy.dropCd = edef.dropEvery || 5;
+          enemy.dropsLeft -= 1;
+          const route = B.routeFor(enemy.lane);
+          const frac = route.total ? Math.min(0.82, enemy.dist / route.total + 0.04) : 0.5;
+          spawnEnemy("stick", { drop: frac, lane: enemy.lane });
+        }
+      }
+      if (edef.suppress && !enemy.revealed && !enemy.dead) {
+        enemy.supCd -= dt;
+        if (enemy.supCd <= 0) {
+          enemy.supCd = 3.6;
+          let best = null;
+          let bestD = 170;
+          for (const tower of state.towers) {
+            const d = Math.hypot(tower.x - enemy.x, tower.y - enemy.y);
+            if (d < bestD) {
+              bestD = d;
+              best = tower;
+            }
+          }
+          if (best) {
+            best.suppress = 2.4;
+            floater(best.x, best.y - 30, "PINNED", "#ffd0d0", 0.6);
+          }
+        }
+      }
       if (edef.medic) {
         let jammed = false;
         for (const tower of state.towers) {
