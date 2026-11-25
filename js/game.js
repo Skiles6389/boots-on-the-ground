@@ -486,10 +486,20 @@
     return items;
   }
 
+  function marchPressure() {
+    const round = state.started || 1;
+    if (round <= 6) return { hp: 1, speed: 1 };
+    const t = Math.min(1, (round - 6) / 20);
+    const diff = state.difficulty || "medium";
+    const hpCap = diff === "easy" ? 1.2 : diff === "hard" ? 1.04 : 1.15;
+    const spdCap = diff === "easy" ? 1.05 : diff === "hard" ? 1.02 : 1.05;
+    return { hp: 1 + (hpCap - 1) * t, speed: 1 + (spdCap - 1) * t };
+  }
+
   function freeWave(round) {
     const bump = Math.max(1, round - B.waves.length);
     const groups = [
-      { type: "grunt", count: 8 + bump, interval: Math.max(0.32, 0.62 - bump * 0.02), hp: 8 + bump * 2 },
+      { type: "grunt", count: 5 + bump, interval: Math.max(0.36, 0.75 - bump * 0.012), hp: 8 + bump },
     ];
     if (bump > 1) groups.push({ type: "scout", count: 4 + Math.floor(bump / 2), interval: 0.4 });
     if (bump > 3) groups.push({ type: "heavy", count: 2 + Math.floor(bump / 3), interval: 0.85 });
@@ -548,8 +558,9 @@
     const p = B.pointAt(dropping ? route.total * frac : (opt && typeof opt.dist === "number" ? opt.dist : 0), lanePick);
     const fall = dropping ? def.dropTime || 1.25 : 0;
     const relief = state.difficulty === "hard" && B.map && B.map.hardRelief ? B.map.hardRelief : null;
-    const mul = (state.challenge === "double" ? 2 : 1) * (relief && relief.hp ? relief.hp : 1);
-    const speedMul = relief && relief.speed ? relief.speed : 1;
+    const pace = marchPressure();
+    const mul = (state.challenge === "double" ? 2 : 1) * (relief && relief.hp ? relief.hp : 1) * pace.hp;
+    const speedMul = (relief && relief.speed ? relief.speed : 1) * pace.speed;
     const baseHp = opt && typeof opt.hp === "number" ? opt.hp : def.hp;
     const hp = Math.max(1, Math.round(baseHp * mul));
     const enemy = {
@@ -619,7 +630,7 @@
     enemy.dead = true;
     enemy.dying = 0.42;
     enemy.hp = 0;
-    state.cash += enemy.cash;
+    state.cash += Math.max(1, Math.round(enemy.cash * ((B.difficulties[state.difficulty] || {}).cashDrop || 1)));
     state.takedowns = (state.takedowns || 0) + 1;
     const boss = !!B.enemies[enemy.type].boss;
     const scale = boss ? 2.15 : enemy.type === "jeep" ? 1.35 : enemy.type === "heavy" ? 1.15 : 1;
@@ -1338,7 +1349,8 @@
       let purse = 0;
       while (state.rewarded < state.started) {
         const cleared = state.rewarded < B.waves.length ? B.waves[state.rewarded] : freeWave(state.rewarded + 1);
-        purse += cleared.reward || 0;
+        const rewardMul = (B.difficulties[state.difficulty] || {}).reward || 1;
+        purse += Math.round((cleared.reward || 0) * rewardMul);
         state.rewarded += 1;
         if (root.BOTGSave) root.BOTGSave.addXp(8);
       }
