@@ -61,23 +61,23 @@
       ]),
     ],
     gatling: [
-      path("belt", "Belt Feed", 115, [
-        ["Bigger Belt", "The barrels spin faster.", { rate: 9.5 }],
-        ["Twin Guns", "A second gun joins in.", { rate: 10, extra: 1 }],
-        ["Overdrive", "No pause, just lead.", { rate: 12, extra: 1 }],
-        ["Bullet Storm", "A roaring cloud of fire.", { rate: 14, extra: 2 }],
+      path("belt", "Belt Feed", 135, [
+        ["Bigger Belt", "The barrels spin a little faster.", { rate: 4.4 }],
+        ["Twin Guns", "A second gun joins in.", { rate: 4.6, extra: 1 }],
+        ["Overdrive", "Both guns keep up.", { rate: 5.0, extra: 1 }],
+        ["Bullet Storm", "A loud, short-range hose.", { rate: 5.4, extra: 1 }],
       ]),
-      path("suppress", "Suppression", 115, [
+      path("suppress", "Suppression", 135, [
         ["Pin Down", "Hits slow the march.", { slowOnHit: 0.85 }],
         ["Cover Fire", "A wider, heavier slow.", { slowOnHit: 0.7, range: 96 }],
         ["Hold the Line", "Scouts lose their sprint.", { slowOnHit: 0.6, range: 104 }],
         ["Wall of Lead", "Anything in range crawls.", { slowAura: 0.5, range: 110 }],
       ]),
-      path("tracer", "Tracer", 115, [
+      path("tracer", "Tracer", 135, [
         ["Tracers", "Rounds keep flying.", { pierce: 1 }],
-        ["Steel Core", "Light armor is no longer safe.", { pierce: 1, armorBite: 0.55 }],
-        ["Long Barrel", "The lane looks closer.", { pierce: 2, armorBite: 0.55, range: 112 }],
-        ["Hailfire", "A piercing stream.", { pierce: 4, armorBite: 0.8, rate: 11 }],
+        ["Steel Core", "Light armor is no longer safe.", { pierce: 1, armorBite: 0.4 }],
+        ["Long Barrel", "The lane looks closer.", { pierce: 2, armorBite: 0.4, range: 96 }],
+        ["Hailfire", "A piercing stream.", { pierce: 2, armorBite: 0.55, rate: 5.0 }],
       ]),
     ],
     mortar: [

@@ -6,7 +6,7 @@
     meta: {
       title: "Boots on the Ground",
       mapName: "Normandy Shore",
-      startingCash: 230,
+      startingCash: 220,
       startingLives: 30,
       sellRefund: 0.7,
       earlyWaveBonus: 30,
@@ -124,13 +124,13 @@
       },
       gatling: {
         name: "Gatling Gunner",
-        cost: 115,
-        blurb: "A short-range storm of light rounds. Park on a corner.",
+        cost: 135,
+        blurb: "A short-range hose of light rounds. Park on a corner. It does not replace a real line.",
         aim: "first",
         base: {
           damage: 1,
-          range: 78,
-          rate: 7.2,
+          range: 72,
+          rate: 3.6,
           armorBite: 0,
           projectileSpeed: 460,
           role: "gatling",
@@ -139,14 +139,14 @@
           {
             name: "Spin-Up",
             cost: 95,
-            blurb: "The barrels turn faster. Scouts hate this corner.",
-            set: { damage: 1, range: 84, rate: 10 },
+            blurb: "The barrels turn a little faster.",
+            set: { damage: 1, range: 78, rate: 4.4 },
           },
           {
             name: "Hardened Belts",
             cost: 160,
-            blurb: "The rounds finally bite into armor.",
-            set: { damage: 1, range: 90, rate: 11, armorBite: 0.62 },
+            blurb: "The rounds start to notice armor.",
+            set: { damage: 1, range: 82, rate: 4.8, armorBite: 0.4 },
           },
         ],
       },
@@ -954,7 +954,7 @@
       blurb: "Two snowy lanes that meet at the village gate.",
       tier: "Veteran",
       requires: "cactus",
-      hardRelief: { hp: 0.75, speed: 0.85, lives: 8, cash: 40 },
+      hardRelief: { hp: 0.7, speed: 0.84, lives: 12, cash: 55 },
       path: [
         [-28, 110],
         [300, 110],
@@ -1024,6 +1024,7 @@
       blurb: "A palm beach and a lagoon. The water eats the best spots.",
       tier: "Veteran",
       requires: "frost",
+      hardRelief: { hp: 0.9, speed: 0.96, lives: 6, cash: 30 },
       path: [
         [-28, 150],
         [300, 150],
@@ -1051,6 +1052,7 @@
       blurb: "A mountain road that folds back on itself. Rocks fill the corners.",
       tier: "Elite",
       requires: "atoll",
+      hardRelief: { hp: 1.18, speed: 1.03, lives: 0, cash: 0 },
       path: [
         [-28, 108],
         [330, 108],
@@ -1085,7 +1087,7 @@
       blurb: "Two ruined streets in the snow. Cover both or one lane walks through.",
       tier: "Elite",
       requires: "ridge",
-      hardRelief: { hp: 0.7, speed: 0.84, lives: 12, cash: 70 },
+      hardRelief: { hp: 0.5, speed: 0.8, lives: 8, cash: 0 },
       path: [
         [-28, 120],
         [300, 120],
@@ -1130,7 +1132,7 @@
       blurb: "A modern ward split by a canal. Two lanes, and the water is closed.",
       tier: "Campaign",
       requires: "quarter",
-      hardRelief: { hp: 0.78, speed: 0.88, lives: 8, cash: 40 },
+      hardRelief: { hp: 0.7, speed: 0.85, lives: 16, cash: 30 },
       path: [
         [-28, 120],
         [140, 120],
@@ -1198,9 +1200,9 @@
   };
 
   B.difficulties = {
-    easy: { id: "easy", name: "Easy", cost: 0.8, cash: 300, lives: 45, blurb: "Cheaper kits and more lives." },
-    medium: { id: "medium", name: "Medium", cost: 1, cash: 230, lives: 30, blurb: "The regular fight." },
-    hard: { id: "hard", name: "Hard", cost: 1.35, cash: 180, lives: 16, blurb: "Pricier kits and fewer lives." },
+    easy: { id: "easy", name: "Easy", cost: 0.8, cash: 240, lives: 40, cashDrop: 0.88, reward: 0.9, blurb: "Cheaper kits and more lives." },
+    medium: { id: "medium", name: "Medium", cost: 1, cash: 220, lives: 27, cashDrop: 0.94, reward: 0.96, blurb: "The regular fight." },
+    hard: { id: "hard", name: "Hard", cost: 1.35, cash: 180, lives: 16, cashDrop: 1, reward: 1, blurb: "Pricier kits and fewer lives." },
   };
   B.costMul = 1;
   B.kits = [
