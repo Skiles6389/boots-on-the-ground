@@ -39,6 +39,7 @@
       if (typeof this.data.xp !== "number" || this.data.xp < 0) this.data.xp = 0;
       if (!this.data.challenge) this.data.challenge = "normal";
       if (!this.data.challenges) this.data.challenges = {};
+      if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = this.legacyUnlocks();
     },
 
     save() {
@@ -161,6 +162,31 @@
     challengeWon(mapId, challenge) {
       const bag = this.data.challenges && this.data.challenges[mapId];
       return !!(bag && bag[challenge]);
+    },
+
+    legacyUnlocks() {
+      const xp = this.data.xp || 0;
+      const list = ["trooper", "gatling", "longshot"];
+      const old = (root.BOTG_BALANCE && root.BOTG_BALANCE.legacyRanks) || [];
+      old.forEach(function (row) {
+        if (xp < row.xp) return;
+        row.towers.forEach(function (type) {
+          if (list.indexOf(type) < 0) list.push(type);
+        });
+      });
+      return list;
+    },
+
+    hasTower(type) {
+      this.ensure();
+      return this.data.unlockedTowers.indexOf(type) >= 0;
+    },
+
+    rememberTower(type) {
+      this.ensure();
+      if (this.data.unlockedTowers.indexOf(type) >= 0) return;
+      this.data.unlockedTowers.push(type);
+      this.save();
     },
   };
 

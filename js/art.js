@@ -2,7 +2,7 @@
 // Maps are 800×1140 paintings drawn into the 400×570 world.
 // Sprites are 3× cut-outs drawn at the manifest's logical size and anchor.
 (function (root) {
-  const VERSION = "2026-11-24m";
+  const VERSION = "2026-11-25a";
   const SHOW = 1.18;
   const SPRITES = {
     trooper: { w: 31.0, h: 42.0, ax: 0.382, ay: 0.944 },
@@ -13,6 +13,9 @@
     engineer: { w: 37.0, h: 35.0, ax: 0.527, ay: 0.933 },
     sky: { w: 32.3, h: 33.3, ax: 0.392, ay: 0.93 },
     chopper: { w: 59.0, h: 44.0, ax: 0.5, ay: 0.5, center: true },
+    flame: { w: 40, h: 44, ax: 0.45, ay: 0.94 },
+    tent: { w: 40, h: 44, ax: 0.45, ay: 0.94 },
+    gunner: { w: 40, h: 44, ax: 0.45, ay: 0.94 },
     grunt: { w: 29.7, h: 38.0, ax: 0.455, ay: 0.939 },
     dash: { w: 31.3, h: 31.7, ax: 0.734, ay: 0.926 },
     brute: { w: 41.3, h: 44.3, ax: 0.456, ay: 0.947 },
@@ -42,6 +45,9 @@
     mortar: { neck: 0.34, head: 1.35, body: 0.85 },
     engineer: { neck: 0.34, head: 1.35, body: 0.85 },
     sky: { neck: 0.24, head: 1.35, body: 0.85 },
+    flame: { neck: 0.34, head: 1.35, body: 0.85 },
+    tent: { neck: 0.34, head: 1.35, body: 0.85 },
+    gunner: { neck: 0.34, head: 1.35, body: 0.85 },
     tread: { neck: 0.32, head: 1.32, body: 1 },
   };
 
@@ -360,6 +366,9 @@
     engineer: 0.4,
     sky: 0.4,
     chopper: 0.5,
+    flame: 0.45,
+    tent: 0.45,
+    gunner: 0.45,
   };
 
   function drawBust(ctx, key, x, y, w, h) {
