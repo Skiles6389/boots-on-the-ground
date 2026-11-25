@@ -954,6 +954,7 @@
       blurb: "Two snowy lanes that meet at the village gate.",
       tier: "Veteran",
       requires: "cactus",
+      hardRelief: { hp: 0.75, speed: 0.85, lives: 8, cash: 40 },
       path: [
         [-28, 110],
         [300, 110],
@@ -1084,6 +1085,7 @@
       blurb: "Two ruined streets in the snow. Cover both or one lane walks through.",
       tier: "Elite",
       requires: "ridge",
+      hardRelief: { hp: 0.7, speed: 0.84, lives: 12, cash: 70 },
       path: [
         [-28, 120],
         [300, 120],
@@ -1128,6 +1130,7 @@
       blurb: "A modern ward split by a canal. Two lanes, and the water is closed.",
       tier: "Campaign",
       requires: "quarter",
+      hardRelief: { hp: 0.78, speed: 0.88, lives: 8, cash: 40 },
       path: [
         [-28, 120],
         [140, 120],
@@ -1211,12 +1214,22 @@
   B.medalPay = { easy: 12, medium: 20, hard: 32 };
 
   B.ranks = [
-    { id: "recruit", name: "Recruit", xp: 0, towers: ["trooper", "gatling"] },
-    { id: "private", name: "Private", xp: 80, towers: ["mortar"], perk: { cash: 10 } },
-    { id: "corporal", name: "Corporal", xp: 220, towers: ["longshot", "engineer"], perk: { refund: 0.75 } },
-    { id: "sergeant", name: "Sergeant", xp: 480, towers: ["flame", "sky"], skin: "night" },
-    { id: "lieutenant", name: "Lieutenant", xp: 900, towers: ["tread", "tent", "chopper"], perk: { lives: 1 } },
-    { id: "captain", name: "Captain", xp: 1500, towers: ["gunner"], perk: { cash: 20, lives: 1 }, skin: "dress" },
+    { id: "recruit", name: "Recruit", xp: 0, towers: ["trooper", "gatling", "longshot"] },
+    { id: "private", name: "Private", xp: 200, towers: ["mortar"], perk: { cash: 10 } },
+    { id: "corporal", name: "Corporal", xp: 480, towers: ["engineer", "flame"], perk: { refund: 0.75 } },
+    { id: "sergeant", name: "Sergeant", xp: 900, towers: ["sky", "tread"], skin: "night" },
+    { id: "lieutenant", name: "Lieutenant", xp: 1400, towers: ["tent", "chopper"], perk: { lives: 1 } },
+    { id: "captain", name: "Captain", xp: 2200, towers: ["gunner"], perk: { cash: 20, lives: 1 }, skin: "dress" },
+  ];
+
+  // Thresholds from before the early-unlock pass. Old saves keep these towers.
+  B.legacyRanks = [
+    { xp: 0, towers: ["trooper", "gatling"] },
+    { xp: 80, towers: ["mortar"] },
+    { xp: 220, towers: ["longshot", "engineer"] },
+    { xp: 480, towers: ["flame", "sky"] },
+    { xp: 900, towers: ["tread", "tent", "chopper"] },
+    { xp: 1500, towers: ["gunner"] },
   ];
 
   B.challenges = [

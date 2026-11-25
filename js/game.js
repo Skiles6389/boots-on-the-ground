@@ -256,8 +256,10 @@
   function towerOpen(type) {
     if (unlockAll()) return true;
     if (state.challenge === "snipers") return type === "longshot";
-    if (B.towerUnlocked) return B.towerUnlocked(type, playerXp());
-    return true;
+    const byRank = B.towerUnlocked ? B.towerUnlocked(type, playerXp()) : true;
+    if (byRank && root.BOTGSave) root.BOTGSave.rememberTower(type);
+    if (byRank) return true;
+    return !!(root.BOTGSave && root.BOTGSave.hasTower(type));
   }
 
   function lockReason(type) {
@@ -545,9 +547,11 @@
     const route = B.routeFor(lanePick);
     const p = B.pointAt(dropping ? route.total * frac : (opt && typeof opt.dist === "number" ? opt.dist : 0), lanePick);
     const fall = dropping ? def.dropTime || 1.25 : 0;
-    const mul = state.challenge === "double" ? 2 : 1;
+    const relief = state.difficulty === "hard" && B.map && B.map.hardRelief ? B.map.hardRelief : null;
+    const mul = (state.challenge === "double" ? 2 : 1) * (relief && relief.hp ? relief.hp : 1);
+    const speedMul = relief && relief.speed ? relief.speed : 1;
     const baseHp = opt && typeof opt.hp === "number" ? opt.hp : def.hp;
-    const hp = Math.round(baseHp * mul);
+    const hp = Math.max(1, Math.round(baseHp * mul));
     const enemy = {
       id: state.nextId++,
       type,
@@ -558,7 +562,7 @@
       angle: p.angle,
       hp: hp,
       maxHp: hp,
-      speed: opt && typeof opt.speed === "number" ? opt.speed : def.speed,
+      speed: (opt && typeof opt.speed === "number" ? opt.speed : def.speed) * speedMul,
       armor: def.armor,
       cash: def.cash,
       leak: def.leak,
@@ -1758,6 +1762,10 @@
     const perk = currentPerk();
     if (perk && perk.cash) state.cash += perk.cash;
     if (perk && perk.lives) state.lives += perk.lives;
+    if (diff.id === "hard" && map.hardRelief) {
+      state.lives += map.hardRelief.lives || 0;
+      state.cash += map.hardRelief.cash || 0;
+    }
     grantRankKits();
     state.debug = debug;
     state.reducedMotion = motion;
